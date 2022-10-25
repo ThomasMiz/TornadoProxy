@@ -64,10 +64,11 @@ PVS-Studio.log
 report.tasks
 strace_out
 
-# Our executable output files
-
 #Visual Studio files
 .vs
 [Bb]in/
 [Oo]bj/
 .vscode
+
+# Code analysis
+check
