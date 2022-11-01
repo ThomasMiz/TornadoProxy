@@ -52,13 +52,15 @@ int main(const int argc, const char** argv) {
     selector_status ss = SELECTOR_SUCCESS;
     fd_selector selector = NULL;
 
-    struct sockaddr_in addr;
+    // Listening on just IPv6 allow us to handle both IPv6 and IPv4 connections!
+    // https://stackoverflow.com/questions/50208540/cant-listen-on-ipv4-and-ipv6-together-address-already-in-use
+    struct sockaddr_in6 addr;
     memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(port);
+    addr.sin6_family = AF_INET6;
+    memcpy(&addr.sin6_addr, &in6addr_any, sizeof(addr.sin6_addr));
+    addr.sin6_port = htons(port);
 
-    const int server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    const int server = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
     if (server < 0) {
         err_msg = "unable to create socket";
         goto finally;
