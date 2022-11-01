@@ -1,10 +1,12 @@
 #include "../src/negotiation.h"
 #include <check.h>
 
+#define length(array) (sizeof(array) / sizeof(*(array)))
+
 START_TEST(complete_request_no_auth) {
     negParser* p = newNegotiationParser();
     uint8_t data[] = {0x05, 0x01, 0x00};
-    negState state = negotiationRead(p, data, 3);
+    negState state = negotiationRead(p, data, length(data));
     fail_unless(state == NEG_END, "this should succeed");
     fail_unless(p->authMethod == NEG_METHOD_NO_AUTH);
     freeNegotiationParser(p);
