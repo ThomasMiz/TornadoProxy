@@ -95,11 +95,8 @@ void socksv5_handle_write(struct selector_key* key) {
 
     printf("send() %ld bytes to client %d [%u remaining]\n", sent, key->fd, clientData->bufferLength);
     
-    // Calculate the new interests for this socket. We might want to read, write, or both.
-    // If we have buffer space for reading, we want to read. If we have leftovers to write, we want to write.
-    fd_interest newInterests = OP_NOOP;
-    if (clientData->bufferLength < CLIENT_RECV_BUFFER_SIZE)
-        newInterests |= OP_READ;
+    // Calculate the new interests for this socket. We want to read, and possibly write if we still have more buffer data.
+    fd_interest newInterests = OP_READ;
     if (clientData->bufferLength > 0)
         newInterests |= OP_WRITE;
     
