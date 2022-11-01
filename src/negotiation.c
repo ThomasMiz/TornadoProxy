@@ -29,6 +29,7 @@ negState negotiationRead(negParser* p, uint8_t* buffer, int bufferSize) {
 negParser* newNegotiationParser() {
     negParser* p = calloc(sizeof(negParser), 1);
     p->state = VERSION;
+    p->authMethod = NEGOTIATION_METHOD_NO_MATCH;
     return p;
 }
 
@@ -45,8 +46,12 @@ negState parseVersion(negParser* p, uint8_t c) {
 }
 
 negState parseMethodCount(negParser* p, uint8_t c) {
-    printf("[INF] Client specified auth methods: ");
     p->pendingMethods = c;
+    if (c == 0) {
+        printf("[INF] Client did not specify auth methods \n");
+        return END;
+    }
+    printf("[INF] Client specified auth methods: ");
     return METHODS;
 }
 
@@ -54,9 +59,9 @@ negState parseMethods(negParser* p, uint8_t c) {
     p->pendingMethods -= 1;
     printf("%x%s", c, p->pendingMethods == 0 ? "\n" : ", ");
     if (c == NEGOTIATION_METHOD_NO_AUTH) {
-        p->acceptsNoAuth = 1;
+        p->authMethod = NEGOTIATION_METHOD_NO_AUTH;
     } else if (c == NEGOTIATION_METHOD_PASS) {
-        p->acceptsPass = 1;
+        // wait until pass/user auth method is developed
     }
     return p->pendingMethods == 0 ? END : METHODS;
 }

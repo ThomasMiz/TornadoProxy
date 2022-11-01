@@ -17,8 +17,7 @@ typedef enum negState {
 
 typedef struct negParser {
     negState state;
-    uint8_t acceptsNoAuth;
-    uint8_t acceptsPass;
+    uint8_t authMethod;
     uint8_t pendingMethods;
 } negParser;
 
