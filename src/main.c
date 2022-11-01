@@ -49,8 +49,8 @@ int main(const int argc, const char** argv) {
     close(0);
 
     const char* err_msg = NULL;
-    selector_status ss = SELECTOR_SUCCESS;
-    fd_selector selector = NULL;
+    TSelectorStatus ss = SELECTOR_SUCCESS;
+    TSelector selector = NULL;
 
     // Listening on just IPv6 allow us to handle both IPv6 and IPv4 connections!
     // https://stackoverflow.com/questions/50208540/cant-listen-on-ipv4-and-ipv6-together-address-already-in-use
@@ -90,7 +90,7 @@ int main(const int argc, const char** argv) {
         err_msg = "getting server socket flags";
         goto finally;
     }
-    const struct selector_init conf = {
+    const TSelectorInit conf = {
         .signal = SIGALRM,
         .select_timeout = {
             .tv_sec = 10,
@@ -107,7 +107,7 @@ int main(const int argc, const char** argv) {
         err_msg = "unable to create selector";
         goto finally;
     }
-    const struct fd_handler socksv5 = {
+    const TFdHandler socksv5 = {
         .handle_read = socksv5_passive_accept,
         .handle_write = NULL,
         .handle_close = NULL, // nada que liberar

@@ -22,7 +22,7 @@
 #define ERROR_DEFAULT_MSG "something failed"
 
 /** retorna una descripción humana del fallo */
-const char* selector_error(const selector_status status) {
+const char* selector_error(const TSelectorStatus status) {
     const char* msg;
     switch (status) {
         case SELECTOR_SUCCESS:
@@ -51,17 +51,17 @@ static void wake_handler(const int signal) {
 }
 
 // señal a usar para las notificaciones de resolución
-struct selector_init conf;
+TSelectorInit conf;
 static sigset_t emptyset, blockset;
 
-selector_status selector_init(const struct selector_init* c) {
+TSelectorStatus selector_init(const TSelectorInit* c) {
     memcpy(&conf, c, sizeof(conf));
 
     // inicializamos el sistema de comunicación entre threads y el selector
     // principal. La técnica se encuentra descripta en
     // "The new pselect() system call" <https://lwn.net/Articles/176911/>
     //  March 24, 2006
-    selector_status ret = SELECTOR_SUCCESS;
+    TSelectorStatus ret = SELECTOR_SUCCESS;
     struct sigaction act = {
         .sa_handler = wake_handler,
     };
@@ -89,7 +89,7 @@ finally:
     return ret;
 }
 
-selector_status selector_close(void) {
+TSelectorStatus selector_close(void) {
     // Nada para liberar.
     // TODO(juan): podriamos reestablecer el handler de la señal.
     return SELECTOR_SUCCESS;
@@ -98,15 +98,15 @@ selector_status selector_close(void) {
 // estructuras internas
 struct item {
     int fd;
-    fd_interest interest;
-    const fd_handler* handler;
+    TFdInterests interest;
+    const TFdHandler* handler;
     void* data;
 };
 
 /* tarea bloqueante */
 struct blocking_job {
     /** selector dueño de la resolucion */
-    fd_selector s;
+    TSelector s;
     /** file descriptor dueño de la resolucion */
     int fd;
 
@@ -188,7 +188,7 @@ static inline void item_init(struct item* item) {
  * inicializa los nuevos items. `last' es el indice anterior.
  * asume que ya está blanqueada la memoria.
  */
-static void items_init(fd_selector s, const size_t last) {
+static void items_init(TSelector s, const size_t last) {
     assert(last <= s->fd_size);
     for (size_t i = last; i < s->fd_size; i++) {
         item_init(s->fds + i);
@@ -198,7 +198,7 @@ static void items_init(fd_selector s, const size_t last) {
 /**
  * calcula el fd maximo para ser utilizado en select()
  */
-static int items_max_fd(fd_selector s) {
+static int items_max_fd(TSelector s) {
     int max = 0;
     for (int i = 0; i <= s->max_fd; i++) {
         struct item* item = s->fds + i;
@@ -211,7 +211,7 @@ static int items_max_fd(fd_selector s) {
     return max;
 }
 
-static void items_update_fdset_for_fd(fd_selector s, const struct item* item) {
+static void items_update_fdset_for_fd(TSelector s, const struct item* item) {
     FD_CLR(item->fd, &s->master_r);
     FD_CLR(item->fd, &s->master_w);
 
@@ -231,8 +231,8 @@ static void items_update_fdset_for_fd(fd_selector s, const struct item* item) {
  * Se asegura de que `n' sea un número que la plataforma donde corremos lo
  * soporta
  */
-static selector_status ensure_capacity(fd_selector s, const size_t n) {
-    selector_status ret = SELECTOR_SUCCESS;
+static TSelectorStatus ensure_capacity(TSelector s, const size_t n) {
+    TSelectorStatus ret = SELECTOR_SUCCESS;
 
     const size_t element_size = sizeof(*s->fds);
     if (n < s->fd_size) {
@@ -274,9 +274,9 @@ static selector_status ensure_capacity(fd_selector s, const size_t n) {
     return ret;
 }
 
-fd_selector selector_new(const size_t initial_elements) {
+TSelector selector_new(const size_t initial_elements) {
     size_t size = sizeof(struct fdselector);
-    fd_selector ret = malloc(size);
+    TSelector ret = malloc(size);
     if (ret != NULL) {
         memset(ret, 0x00, size);
         ret->master_t.tv_sec = conf.select_timeout.tv_sec;
@@ -292,7 +292,7 @@ fd_selector selector_new(const size_t initial_elements) {
     return ret;
 }
 
-void selector_destroy(fd_selector s) {
+void selector_destroy(TSelector s) {
     // lean ya que se llama desde los casos fallidos de _new.
     if (s != NULL) {
         if (s->fds != NULL) {
@@ -315,8 +315,8 @@ void selector_destroy(fd_selector s) {
 
 #define INVALID_FD(fd) ((fd) < 0 || (fd) >= ITEMS_MAX_SIZE)
 
-selector_status selector_register(fd_selector s, const int fd, const fd_handler* handler, const fd_interest interest, void* data) {
-    selector_status ret = SELECTOR_SUCCESS;
+TSelectorStatus selector_register(TSelector s, const int fd, const TFdHandler* handler, const TFdInterests interest, void* data) {
+    TSelectorStatus ret = SELECTOR_SUCCESS;
     // 0. validación de argumentos
     if (s == NULL || INVALID_FD(fd) || handler == NULL) {
         ret = SELECTOR_IARGS;
@@ -353,8 +353,8 @@ finally:
     return ret;
 }
 
-selector_status selector_unregister_fd(fd_selector s, const int fd) {
-    selector_status ret = SELECTOR_SUCCESS;
+TSelectorStatus selector_unregister_fd(TSelector s, const int fd) {
+    TSelectorStatus ret = SELECTOR_SUCCESS;
 
     if (NULL == s || INVALID_FD(fd)) {
         ret = SELECTOR_IARGS;
@@ -368,7 +368,7 @@ selector_status selector_unregister_fd(fd_selector s, const int fd) {
     }
 
     if (item->handler->handle_close != NULL) {
-        struct selector_key key = {
+        TSelectorKey key = {
             .s = s,
             .fd = item->fd,
             .data = item->data,
@@ -387,8 +387,8 @@ finally:
     return ret;
 }
 
-selector_status selector_set_interest(fd_selector s, int fd, fd_interest i) {
-    selector_status ret = SELECTOR_SUCCESS;
+TSelectorStatus selector_set_interest(TSelector s, int fd, TFdInterests i) {
+    TSelectorStatus ret = SELECTOR_SUCCESS;
 
     if (NULL == s || INVALID_FD(fd)) {
         ret = SELECTOR_IARGS;
@@ -405,8 +405,8 @@ finally:
     return ret;
 }
 
-selector_status selector_set_interest_key(struct selector_key* key, fd_interest i) {
-    selector_status ret;
+TSelectorStatus selector_set_interest_key(TSelectorKey* key, TFdInterests i) {
+    TSelectorStatus ret;
 
     if (NULL == key || NULL == key->s || INVALID_FD(key->fd)) {
         ret = SELECTOR_IARGS;
@@ -421,9 +421,9 @@ selector_status selector_set_interest_key(struct selector_key* key, fd_interest 
  * se encarga de manejar los resultados del select.
  * se encuentra separado para facilitar el testing
  */
-static void handle_iteration(fd_selector s) {
+static void handle_iteration(TSelector s) {
     int n = s->max_fd;
-    struct selector_key key = {
+    TSelectorKey key = {
         .s = s,
     };
 
@@ -454,8 +454,8 @@ static void handle_iteration(fd_selector s) {
     }
 }
 
-static void handle_block_notifications(fd_selector s) {
-    struct selector_key key = {
+static void handle_block_notifications(TSelector s) {
+    TSelectorKey key = {
         .s = s,
     };
     pthread_mutex_lock(&s->resolution_mutex);
@@ -476,8 +476,8 @@ static void handle_block_notifications(fd_selector s) {
     pthread_mutex_unlock(&s->resolution_mutex);
 }
 
-selector_status selector_notify_block(fd_selector s, const int fd) {
-    selector_status ret = SELECTOR_SUCCESS;
+TSelectorStatus selector_notify_block(TSelector s, const int fd) {
+    TSelectorStatus ret = SELECTOR_SUCCESS;
 
     // TODO(juan): usar un pool
     struct blocking_job* job = malloc(sizeof(*job));
@@ -501,8 +501,8 @@ finally:
     return ret;
 }
 
-selector_status selector_select(fd_selector s) {
-    selector_status ret = SELECTOR_SUCCESS;
+TSelectorStatus selector_select(TSelector s) {
+    TSelectorStatus ret = SELECTOR_SUCCESS;
 
     memcpy(&s->slave_r, &s->master_r, sizeof(s->slave_r));
     memcpy(&s->slave_w, &s->master_w, sizeof(s->slave_w));
