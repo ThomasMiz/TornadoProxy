@@ -1,21 +1,25 @@
 #ifndef REQUEST_H
 #define REQUEST_H
 
+#include <netinet/ip.h>
 #include <stdint.h>
 
-#define REQ_CMD_CONNECT 0x01
-#define REQ_CMD_BIND 0x02
-#define REQ_CMD_UDP 0x03
+enum TReqCmd {
+    REQ_CMD_CONNECT = 0x01,
+    REQ_CMD_BIND = 0x02,
+    REQ_CMD_UDP = 0x03
+};
 
-#define REQ_ATYP_IPV4 0x01
-#define REQ_ATYP_DOMAINNAME 0x03
-#define REQ_ATYP_IPV6 0x04
+enum TReqAtyp {
+    REQ_ATYP_IPV4 = 0x01,
+    REQ_ATYP_DOMAINNAME = 0x03,
+    REQ_ATYP_IPV6 = 0x04
+};
 
-#define IPV4_BYTE_LENGHT 4
-#define IPV6_BYTE_LENGHT 16
 #define PORT_BYTE_LENGHT 2
+#define REQ_MAX_DN_LENGHT 0xFF
 
-typedef enum reqState {
+typedef enum TReqState {
     REQ_SUCCEDED = 0,
     REQ_ERROR_GENERAL_FAILURE,
     REQ_ERROR_CONNECTION_NOT_ALLOWED,
@@ -32,25 +36,28 @@ typedef enum reqState {
     REQ_DN_LENGHT, // If atype is 0x03, read the domainname length
     REQ_DST_ADDR,
     REQ_DST_PORT
-} reqState;
+} TReqState;
 
-typedef union naddress {
-    uint8_t ipv4[IPV4_BYTE_LENGHT];
-    uint8_t* domainname;
-    uint8_t ipv6[IPV6_BYTE_LENGHT];
-} naddress;
+typedef union TAddress {
+    struct in_addr ipv4;
+    uint8_t domainname[REQ_MAX_DN_LENGHT + 1];
+    struct in6_addr ipv6;
+    // Used to set bytes without considering their meaning
+    uint8_t bytes[REQ_MAX_DN_LENGHT + 1];
+} TAddress;
 
-typedef struct reqParser {
-    reqState state;
+typedef struct TReqParser {
+    TReqState state;
     uint8_t atyp;
-    uint8_t totalAtypBytes;
-    uint8_t readBytes; // Used to know read bytes for atyp and port
-    naddress address;
-    uint16_t port;
-} reqParser;
+    uint8_t totalAtypBytes; // Used to know read bytes for atyp and port
+    uint8_t readBytes;
+    TAddress address;
+    in_port_t port;
+} TReqParser;
 
-reqParser* newRequestParser();
-reqState requestRead(reqParser* p, uint8_t* buffer, int bufferSize);
-void freeRequestParser(reqParser* p);
+void initRequestParser(TReqParser* p);
+TReqState requestRead(TReqParser* p, uint8_t* buffer, int bufferSize);
+uint8_t hasReadEnded(TReqParser* p);
+uint8_t hasErrors(TReqParser* p);
 
 #endif /* REQUEST_H */
