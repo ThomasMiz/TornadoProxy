@@ -4,9 +4,9 @@
 #define length(array) (sizeof(array) / sizeof(*(array)))
 
 START_TEST(complete_request_no_auth) {
-    negParser* p = newNegotiationParser();
+    TNegParser* p = newNegotiationParser();
     uint8_t data[] = {0x05, 0x01, 0x00};
-    negState state = negotiationRead(p, data, length(data));
+    TNegState state = negotiationRead(p, data, length(data));
     fail_unless(state == NEG_END, "this should succeed");
     fail_unless(p->authMethod == NEG_METHOD_NO_AUTH);
     freeNegotiationParser(p);
@@ -14,9 +14,9 @@ START_TEST(complete_request_no_auth) {
 END_TEST
 
 START_TEST(complete_request_invalid_version) {
-    negParser* p = newNegotiationParser();
+    TNegParser* p = newNegotiationParser();
     uint8_t data[] = {0x03, 0x01, 0x00};
-    negState state = negotiationRead(p, data, length(data));
+    TNegState state = negotiationRead(p, data, length(data));
     fail_unless(state == NEG_ERROR);
     fail_unless(p->authMethod == NEG_METHOD_NO_MATCH);
     freeNegotiationParser(p);
@@ -24,9 +24,9 @@ START_TEST(complete_request_invalid_version) {
 END_TEST
 
 START_TEST(complete_request_invalid_versions) {
-    negParser* p = newNegotiationParser();
+    TNegParser* p = newNegotiationParser();
     uint8_t data[] = {0x03, 0x02, 0x08, 0x05};
-    negState state = negotiationRead(p, data, length(data));
+    TNegState state = negotiationRead(p, data, length(data));
     fail_unless(state == NEG_ERROR);
     fail_unless(p->authMethod == NEG_METHOD_NO_MATCH);
     freeNegotiationParser(p);
@@ -34,9 +34,9 @@ START_TEST(complete_request_invalid_versions) {
 END_TEST
 
 START_TEST(complete_request_no_match_x2) {
-    negParser* p = newNegotiationParser();
+    TNegParser* p = newNegotiationParser();
     uint8_t data[] = {0x05, 0x02, 0x08, 0x05};
-    negState state = negotiationRead(p, data, length(data));
+    TNegState state = negotiationRead(p, data, length(data));
     fail_unless(state == NEG_END);
     fail_unless(p->authMethod == NEG_METHOD_NO_MATCH);
     freeNegotiationParser(p);
@@ -44,9 +44,9 @@ START_TEST(complete_request_no_match_x2) {
 END_TEST
 
 START_TEST(complete_request_match_no_auth) {
-    negParser* p = newNegotiationParser();
+    TNegParser* p = newNegotiationParser();
     uint8_t data[] = {0x05, 0x02, 0x08, 0x00};
-    negState state = negotiationRead(p, data, length(data));
+    TNegState state = negotiationRead(p, data, length(data));
     fail_unless(state == NEG_END);
     fail_unless(p->authMethod == NEG_METHOD_NO_AUTH);
     freeNegotiationParser(p);
