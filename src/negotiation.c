@@ -23,15 +23,11 @@ TNegState negotiationRead(TNegParser* p, uint8_t* buffer, int bufferSize) {
     return p->state;
 }
 
-TNegParser* newNegotiationParser() {
-    TNegParser* p = calloc(sizeof(TNegParser), 1);
+void initNegotiationParser(TNegParser* p) {
+    if (p == NULL)
+        return;
     p->state = NEG_VERSION;
     p->authMethod = NEG_METHOD_NO_MATCH;
-    return p;
-}
-
-void freeNegotiationParser(TNegParser* p) {
-    free(p);
 }
 
 TNegState parseVersion(TNegParser* p, uint8_t c) {

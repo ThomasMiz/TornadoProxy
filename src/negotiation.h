@@ -22,7 +22,7 @@ typedef struct TNegParser {
     uint8_t pendingMethods;
 } TNegParser;
 
-TNegParser* newNegotiationParser();
+void initNegotiationParser(TNegParser* p);
 TNegState negotiationRead(TNegParser* p, uint8_t* buffer, int bufferSize);
-void freeNegotiationParser(TNegParser* p);
+
 #endif // NEGOTIATION_H

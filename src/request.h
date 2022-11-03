@@ -57,7 +57,7 @@ typedef struct TReqParser {
 
 void initRequestParser(TReqParser* p);
 TReqState requestRead(TReqParser* p, uint8_t* buffer, int bufferSize);
-uint8_t hasReadEnded(TReqParser* p);
-uint8_t hasErrors(TReqParser* p);
+uint8_t hasRequestReadEnded(TReqParser* p);
+uint8_t hasRequestErrors(TReqParser* p);
 
 #endif /* REQUEST_H */
