@@ -11,13 +11,10 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
-#include "selector.h"
 #include "socks5.h"
 #include "stm.h"
 
 #define CLIENT_RECV_BUFFER_SIZE 4096
-
-#define N(x) (sizeof(x)/sizeof((x)[0]))
 
 typedef struct {
     TFdHandler handler;
@@ -126,44 +123,7 @@ enum socks_state {
 
 };
 
-
-void socksv5_passive_accept(TSelectorKey* key) {
-    printf("New client received\n");
-    struct sockaddr_storage clientAddress;
-    socklen_t clientAddressLen = sizeof(clientAddress);
-    int newClientSocket = accept(key->fd, (struct sockaddr*)&clientAddress, &clientAddressLen);
-    printf("New client accepted at socket fd %d\n", newClientSocket);
-
-    TClientData* clientData = calloc(1, sizeof(TClientData));
-    if (clientData == NULL || (clientData->buffer = malloc(CLIENT_RECV_BUFFER_SIZE)) == NULL) {
-        free(clientData);
-        printf("Failed to alloc clientData for new client! Did we run out of memory?\n");
-        close(newClientSocket);
-        return;
-    }
-
-    TFdHandler* handler = &clientData->handler;
-    handler->handle_read = socksv5_read;
-    handler->handle_write = socksv5_write;
-    handler->handle_close = socksv5_close;
-
-    clientData->stm.initial = COPY; // TODO CAMBIAR LUEGO
-    clientData->stm.max_state = ERROR;
-    clientData->stm.states = client_statb1;
-    stm_init(&clientData->stm);
-    
-    TSelectorStatus status = selector_register(key->s, newClientSocket, handler, OP_READ, clientData);
-    if (status != SELECTOR_SUCCESS) {
-        printf("Failed to register new client into selector: %s\n", selector_error(status));
-        free(clientData->buffer);
-        free(clientData);
-        return;
-    }
-
-    printf("New client registered successfully!\n");
-}
-
-void socksv5_handle_read(TSelectorKey* key) {
+unsigned socksv5_handle_read(TSelectorKey* key) {
     TClientData* clientData = key->data;
 
     // Receive the bytes into the client's buffer.
@@ -171,7 +131,7 @@ void socksv5_handle_read(TSelectorKey* key) {
     if (received <= 0) { 
         printf("recv() returned %ld, closing client %d\n", received, key->fd);
         selector_unregister_fd(key->s, key->fd);
-        return;
+        return DONE;
     }
 
     clientData->bufferLength += received;
@@ -184,9 +144,10 @@ void socksv5_handle_read(TSelectorKey* key) {
     
     // Update the interests in the selector.
     selector_set_interest_key(key, newInterests);
+    return COPY;
 }
 
-void socksv5_handle_write(TSelectorKey* key) {
+unsigned socksv5_handle_write(TSelectorKey* key) {
     TClientData* clientData = key->data;
 
     // Try to send as many of the bytes as we have in the buffer.
@@ -194,7 +155,7 @@ void socksv5_handle_write(TSelectorKey* key) {
     if (sent <= 0) { 
         printf("send() returned %ld, closing client %d\n", sent, key->fd);
         selector_unregister_fd(key->s, key->fd);
-        return;
+        return DONE;
     }
 
     // TODO: Circular buffer or something idk
@@ -212,34 +173,9 @@ void socksv5_handle_write(TSelectorKey* key) {
     
     // Update the interests in the selector.
     selector_set_interest_key(key, newInterests);
+    return COPY;
 }
 
-void socksv5_close(TSelectorKey* key) {
-    TClientData* clientData = key->data;
-
-    // Free the memory associated with this client.
-    free(clientData->buffer);
-    free(clientData);
-
-    // Close the socket file descriptor associated with this client.
-    close(key->fd);
-
-    printf("Client closed: %d\n", key->fd);
-}
-
-static void socksv5_read(TSelectorKey *key) {
-    struct state_machine *stm = &ATTACHMENT(key)->stm;
-    const enum socks_state st = stm_handler_read(stm, key);
-    // ERROR HANDLING
-}
-
-static void socksv5_write(TSelectorKey *key) {
-    struct state_machine *stm = &ATTACHMENT(key)->stm;
-    const enum socks_state st = stm_handler_write(stm, key);
-    // ERROR HANDLING
-}
-
-// definicion de handlers para cada estado
 static const struct state_definition client_statb1[] = {
     // {
     //     .state = HELLO_READ,
@@ -282,3 +218,65 @@ static const struct state_definition client_statb1[] = {
         .state = ERROR,
     }
 };
+
+void socksv5_close(TSelectorKey* key) {
+    TClientData* clientData = key->data;
+
+    // Free the memory associated with this client.
+    free(clientData->buffer);
+    free(clientData);
+
+    // Close the socket file descriptor associated with this client.
+    close(key->fd);
+
+    printf("Client closed: %d\n", key->fd);
+}
+
+static void socksv5_read(TSelectorKey *key) {
+    struct state_machine *stm = &ATTACHMENT(key)->stm;
+    const enum socks_state st = stm_handler_read(stm, key);
+    // ERROR HANDLING
+}
+
+static void socksv5_write(TSelectorKey *key) {
+    struct state_machine *stm = &ATTACHMENT(key)->stm;
+    const enum socks_state st = stm_handler_write(stm, key);
+    // ERROR HANDLING
+}
+
+
+void socksv5_passive_accept(TSelectorKey* key) {
+    printf("New client received\n");
+    struct sockaddr_storage clientAddress;
+    socklen_t clientAddressLen = sizeof(clientAddress);
+    int newClientSocket = accept(key->fd, (struct sockaddr*)&clientAddress, &clientAddressLen);
+    printf("New client accepted at socket fd %d\n", newClientSocket);
+
+    TClientData* clientData = calloc(1, sizeof(TClientData));
+    if (clientData == NULL || (clientData->buffer = malloc(CLIENT_RECV_BUFFER_SIZE)) == NULL) {
+        free(clientData);
+        printf("Failed to alloc clientData for new client! Did we run out of memory?\n");
+        close(newClientSocket);
+        return;
+    }
+
+    TFdHandler* handler = &clientData->handler;
+    handler->handle_read = socksv5_read;
+    handler->handle_write = socksv5_write;
+    handler->handle_close = socksv5_close;
+
+    clientData->stm.initial = COPY; // TODO CAMBIAR LUEGO
+    clientData->stm.max_state = ERROR;
+    clientData->stm.states = client_statb1;
+    stm_init(&clientData->stm);
+    
+    TSelectorStatus status = selector_register(key->s, newClientSocket, handler, OP_READ, clientData);
+    if (status != SELECTOR_SUCCESS) {
+        printf("Failed to register new client into selector: %s\n", selector_error(status));
+        free(clientData->buffer);
+        free(clientData);
+        return;
+    }
+
+    printf("New client registered successfully!\n");
+}

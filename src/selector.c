@@ -7,6 +7,7 @@
 #include <assert.h> // :)
 #include <errno.h>  // :)
 #include <pthread.h>
+#include <signal.h>
 
 #include <stdint.h> // SIZE_MAX
 #include <unistd.h>
