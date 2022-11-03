@@ -38,7 +38,7 @@ enum socks_state {
         - HELLO_WRITE cuando esta completo
         - ERROR ante cualquier error (IO/parseo)
     */
-   HELLO_READ,
+//    HELLO_READ,
 
     /*
         envia la respuesta del `hello` al cliente
@@ -51,7 +51,7 @@ enum socks_state {
         - REQUEST_READ cuando se enviaron todos los bytes
         - ERROR ante cualquier error (IO/parseo)
     */
-   HELLO_WRITE,
+//    HELLO_WRITE,
 
     /*
         recibe el mensaje `request` del cliente e inicia su proceso
@@ -66,7 +66,7 @@ enum socks_state {
         - REQUEST_WRITE si determinamos que el mensaje no lo podemos procesar (ej. no se soporta un comando)
         - ERROR ante cualquier error (IO/parseo)
     */
-   REQUEST_READ,
+//    REQUEST_READ,
 
     /*
         Espera la resolucion DNS
@@ -78,7 +78,7 @@ enum socks_state {
         - REQUEST_CONNECTING si se logra la resolucion y se puede iniciar la conexion al OS.
         - REQUEST_WRITE en otro caso
     */
-   REQUEST_RESOLV,
+//    REQUEST_RESOLV,
 
     /*
         Espera que se establezca la conesion al OS
@@ -89,7 +89,7 @@ enum socks_state {
     Transiciones: 
         - REQUEST_CWRITE cuando se haya logrado o no establecer la conexion
     */
-   REQUEST_CONNECTING,
+//    REQUEST_CONNECTING,
 
     /*
         Envia la respuesta del `request` al cliente
@@ -103,7 +103,7 @@ enum socks_state {
         - COPY si el request fue exitoso y teemos que copiar el contenido de los descriptores
         - ERRO ante I/O error
     */
-   REQUEST_WRITE,
+//    REQUEST_WRITE,
 
     /*
         Copia bytes entre client_fd y origin_fd
@@ -268,6 +268,7 @@ void socksv5_passive_accept(TSelectorKey* key) {
     clientData->stm.initial = COPY; // TODO CAMBIAR LUEGO
     clientData->stm.max_state = ERROR;
     clientData->stm.states = client_statb1;
+
     stm_init(&clientData->stm);
     
     TSelectorStatus status = selector_register(key->s, newClientSocket, handler, OP_READ, clientData);
