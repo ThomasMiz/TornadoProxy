@@ -1,5 +1,5 @@
-#ifndef REQUEST_H
-#define REQUEST_H
+#ifndef REQUEST_PARSER_H
+#define REQUEST_PARSER_H
 
 #include <netinet/ip.h>
 #include <stdint.h>
@@ -60,4 +60,4 @@ TReqState requestRead(TReqParser* p, uint8_t* buffer, int bufferSize);
 uint8_t hasRequestReadEnded(TReqParser* p);
 uint8_t hasRequestErrors(TReqParser* p);
 
-#endif /* REQUEST_H */
+#endif /* REQUEST_PARSER_H */

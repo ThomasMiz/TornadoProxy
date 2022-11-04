@@ -1,5 +1,5 @@
-#ifndef NEGOTIATION_H
-#define NEGOTIATION_H
+#ifndef NEGOTIATION_PARSER_H
+#define NEGOTIATION_PARSER_H
 
 #include <stdint.h>
 
@@ -25,4 +25,4 @@ typedef struct TNegParser {
 void initNegotiationParser(TNegParser* p);
 TNegState negotiationRead(TNegParser* p, uint8_t* buffer, int bufferSize);
 
-#endif // NEGOTIATION_H
+#endif // NEGOTIATION_PARSER_H
