@@ -7,7 +7,10 @@ START_TEST(complete_request_no_auth) {
     TNegParser p;
     initNegotiationParser(&p);
     uint8_t data[] = {0x05, 0x01, 0x00};
-    TNegState state = negotiationRead(&p, data, length(data));
+    struct buffer b;
+    buffer_init(&b, length(data), data);
+    buffer_write_adv(&b, length(data));
+    TNegState state = negotiationRead(&p, &b);
     fail_unless(state == NEG_END, "this should succeed");
     fail_unless(p.authMethod == NEG_METHOD_NO_AUTH);
 }
@@ -17,7 +20,10 @@ START_TEST(complete_request_invalid_version) {
     TNegParser p;
     initNegotiationParser(&p);
     uint8_t data[] = {0x03, 0x01, 0x00};
-    TNegState state = negotiationRead(&p, data, length(data));
+    struct buffer b;
+    buffer_init(&b, length(data), data);
+    buffer_write_adv(&b, length(data));
+    TNegState state = negotiationRead(&p, &b);
     fail_unless(state == NEG_ERROR);
     fail_unless(p.authMethod == NEG_METHOD_NO_MATCH);
 }
@@ -27,7 +33,10 @@ START_TEST(complete_request_invalid_versions) {
     TNegParser p;
     initNegotiationParser(&p);
     uint8_t data[] = {0x03, 0x02, 0x08, 0x05};
-    TNegState state = negotiationRead(&p, data, length(data));
+    struct buffer b;
+    buffer_init(&b, length(data), data);
+    buffer_write_adv(&b, length(data));
+    TNegState state = negotiationRead(&p, &b);
     fail_unless(state == NEG_ERROR);
     fail_unless(p.authMethod == NEG_METHOD_NO_MATCH);
 }
@@ -37,7 +46,10 @@ START_TEST(complete_request_no_match_x2) {
     TNegParser p;
     initNegotiationParser(&p);
     uint8_t data[] = {0x05, 0x02, 0x08, 0x05};
-    TNegState state = negotiationRead(&p, data, length(data));
+    struct buffer b;
+    buffer_init(&b, length(data), data);
+    buffer_write_adv(&b, length(data));
+    TNegState state = negotiationRead(&p, &b);
     fail_unless(state == NEG_END);
     fail_unless(p.authMethod == NEG_METHOD_NO_MATCH);
 }
@@ -47,7 +59,10 @@ START_TEST(complete_request_match_no_auth) {
     TNegParser p;
     initNegotiationParser(&p);
     uint8_t data[] = {0x05, 0x02, 0x08, 0x00};
-    TNegState state = negotiationRead(&p, data, length(data));
+    struct buffer b;
+    buffer_init(&b, length(data), data);
+    buffer_write_adv(&b, length(data));
+    TNegState state = negotiationRead(&p, &b);
     fail_unless(state == NEG_END);
     fail_unless(p.authMethod == NEG_METHOD_NO_AUTH);
 }

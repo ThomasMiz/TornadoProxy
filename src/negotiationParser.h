@@ -1,7 +1,7 @@
 #ifndef NEGOTIATION_PARSER_H
 #define NEGOTIATION_PARSER_H
 
-#include <stdint.h>
+#include "buffer.h"
 
 enum TNegMethod {
     NEG_METHOD_NO_AUTH = 0x00,
@@ -23,6 +23,8 @@ typedef struct TNegParser {
 } TNegParser;
 
 void initNegotiationParser(TNegParser* p);
-TNegState negotiationRead(TNegParser* p, uint8_t* buffer, int bufferSize);
+TNegState negotiationRead(TNegParser* p, struct buffer* buffer);
+uint8_t hasNegotiationReadEnded(TNegParser* p);
+uint8_t hasNegotiationErrors(TNegParser* p);
 
 #endif // NEGOTIATION_PARSER_H

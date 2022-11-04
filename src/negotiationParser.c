@@ -16,9 +16,9 @@ static parseCharacter stateRead[] = {
     /* END          */ (parseCharacter)parseEnd,
     /* ERROR        */ (parseCharacter)parseEnd};
 
-TNegState negotiationRead(TNegParser* p, uint8_t* buffer, int bufferSize) {
-    for (int i = 0; i < bufferSize && p->state != NEG_ERROR && p->state != NEG_END; i++) {
-        p->state = stateRead[p->state](p, buffer[i]);
+TNegState negotiationRead(TNegParser* p, struct buffer* buffer) {
+    while (buffer_can_read(buffer) && p->state != NEG_ERROR && p->state != NEG_END) {
+        p->state = stateRead[p->state](p, buffer_read(buffer));
     }
     return p->state;
 }
@@ -28,6 +28,13 @@ void initNegotiationParser(TNegParser* p) {
         return;
     p->state = NEG_VERSION;
     p->authMethod = NEG_METHOD_NO_MATCH;
+}
+
+uint8_t hasNegotiationReadEnded(TNegParser* p) {
+    return p->state == NEG_END;
+}
+uint8_t hasNegotiationErrors(TNegParser* p) {
+    return p->state == NEG_ERROR;
 }
 
 TNegState parseVersion(TNegParser* p, uint8_t c) {
