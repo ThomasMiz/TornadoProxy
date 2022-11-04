@@ -1,4 +1,4 @@
-#include "request.h"
+#include "requestParser.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -50,10 +50,10 @@ TReqState requestRead(TReqParser* p, uint8_t* buffer, int bufferSize) {
 }
 
 uint8_t hasReadEnded(TReqParser* p) {
-    p->state == REQ_SUCCEDED;
+    return p->state == REQ_SUCCEDED;
 }
 uint8_t hasErrors(TReqParser* p) {
-    p->state == isErrorState(p->state);
+    return p->state == isErrorState(p->state);
 }
 
 /*Should not happen*/
