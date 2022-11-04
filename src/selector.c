@@ -1,22 +1,22 @@
 /**
  * selector.c - un muliplexor de entrada salida
  */
-#include <stdio.h>  // perror
-#include <stdlib.h> // malloc
-#include <string.h> // memset
 #include <assert.h> // :)
 #include <errno.h>  // :)
 #include <pthread.h>
 #include <signal.h>
+#include <stdio.h>  // perror
+#include <stdlib.h> // malloc
+#include <string.h> // memset
 
-#include <stdint.h> // SIZE_MAX
-#include <unistd.h>
+#include "selector.h"
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <stdint.h> // SIZE_MAX
 #include <sys/select.h>
 #include <sys/signal.h>
-#include "selector.h"
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #define N(x) (sizeof(x) / sizeof((x)[0]))
 
