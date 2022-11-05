@@ -41,10 +41,10 @@ uint8_t hasNegotiationErrors(TNegParser* p) {
 
 uint8_t fillNegotiationAnswer(TNegParser* p, struct buffer* buffer) {
     if (!buffer_can_write(buffer))
-        return -1;
+        return 1;
     buffer_write(buffer, VERSION_5);
     if (!buffer_can_write(buffer))
-        return -1;
+        return 1;
     buffer_write(buffer, p->authMethod);
     return 0;
 }

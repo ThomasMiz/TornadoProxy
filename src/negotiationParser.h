@@ -27,7 +27,7 @@ TNegState negotiationParse(TNegParser* p, struct buffer* buffer);
 uint8_t hasNegotiationReadEnded(TNegParser* p);
 uint8_t hasNegotiationErrors(TNegParser* p);
 
-/* 0 if ok -1 if errors */
+/* 0 if ok 1 if errors */
 uint8_t fillNegotiationAnswer(TNegParser* p, struct buffer* buffer);
 
 #endif // NEGOTIATION_PARSER_H
