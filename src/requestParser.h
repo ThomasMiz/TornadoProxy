@@ -1,6 +1,7 @@
 #ifndef REQUEST_PARSER_H
 #define REQUEST_PARSER_H
 
+#include "buffer.h"
 #include <netinet/ip.h>
 #include <stdint.h>
 
@@ -56,8 +57,11 @@ typedef struct TReqParser {
 } TReqParser;
 
 void initRequestParser(TReqParser* p);
-TReqState requestRead(TReqParser* p, uint8_t* buffer, int bufferSize);
+TReqState requestParse(TReqParser* p, struct buffer* buffer);
 uint8_t hasRequestReadEnded(TReqParser* p);
 uint8_t hasRequestErrors(TReqParser* p);
+
+/* 0 if ok 1 if errors */
+uint8_t fillRequestAnswer(TReqParser* p, struct buffer* buffer);
 
 #endif /* REQUEST_PARSER_H */

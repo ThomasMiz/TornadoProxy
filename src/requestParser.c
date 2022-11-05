@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define length(array) (sizeof(array) / sizeof(*(array)))
+
 typedef TReqState (*parseCharacter)(TReqParser* p, uint8_t c);
 
 static TReqState reqParseEnd(TReqParser* p, uint8_t c);
@@ -42,29 +44,42 @@ void initRequestParser(TReqParser* p) {
     p->readBytes = 0;
     p->port = 0;
 }
-TReqState requestRead(TReqParser* p, uint8_t* buffer, int bufferSize) {
-    for (int i = 0; i < bufferSize && p->state != REQ_SUCCEDED && !isErrorState(p->state); i++) {
-        p->state = stateRead[p->state](p, buffer[i]);
+
+TReqState requestParse(TReqParser* p, struct buffer* buffer) {
+    while (buffer_can_read(buffer) && p->state != REQ_SUCCEDED && !isErrorState(p->state)) {
+        p->state = stateRead[p->state](p, buffer_read(buffer));
     }
     return p->state;
 }
 
-uint8_t hasReadEnded(TReqParser* p) {
-    return p->state == REQ_SUCCEDED;
+uint8_t hasRequestReadEnded(TReqParser* p) {
+    return p->state == REQ_SUCCEDED || p->state == isErrorState(p->state);
 }
 uint8_t hasErrors(TReqParser* p) {
     return p->state == isErrorState(p->state);
 }
 
+uint8_t fillRequestAnswer(TReqParser* p, struct buffer* buffer) {
+    uint8_t answer[] = {0x05, p->state, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    int l = length(answer);
+    for (int i = 0; i < l; ++i) {
+        if (!buffer_can_write(buffer)) {
+            return 1;
+        }
+        buffer_write(buffer, answer[i]);
+    }
+    return 0;
+}
+
 /*Should not happen*/
 static TReqState reqParseEnd(TReqParser* p, uint8_t c) {
-    fprintf(stderr, "[BUG] Trying to call negotiation parser in SUCCED/ERROR state ");
+    fprintf(stderr, "[Req parser: BUG] Trying to call negotiation parser in SUCCED/ERROR state ");
     return p->state;
 }
 
 static TReqState reqParseVersion(TReqParser* p, uint8_t c) {
     if (c != 5) {
-        fprintf(stderr, "[ERR] Client specified invalid version: 0x%d\n", c);
+        fprintf(stderr, "[Req parser: ERR] Client specified invalid version: 0x%d\n", c);
         return REQ_ERROR_GENERAL_FAILURE;
     }
     return REQ_CMD;
@@ -74,13 +89,13 @@ static TReqState reqParseCmd(TReqParser* p, uint8_t c) {
     if (c == REQ_CMD_CONNECT) {
         return REQ_RSV;
     }
-    fprintf(stderr, "[ERR] Client specified invalid CMD: 0x%d\n", c);
+    fprintf(stderr, "[Req parser: ERR] Client specified invalid CMD: 0x%d\n", c);
     return REQ_ERROR_COMMAND_NOT_SUPPORTED;
 }
 static TReqState reqParseRsv(TReqParser* p, uint8_t c) {
     if (c == 0x00)
         return REQ_ATYP;
-    fprintf(stderr, "[ERR] Client specified invalid number in rsv: 0x%d\n", c);
+    fprintf(stderr, "[Req parser: ERR] Client specified invalid number in rsv: 0x%d\n", c);
     return REQ_ERROR_GENERAL_FAILURE;
 }
 static TReqState reqParseAtyp(TReqParser* p, uint8_t c) {
@@ -94,7 +109,7 @@ static TReqState reqParseAtyp(TReqParser* p, uint8_t c) {
     } else if (c == REQ_ATYP_DOMAINNAME) {
         return REQ_DN_LENGHT;
     }
-    fprintf(stderr, "[ERR] Client specified an invalid ATYP: 0x%d\n", c);
+    fprintf(stderr, "[Req parser: ERR] Client specified an invalid ATYP: 0x%d\n", c);
     return REQ_ERROR_ADDRESS_TYPE_NOT_SUPPORTED;
 }
 
