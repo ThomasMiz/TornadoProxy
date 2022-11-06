@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <netdb.h>
 
 #include "socks5.h"
 #include "stm.h"
@@ -21,9 +22,27 @@ typedef struct {
     char* buffer;
     unsigned int bufferLength;
     struct state_machine stm;
+
+    struct addrinfo * origin_resolution;
+
+    int client_fd;
+
+    // informacion del OS
+    int origin_fd;
 } TClientData;
 
-// obtiene el struct socks5* desde la key
+static void socksv5_read   (TSelectorKey *key);
+static void socksv5_write  (TSelectorKey *key);
+static void socksv5_close (TSelectorKey *key);
+static void socksv5_block (TSelectorKey *key);
+
+static const TFdHandler handler = {
+    .handle_read   = socksv5_read,
+    .handle_write  = socksv5_write,
+    .handle_close  = socksv5_close,
+    .handle_block  = socksv5_block,
+};
+
 #define ATTACHMENT(key) ( (TClientData *)(key)->data )
 
 enum socks_state {
@@ -89,7 +108,7 @@ enum socks_state {
     Transiciones: 
         - REQUEST_CWRITE cuando se haya logrado o no establecer la conexion
     */
-//    REQUEST_CONNECTING,
+   REQUEST_CONNECTING,
 
     /*
         Envia la respuesta del `request` al cliente
@@ -122,6 +141,30 @@ enum socks_state {
     ERROR,
 
 };
+
+void request_connecting_init(const unsigned state, TSelectorKey *key) {
+    TClientData *d = ATTACHMENT(key);
+    selector_add_interest(key->s, d->client_fd, OP_WRITE);
+}
+
+unsigned request_connecting(TSelectorKey *key) {
+    TClientData *d = ATTACHMENT(key);
+    assert(d->origin_resolution != NULL);
+    d->origin_fd= socket(d->origin_resolution->ai_family, d->origin_resolution->ai_socktype, d->origin_resolution->ai_protocol);
+    if (d->origin_fd >= 0) {
+        selector_fd_set_nio(d->origin_fd);
+        char adrr_buf[1024];
+
+        if ( connect(d->origin_fd, d->origin_resolution->ai_addr, d->origin_resolution->ai_addrlen) == 0 || errno == EINPROGRESS) {
+            if(selector_register(key->s, d->origin_fd, &handler, OP_WRITE, d) != SELECTOR_SUCCESS)
+            {
+                return ERROR;
+            }
+            return REQUEST_CONNECTING;
+        }
+    }
+    return ERROR;
+}
 
 unsigned socksv5_handle_read(TSelectorKey* key) {
     TClientData* clientData = key->data;
@@ -197,11 +240,11 @@ static const struct state_definition client_statb1[] = {
     //     .state = REQUEST_RESOLV,
     //     .on_block_ready = request_resolv_done,
     // },
-    // {
-    //     .state = REQUEST_CONNECTING,
-    //     .on_arrival = request_connecting_init,
-    //     .on_write_ready = request_connecting,
-    // },
+    {
+        .state = REQUEST_CONNECTING,
+        .on_arrival = request_connecting_init,
+        .on_write_ready = request_connecting,
+    },
     // {
     //     .state = REQUEST_WRITE,
     //     .on_write_ready = request_write,
@@ -210,6 +253,8 @@ static const struct state_definition client_statb1[] = {
         .state = COPY,
         .on_read_ready = socksv5_handle_read,
         .on_write_ready = socksv5_handle_write,
+        .on_departure = socksv5_close,
+
     }, 
     {
         .state = DONE,
@@ -220,6 +265,11 @@ static const struct state_definition client_statb1[] = {
 };
 
 void socksv5_close(TSelectorKey* key) {
+    struct state_machine *stm = &ATTACHMENT(key)->stm;
+    stm_handler_close(stm, key);
+    // ERROR HANDLING
+}
+void socksv5_handle_close(TSelectorKey* key) {
     TClientData* clientData = key->data;
 
     // Free the memory associated with this client.
@@ -244,6 +294,12 @@ static void socksv5_write(TSelectorKey *key) {
     // ERROR HANDLING
 }
 
+static void socksv5_block(TSelectorKey *key) {
+    struct state_machine *stm = &ATTACHMENT(key)->stm;
+    const enum socks_state st = stm_handler_block(stm, key);
+    // ERROR HANDLING
+}
+
 
 void socksv5_passive_accept(TSelectorKey* key) {
     printf("New client received\n");
@@ -260,18 +316,32 @@ void socksv5_passive_accept(TSelectorKey* key) {
         return;
     }
 
-    TFdHandler* handler = &clientData->handler;
-    handler->handle_read = socksv5_read;
-    handler->handle_write = socksv5_write;
-    handler->handle_close = socksv5_close;
 
     clientData->stm.initial = COPY; // TODO CAMBIAR LUEGO
     clientData->stm.max_state = ERROR;
     clientData->stm.states = client_statb1;
+    clientData->client_fd = newClientSocket;
+    struct sockaddr_in *sockaddr = malloc(sizeof(struct sockaddr_in));
+    
+    // HARDCODEAR OS
+    		*sockaddr = (struct sockaddr_in)
+		{
+			.sin_family = AF_INET,
+			.sin_addr = *(struct in_addr*)0,
+			.sin_port = 5000,
+		};
+		*clientData->origin_resolution = (struct addrinfo)
+		{
+			.ai_family = AF_INET,
+			.ai_socktype = SOCK_STREAM,
+			.ai_addr = (struct sockaddr*)sockaddr,
+			.ai_addrlen = sizeof(*sockaddr),
+		};
+
 
     stm_init(&clientData->stm);
     
-    TSelectorStatus status = selector_register(key->s, newClientSocket, handler, OP_READ, clientData);
+    TSelectorStatus status = selector_register(key->s, newClientSocket, &handler, OP_READ, clientData);
     if (status != SELECTOR_SUCCESS) {
         printf("Failed to register new client into selector: %s\n", selector_error(status));
         free(clientData->buffer);
