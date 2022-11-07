@@ -5,6 +5,10 @@
 
 #include "buffer.h"
 
+#ifdef __APPLE__
+#include <sys/types.h>
+#endif
+
 #define SOCKADDR_TO_HUMAN_MIN (INET6_ADDRSTRLEN + 5 + 1)
 /**
  * Describe de forma humana un sockaddr:
