@@ -115,7 +115,7 @@ static int postLogPrint(int written, size_t maxlen) {
     }
 
     if (written >= maxlen) {
-        fprintf(stderr, "Error: %ld bytes of logs possibly lost. Slow disk?\n", written - maxlen + 1);
+        fprintf(stderr, "Error: %lu bytes of logs possibly lost. Slow disk?\n", written - maxlen + 1);
         written = maxlen - 1;
     }
 
