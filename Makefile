@@ -8,9 +8,9 @@ all:
 	mkdir -p $(OUTPUT_FOLDER)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SOURCES) -o $(OUTPUT_FILE)
 
-allMac:
+mac:
 	mkdir -p $(OUTPUT_FOLDER)
-	$(CC) $(GCCFLAGSMAC) $(SOURCES) -o $(OUTPUT_FILE)
+	$(CC) $(CFLAGSMAC) $(LDFLAGS) $(SOURCES) -o $(OUTPUT_FILE)
 
 clean:
 	rm -rf $(OUTPUT_FOLDER)
