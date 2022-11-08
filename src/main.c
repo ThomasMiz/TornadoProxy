@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
+#include "logging/logger.h"
 #include "selector.h"
 #include "socks5.h"
 
@@ -52,6 +53,26 @@ int main(const int argc, const char** argv) {
     TSelectorStatus ss = SELECTOR_SUCCESS;
     TSelector selector = NULL;
 
+    const TSelectorInit conf = {
+        .signal = SIGALRM,
+        .select_timeout = {
+            .tv_sec = 10,
+            .tv_nsec = 0,
+        },
+    };
+    if (0 != selector_init(&conf)) {
+        err_msg = "initializing selector";
+        goto finally;
+    }
+
+    selector = selector_new(1024);
+    if (selector == NULL) {
+        err_msg = "unable to create selector";
+        goto finally;
+    }
+
+    logInit(selector, "", stdout);
+
     // Listening on just IPv6 allow us to handle both IPv6 and IPv4 connections!
     // https://stackoverflow.com/questions/50208540/cant-listen-on-ipv4-and-ipv6-together-address-already-in-use
     struct sockaddr_in6 addr;
@@ -88,23 +109,6 @@ int main(const int argc, const char** argv) {
 
     if (selector_fd_set_nio(server) == -1) {
         err_msg = "getting server socket flags";
-        goto finally;
-    }
-    const TSelectorInit conf = {
-        .signal = SIGALRM,
-        .select_timeout = {
-            .tv_sec = 10,
-            .tv_nsec = 0,
-        },
-    };
-    if (0 != selector_init(&conf)) {
-        err_msg = "initializing selector";
-        goto finally;
-    }
-
-    selector = selector_new(1024);
-    if (selector == NULL) {
-        err_msg = "unable to create selector";
         goto finally;
     }
     const TFdHandler socksv5 = {
@@ -151,5 +155,7 @@ finally:
     if (server >= 0) {
         close(server);
     }
+
+    logFinalize();
     return ret;
 }
