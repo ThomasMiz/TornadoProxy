@@ -13,7 +13,7 @@
 
 /**
  * @brief Initializes the logging system. Not calling this function will result is the
- * server running with logging disabled.
+ * server running with logging disabled (but metrics will still work).
  * @param selector The selector to use. This is requried as logging is typically buffered,
  * and to make writes non-blocking writing can only occur when the file descriptor is
  * available.
