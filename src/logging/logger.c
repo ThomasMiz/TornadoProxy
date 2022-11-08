@@ -167,8 +167,7 @@ static void fdCloseHandler(TSelectorKey* key) {
         // Set the log file to blocking, then try to write the remaining bytes. If any of
         // this fails, just ignore the failure.
         int flags = fcntl(logFileFd, F_GETFD, 0);
-        int pepe = fcntl(logFileFd, F_SETFL, flags & (~O_NONBLOCK));
-        fprintf(stderr, "Pedro y Pepe: %d y %d\n", flags, pepe); // TODO: remove lol
+        fcntl(logFileFd, F_SETFL, flags & (~O_NONBLOCK));
         ssize_t written = write(logFileFd, buffer, bufferLength);
         if (written > 0) {
             bufferLength -= written;
