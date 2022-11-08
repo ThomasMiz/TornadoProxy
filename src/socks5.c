@@ -24,8 +24,8 @@
 
 typedef struct {
     TFdHandler handler;
-    uint8_t client_buffer_array[1024];
-    uint8_t origin_buffer_array[1024];
+    uint8_t client_buffer_array[BUFFER_SIZE];
+    uint8_t origin_buffer_array[BUFFER_SIZE];
     buffer client_buffer;
     buffer origin_buffer;
     unsigned int bufferLength;
@@ -151,13 +151,16 @@ enum socks_state {
 };
 
 void request_connecting_init(const unsigned state, TSelectorKey* key) {
+    printf("init\n");
     TClientData* d = ATTACHMENT(key);
     TFdInterests curr_interests;
     selector_get_interests(key, &curr_interests);
-    selector_set_interest(key->s, d->client_fd, OP_WRITE | curr_interests);
+    selector_set_interest(key->s, d->client_fd, OP_WRITE);
+    printf("finished init\n");
 }
 
 unsigned request_connecting(TSelectorKey* key) {
+    printf("connecting\n");
     TClientData* d = ATTACHMENT(key);
     TFdInterests curr_interests;
     selector_get_interests(key, &curr_interests);
@@ -170,7 +173,7 @@ unsigned request_connecting(TSelectorKey* key) {
             selector_fd_set_nio(d->origin_fd);
             char address_buf[1024];
             sockaddr_to_human(address_buf, 1024, d->origin_resolution->ai_addr);
-            printf("Connecting to %s", address_buf);
+            printf("Connecting to %s\n", address_buf);
             if (connect(d->origin_fd, d->origin_resolution->ai_addr, d->origin_resolution->ai_addrlen) == 0 || errno == EINPROGRESS) {
                 if (selector_register(key->s, d->origin_fd, &handler, OP_WRITE, d) != SELECTOR_SUCCESS) { // Registramos al FD del OS con OP_WRITE y la misma state machine, entonces esperamos a que se corra el handler para REQUEST_CONNECTING del lado del OS
                     return ERROR;
@@ -186,8 +189,8 @@ unsigned request_connecting(TSelectorKey* key) {
     char buf[BUFFER_SIZE];
     sockaddr_to_human(buf, BUFFER_SIZE, d->origin_resolution->ai_addr);
     printf("Connected to %s\n", buf);
-    selector_set_interest(key->s, d->origin_fd, OP_READ | OP_WRITE);
-    selector_set_interest(key->s, d->client_fd, OP_READ | OP_WRITE);
+    selector_set_interest(key->s, d->origin_fd, OP_READ);
+    selector_set_interest(key->s, d->client_fd, OP_READ);
     return COPY;
 }
 
@@ -203,9 +206,10 @@ unsigned socksv5_handle_read(TSelectorKey* key) {
     selector_get_interests(key, &curr_interests);
 
     if (client_fd == key->fd) {
+    printf("reading from fd client\n");
         // Receive the bytes into the client's buffer.
         if (!buffer_can_write(origin_buffer)) {
-            selector_set_interest(key->s, client_fd, OP_READ | curr_interests);
+            selector_set_interest(key->s, client_fd, OP_READ | curr_interests); // revisar
             return COPY;
         }
 
@@ -219,6 +223,7 @@ unsigned socksv5_handle_read(TSelectorKey* key) {
             size_t remaining;
             buffer_read_ptr(client_buffer, &remaining);
             printf("recv() %ld bytes from client %d [remaining to read %lu]\n", read_bytes, key->fd, remaining);
+            selector_set_interest(key->s, origin_fd, OP_WRITE);
 
         } else { // EOF or err
             printf("recv() returned %ld, closing client %d\n", read_bytes, key->fd);
@@ -235,6 +240,7 @@ unsigned socksv5_handle_read(TSelectorKey* key) {
         selector_set_interest_key(key, newInterests);
     } else { // fd == origin_fd
              // Receive the bytes into the client's buffer.
+    printf("reading from fd origin\n");
         if (!buffer_can_write(client_buffer)) {
             selector_set_interest(key->s, origin_fd, OP_READ | curr_interests);
             return COPY;
@@ -250,6 +256,7 @@ unsigned socksv5_handle_read(TSelectorKey* key) {
             size_t remaining;
             buffer_read_ptr(origin_buffer, &remaining);
             printf("recv() %ld bytes from origin %d [remaining to read %lu]\n", read_bytes, key->fd, remaining);
+            selector_set_interest(key->s, client_fd, OP_WRITE);
 
         } else { // EOF
             printf("recv() returned %ld, closing origin %d\n", read_bytes, key->fd);
@@ -263,7 +270,7 @@ unsigned socksv5_handle_read(TSelectorKey* key) {
             newInterests |= OP_READ;
 
         // Update the interests in the selector.
-        selector_set_interest_key(key, newInterests);
+        selector_set_interest(key->s, client_fd, newInterests);
     }
     return COPY;
 }
@@ -279,8 +286,10 @@ unsigned socksv5_handle_write(TSelectorKey* key) {
     selector_get_interests(key, &curr_interests);
     // Try to send as many of the bytes as we have in the buffer.
     if (key->fd == client_fd) {
+        printf("writing to client\n");
         if (!buffer_can_read(client_buffer)) {
-            selector_set_interest_key(key, OP_WRITE);
+            selector_set_interest_key(key, INTEREST_OFF(curr_interests,OP_WRITE));
+            printf("copy\n");
             return COPY;
         }
         uint8_t* read_ptr = buffer_read_ptr(client_buffer, &capacity);
@@ -302,9 +311,10 @@ unsigned socksv5_handle_write(TSelectorKey* key) {
         // Update the interests in the selector.
         selector_set_interest_key(key, newInterests);
     } else {
+        printf("writing to origin\n");
 
         if (!buffer_can_read(origin_buffer)) {
-            selector_set_interest_key(key, OP_WRITE);
+            selector_set_interest_key(key, INTEREST_OFF(curr_interests,OP_WRITE));
             return COPY;
         }
         uint8_t* read_ptr = buffer_read_ptr(origin_buffer, &capacity);
@@ -324,7 +334,7 @@ unsigned socksv5_handle_write(TSelectorKey* key) {
             newInterests |= OP_WRITE;
 
         // Update the interests in the selector.
-        selector_set_interest_key(key, newInterests);
+        selector_set_interest(key->s,origin_fd,newInterests);
     }
 
     return COPY;
@@ -446,7 +456,7 @@ void socksv5_passive_accept(TSelectorKey* key) {
         .sin_port = htons(5000),
     };
     inet_aton("0.0.0.0", &(sockaddr->sin_addr));
-    *(clientData->origin_resolution) = (struct addrinfo){
+    *(clientData->origin_resolution) = (struct addrinfo) {
         .ai_family = AF_INET,
         .ai_socktype = SOCK_STREAM,
         .ai_addr = (struct sockaddr*)sockaddr,
@@ -459,7 +469,7 @@ void socksv5_passive_accept(TSelectorKey* key) {
 
     stm_init(&clientData->stm);
 
-    TSelectorStatus status = selector_register(key->s, newClientSocket, &handler, OP_READ, clientData);
+    TSelectorStatus status = selector_register(key->s, newClientSocket, &handler, OP_WRITE, clientData);
     if (status != SELECTOR_SUCCESS) {
         printf("Failed to register new client into selector: %s\n", selector_error(status));
         free(clientData);
