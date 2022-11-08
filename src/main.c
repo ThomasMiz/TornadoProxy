@@ -72,6 +72,7 @@ int main(const int argc, const char** argv) {
     }
 
     logInit(selector, "", stdout);
+    logString("Starting server...");
 
     // Listening on just IPv6 allow us to handle both IPv6 and IPv4 connections!
     // https://stackoverflow.com/questions/50208540/cant-listen-on-ipv4-and-ipv6-together-address-already-in-use

@@ -39,6 +39,40 @@ static size_t bufferStart = 0, bufferLength = 0, bufferCapacity = 0;
 static int logFileFd = -1;
 static TSelector selector = NULL;
 
+/** The stream for writing logs to, or NULL if we're not doing that. */
+static FILE* logStream = NULL;
+
+static void makeBufferSpace(size_t len) {
+    // Make enough space in the buffer for the string
+    if (bufferLength + bufferStart + len > bufferCapacity) {
+        // If the buffer can be compacted to fit this string, do so. Otherwise,
+        // we'll have to allocate more memory.
+        if (bufferCapacity <= len) {
+            memmove(buffer, buffer + bufferStart, bufferLength);
+            bufferStart = 0;
+        } else if (bufferCapacity < LOG_MAX_BUFFER_SIZE) {
+            size_t newBufferCapacity = bufferLength + len;
+            newBufferCapacity = (newBufferCapacity + LOG_BUFFER_SIZE_GRANULARITY - 1) / LOG_BUFFER_SIZE_GRANULARITY * LOG_BUFFER_SIZE_GRANULARITY;
+            if (newBufferCapacity > LOG_MAX_BUFFER_SIZE)
+                newBufferCapacity = LOG_MAX_BUFFER_SIZE;
+
+            // The buffer isn't large enough, let's try to expand it, or at
+            // least compact it to make as much space available as possible.
+            void* newBuffer = malloc(newBufferCapacity);
+            if (newBuffer == NULL) {
+                memmove(buffer, buffer + bufferStart, bufferLength);
+                bufferStart = 0;
+            } else {
+                memcpy(newBuffer, buffer + bufferStart, bufferLength);
+                free(buffer);
+                buffer = newBuffer;
+                bufferCapacity = newBufferCapacity;
+                bufferStart = 0;
+            }
+        }
+    }
+}
+
 static inline void tryFlushBufferToFile() {
     // Try to write everything we have in the buffer. This is nonblocking, so any
     // (or all) remaining bytes will be saved in the buffer and retried later.
@@ -51,6 +85,44 @@ static inline void tryFlushBufferToFile() {
     // If there are still remaining bytes to write, leave them in the buffer and retry
     // once the selector says the fd can be written.
     selector_set_interest(selector, logFileFd, bufferLength > 0 ? OP_WRITE : OP_NOOP);
+}
+
+#define LOG_PREPRINTPARAMS_MACRO(format)                             \
+    {                                                                \
+        makeBufferSpace(LOG_BUFFER_MAX_PRINT_LENGTH);                \
+        time_t T = time(NULL);                                       \
+        struct tm tm = *localtime(&T);                               \
+        size_t maxlen = bufferCapacity - bufferLength - bufferStart; \
+        int written = snprintf(buffer + bufferStart + bufferLength, maxlen, LOG_LINE_START format "\n", LOG_PRINTF_START_PARAMS,
+
+#define LOG_POSTPRINTPARAMS_MACRO );      \
+    return postLogPrint(written, maxlen); \
+    }
+
+#define LOG_PRINTF1(format, param1) LOG_PREPRINTPARAMS_MACRO(format) param1 LOG_POSTPRINTPARAMS_MACRO
+#define LOG_PRINTF2(format, param1, param2) LOG_PREPRINTPARAMS_MACRO(format) param1, param2 LOG_POSTPRINTPARAMS_MACRO
+#define LOG_PRINTF3(format, param1, param2, param3) LOG_PREPRINTPARAMS_MACRO(format) param1, param2, param3 LOG_POSTPRINTPARAMS_MACRO
+#define LOG_PRINTF4(format, param1, param2, param3, param4) LOG_PREPRINTPARAMS_MACRO(format) param1, param2, param3, param4 LOG_POSTPRINTPARAMS_MACRO
+#define LOG_PRINTF5(format, param1, param2, param3, param4, param5) LOG_PREPRINTPARAMS_MACRO(format) param1, param2, param3, param4, param5 LOG_POSTPRINTPARAMS_MACRO
+
+static int postLogPrint(int written, size_t maxlen) {
+    if (written < 0) {
+        fprintf(stderr, "Error: snprintf(): %s\n", strerror(errno));
+        return -1;
+    }
+
+    if (written >= maxlen) {
+        fprintf(stderr, "Error: %ld bytes of logs possibly lost. Slow disk?\n", written - maxlen + 1);
+        written = maxlen - 1;
+    }
+
+    if (logStream != NULL) {
+        fprintf(logStream, "%s", buffer + bufferStart + bufferLength);
+    }
+
+    bufferLength += written;
+    tryFlushBufferToFile();
+    return 0;
 }
 
 static void fdWriteHandler(TSelectorKey* key) {
@@ -82,9 +154,6 @@ static TFdHandler fdHandler = {
     .handle_write = fdWriteHandler,
     .handle_close = fdCloseHandler,
     .handle_block = NULL};
-
-/** The stream for writing logs to, or NULL if we're not doing that. */
-static FILE* logStream = NULL;
 
 /** Attempts to open a file for logging. Returns the fd, or -1 if failed. */
 static int tryOpenLogfile(const char* logFile, struct tm tm) {
@@ -132,9 +201,6 @@ int logInit(TSelector selectorParam, const char* logFile, FILE* logStreamParam) 
         }
     }
 
-
-    logRawString("pedro XD");
-
     return 0;
 }
 
@@ -156,49 +222,8 @@ int logFinalize() {
     return 0;
 }
 
-int logRawString(const char* s) {
-    size_t len = strlen(s);
-
-    // Make enough space in the buffer for the string
-    if (bufferLength + bufferStart + len > bufferCapacity) {
-        // If the buffer can be compacted to fit this string, do so. Otherwise,
-        // we'll have to allocate more memory.
-        if (bufferCapacity <= len) {
-            memmove(buffer, buffer + bufferStart, bufferLength);
-            bufferStart = 0;
-        } else if (bufferCapacity < LOG_MAX_BUFFER_SIZE) {
-            size_t newBufferCapacity = bufferLength + len;
-            newBufferCapacity = (newBufferCapacity + LOG_BUFFER_SIZE_GRANULARITY - 1) / LOG_BUFFER_SIZE_GRANULARITY * LOG_BUFFER_SIZE_GRANULARITY;
-            if (newBufferCapacity > LOG_MAX_BUFFER_SIZE)
-                newBufferCapacity = LOG_MAX_BUFFER_SIZE;
-
-            void* newBuffer = malloc(newBufferCapacity);
-            if (newBuffer == NULL) {
-                memmove(buffer, buffer + bufferStart, bufferLength);
-                bufferStart = 0;
-            } else {
-                memcpy(newBuffer, buffer + bufferStart, bufferLength);
-                free(buffer);
-                buffer = newBuffer;
-                bufferCapacity = newBufferCapacity;
-                bufferStart = 0;
-            }
-        }
-    }
-
-    time_t T = time(NULL);
-    struct tm tm = *localtime(&T);
-    size_t maxlen = bufferCapacity - bufferLength - bufferStart;
-    int written = snprintf(buffer + bufferStart, maxlen, LOG_LINE_START "%s\n", LOG_PRINTF_START_PARAMS, s);
-    if (written < 0) {
-        fprintf(stderr, "Error: snprintf(): %s", strerror(errno));        
-    } else if (written >= maxlen) {
-        fprintf(stderr, "Error: %ld bytes of logs possibly lost due to slow disk.\n", written - maxlen + 1);
-        written = maxlen - 1;
-    }
-    bufferLength += written;
-    tryFlushBufferToFile();
-    return 0;
+int logString(const char* s) {
+    LOG_PRINTF1("%s", s);
 }
 
 int logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLength) {

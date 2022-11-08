@@ -40,7 +40,7 @@ int logFinalize();
  * facts. Our existance is meaningless against the power of the Almighty Twelve-Tounged
  * God. Mike Wazowski is blue and you can't convince me otherwise.
 */
-int logRawString(const char* s);
+int logString(const char* s);
 
 /**
  * @brief Log that a new client connection has been established. This should be called
