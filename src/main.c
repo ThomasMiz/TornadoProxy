@@ -21,13 +21,13 @@
 static bool terminationRequested = false;
 
 static void sigterm_handler(const int signal) {
-    printf("signal %d, cleaning up and exiting\n", signal);
+    logString("Received termination signal, shutting down...");
     terminationRequested = true;
 }
 
 int main(const int argc, const char** argv) {
-	setvbuf(stdout, NULL, _IONBF, 0);
-	setvbuf(stderr, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stderr, NULL, _IONBF, 0);
     unsigned port = 1080;
 
     if (argc == 1) {
@@ -88,8 +88,6 @@ int main(const int argc, const char** argv) {
         goto finally;
     }
 
-    fprintf(stdout, "Listening on TCP port %d\n", port);
-
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
 
@@ -102,6 +100,12 @@ int main(const int argc, const char** argv) {
         err_msg = "unable to listen";
         goto finally;
     }
+
+    // Get the local address at which our socket was found
+    struct sockaddr_storage listenAddress;
+    socklen_t listenAddressLen = sizeof(listenAddress);
+    int getsocknameResult = getsockname(server, (struct sockaddr*)&listenAddress, &listenAddressLen);
+    logServerListening(getsocknameResult >= 0 ? (struct sockaddr*)&listenAddress : NULL, listenAddressLen);
 
     // registrar sigterm es útil para terminar el programa normalmente.
     // esto ayuda mucho en herramientas como valgrind.
@@ -130,22 +134,19 @@ int main(const int argc, const char** argv) {
             goto finally;
         }
     }
-    if (err_msg == NULL) {
-        err_msg = "closing";
-    }
 
     int ret = 0;
 finally:
     if (ss != SELECTOR_SUCCESS) {
-        fprintf(stderr, "%s: %s\n", (err_msg == NULL) ? "" : err_msg,
-                ss == SELECTOR_IO
-                    ? strerror(errno)
-                    : selector_error(ss));
+        logServerError((err_msg == NULL) ? "" : err_msg, ss == SELECTOR_IO ? strerror(errno) : selector_error(ss));
         ret = 2;
     } else if (err_msg) {
-        perror(err_msg);
+        logServerError(err_msg, strerror(errno));
         ret = 1;
     }
+
+    logString("Goodbye");
+    logFinalize();
     if (selector != NULL) {
         selector_destroy(selector);
     }
@@ -157,6 +158,5 @@ finally:
         close(server);
     }
 
-    logFinalize();
     return ret;
 }

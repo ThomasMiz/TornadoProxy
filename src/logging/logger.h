@@ -23,13 +23,13 @@
  * to the console. Set to NULL to disable. WARNING: Printing to this stream is done with
  * fprintf which may be blocking, halting the server. This stream is not closed by the
  * logging system.
-*/
+ */
 int logInit(TSelector selector, const char* logFile, FILE* logStream);
 
 /**
  * @brief Closes the logging system, flushing any remaining logs, closing any opened
  * files and unregistering them from the selector.
-*/
+ */
 int logFinalize();
 
 /**
@@ -39,8 +39,20 @@ int logFinalize();
  * exist, the calling of this function has no effect whatsover on such unfathomable
  * facts. Our existance is meaningless against the power of the Almighty Twelve-Tounged
  * God. Mike Wazowski is blue and you can't convince me otherwise.
-*/
+ */
 int logString(const char* s);
+
+/**
+ * @brief Log that the server has opened a socket listening at the specified socekt.
+ * @param listenSocket The address the server socket is bound to, or NULL if unknown.
+ * @param listenSocketLen The length of the socket address specified in listenSocket.
+ */
+int logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen);
+
+/**
+ * @brief Log that a server error ocurred.
+ */
+int logServerError(const char* err_msg, const char* info);
 
 /**
  * @brief Log that a new client connection has been established. This should be called
@@ -49,7 +61,7 @@ int logString(const char* s);
  * @param origin The address the client is connecting from. This value is returned by
  * accept(). Null can be used to indicate unknown origin.
  * @param originLength the length of the socket address specified in origin.
-*/
+ */
 int logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLength);
 
 /**
@@ -59,7 +71,7 @@ int logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLe
  * @param username The client's username, or null if not logged in.
  * @param reason A human-readable string indicating why the client was disconnected.
  * For example, "connection closed by client", "no valid auth method", "solar storm"
-*/
+ */
 int logClientDisconnected(int clientId, const char* username, const char* reason);
 
 /**
@@ -68,7 +80,7 @@ int logClientDisconnected(int clientId, const char* username, const char* reason
  * @param clientId The client's ID (it's socket's file descriptor).
  * @param user The username specified, or null if not loggin in with username.
  * @param successful Whether the authentication was successful.
-*/
+ */
 int logClientAuthenticated(int clientId, const char* username, int successful);
 
 /**
@@ -77,7 +89,7 @@ int logClientAuthenticated(int clientId, const char* username, int successful);
  * @param username The client's username, or null if not logged in.
  * @param remote The address the client requested to connec to.
  * @param remoteLength The length of the address specified in remote.
-*/
+ */
 int logClientConnectionRequestAddress(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
 
 /**
@@ -85,7 +97,7 @@ int logClientConnectionRequestAddress(int clientId, const char* username, const 
  * @param clientId The client's ID (it's socket's file descriptor).
  * @param username The client's username, or null if not logged in.
  * @param domainname The domain name the client requested to connect to.
-*/
+ */
 int logClientConnectionRequestDomainname(int clientId, const char* username, const char* domainname);
 
 /**
@@ -95,7 +107,7 @@ int logClientConnectionRequestDomainname(int clientId, const char* username, con
  * @param username The client's username, or null if not logged in.
  * @param remote The address the server is attempting to connect to.
  * @param remoteLength The length of the address specified in remote.
-*/
+ */
 int logClientConnectionRequestAttempt(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
 
 /**
@@ -105,7 +117,7 @@ int logClientConnectionRequestAttempt(int clientId, const char* username, const 
  * @param username The client's username, or null if not logged in.
  * @param remote The address the server has to connect to.
  * @param remoteLength The length of the address specified in remote.
-*/
+ */
 int logClientConnectionRequestSuccess(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
 
 /**
@@ -115,7 +127,7 @@ int logClientConnectionRequestSuccess(int clientId, const char* username, const 
  * @param username The client's username, or null if not logged in.
  * @param bytesSent The amount of bytes sent by the client to the remote server.
  * @param bytesReceived The amount of bytes sent by the remote server to the client.
-*/
+ */
 int logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived);
 
 #endif

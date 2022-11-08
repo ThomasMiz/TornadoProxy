@@ -10,6 +10,7 @@
 
 #include "../selector.h"
 #include "logger.h"
+#include "util.h"
 
 #define DEFAULT_LOG_FOLDER "./log"
 #define DEFAULT_LOG_FILE (DEFAULT_LOG_FOLDER "/%02d-%02d-%04d.log")
@@ -30,6 +31,8 @@
 
 #define LOG_LINE_START "[%02d/%02d/%04d %02d:%02d:%02d] "
 #define LOG_PRINTF_START_PARAMS tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec
+
+#define ADDRSTR_BUFLEN 64
 
 /** The buffer where logs are buffered. */
 static char* buffer = NULL;
@@ -120,8 +123,10 @@ static int postLogPrint(int written, size_t maxlen) {
         fprintf(logStream, "%s", buffer + bufferStart + bufferLength);
     }
 
-    bufferLength += written;
-    tryFlushBufferToFile();
+    if (logFileFd >= 0) {
+        bufferLength += written;
+        tryFlushBufferToFile();
+    }
     return 0;
 }
 
@@ -189,6 +194,9 @@ int logInit(TSelector selectorParam, const char* logFile, FILE* logStreamParam) 
 
     if (logFileFd >= 0) {
         selector_register(selector, logFileFd, &fdHandler, OP_NOOP, NULL);
+    }
+
+    if (logFileFd >= 0 || logStream != NULL) {
         buffer = malloc(LOG_MIN_BUFFER_SIZE);
         bufferCapacity = LOG_MIN_BUFFER_SIZE;
         bufferLength = 0;
@@ -206,7 +214,7 @@ int logInit(TSelector selectorParam, const char* logFile, FILE* logStreamParam) 
 
 int logFinalize() {
     if (logFileFd >= 0) {
-        selector_unregister_fd(selector, logFileFd); // This will also close the TFdHandler's close, and close the file.
+        selector_unregister_fd(selector, logFileFd); // This will also call the TFdHandler's close, and close the file.
         selector = NULL;
     }
 
@@ -226,32 +234,76 @@ int logString(const char* s) {
     LOG_PRINTF1("%s", s);
 }
 
+int logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen) {
+    char addrBuffer[ADDRSTR_BUFLEN];
+    if (listenAddress != NULL)
+        printSocketAddress(listenAddress, addrBuffer);
+
+    LOG_PRINTF1("Listening for TCP connections at %s", listenAddress == NULL ? "unknown address" : addrBuffer);
+}
+
+int logServerError(const char* err_msg, const char* info) {
+    LOG_PRINTF3("Error: %s%s%s", err_msg, info == NULL ? "" : ", ", info == NULL ? "" : info);
+}
+
 int logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLength) {
-    return 0;
+    char addrBuffer[ADDRSTR_BUFLEN];
+    printSocketAddress(origin, addrBuffer);
+    LOG_PRINTF2("New client connection from %s assigned id %d", addrBuffer, clientId);
 }
 
 int logClientDisconnected(int clientId, const char* username, const char* reason) {
-    return 0;
+    if (username == NULL) {
+        LOG_PRINTF3("Client %d (not authenticated) disconnected%s%s", clientId, reason == NULL ? "" : ": ", reason == NULL ? "" : reason);
+    } else {
+        LOG_PRINTF4("Client %d (authenticated as %s) disconnected%s%s", clientId, username, reason == NULL ? "" : ": ", reason == NULL ? "" : reason);
+    }
 }
 
 int logClientAuthenticated(int clientId, const char* username, int successful) {
-    return 0;
+    if (username == NULL) {
+        LOG_PRINTF3("Client %d %ssuccessfully authenticated with no authentication method%s", clientId, successful ? "" : "un", successful ? "" : "... what?");
+    } else {
+        LOG_PRINTF3("Client %d %ssuccessfully authenticated as \"%s\"", clientId, successful ? "" : "un", username);
+    }
 }
 
 int logClientConnectionRequestAddress(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
-    return 0;
+    char addrBuffer[ADDRSTR_BUFLEN];
+    printSocketAddress(remote, addrBuffer);
+    if (username == NULL) {
+        LOG_PRINTF2("Client %d (not authenticated) requested to connect to address %s", clientId, addrBuffer);
+    } else {
+        LOG_PRINTF3("Client %d (authenticated as %s) requested to connect to address %s", clientId, username, addrBuffer);
+    }
 }
 
 int logClientConnectionRequestDomainname(int clientId, const char* username, const char* domainname) {
-    return 0;
+    if (username == NULL) {
+        LOG_PRINTF2("Client %d (not authenticated) requested to connect to domainname %s", clientId, domainname);
+    } else {
+        LOG_PRINTF3("Client %d (authenticated as %s) requested to connect to domainname %s", clientId, username, domainname);
+    }
 }
 
 int logClientConnectionRequestAttempt(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
-    return 0;
+    char addrBuffer[ADDRSTR_BUFLEN];
+    printSocketAddress(remote, addrBuffer);
+    if (username == NULL) {
+        LOG_PRINTF2("Attempting to connect to %s as requested by client %d (not authenticated)", addrBuffer, clientId);
+    } else {
+        LOG_PRINTF3("Attempting to connect to %s as requested by client %d (authenticated as %s)", addrBuffer, clientId, username);
+    }
 }
 
 int logClientConnectionRequestSuccess(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
-    return 0;
+    char addrBuffer[ADDRSTR_BUFLEN];
+    printSocketAddress(remote, addrBuffer);
+    if (username == NULL) {
+        LOG_PRINTF2("Successfully connected to %s as requested by client %d (not authenticated)", addrBuffer, clientId);
+    } else {
+        LOG_PRINTF3("Successfully connected to %s as requested by client %d (authenticated as %s)", addrBuffer, clientId, username);
+    }
 }
 
 int logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived) {
