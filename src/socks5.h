@@ -1,6 +1,7 @@
 #ifndef _SOCKS5_H_
 #define _SOCKS5_H_
 
+
 #include "buffer.h"
 #include "negotiation.h"
 #include "requestParser.h"
@@ -27,6 +28,13 @@ typedef struct TClientData {
     uint8_t inReadBuffer[CLIENT_RECV_BUFFER_SIZE];
     struct buffer writeBuffer;
     uint8_t inWriteBuffer[CLIENT_RECV_BUFFER_SIZE];
+
+
+    //
+    struct addrinfo * origin_resolution;
+    int client_fd;
+    // informacion del OS
+    int origin_fd;
 } TClientData;
 
 enum socks_state {
@@ -81,7 +89,7 @@ enum socks_state {
         - REQUEST_CONNECTING si se logra la resolucion y se puede iniciar la conexion al OS.
         - REQUEST_WRITE en otro caso
     */
-    //    REQUEST_RESOLV,
+    REQUEST_RESOLV,
 
     /*
         Espera que se establezca la conesion al OS

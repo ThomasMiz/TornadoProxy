@@ -83,10 +83,10 @@ static const struct state_definition client_statb1[] = {
         //.on_departure = requestReadClose,
         .on_read_ready = requestRead,
     },
-    // {
-    //     .state = REQUEST_RESOLV,
-    //     .on_block_ready = request_resolv_done,
-    // },
+    {
+         .state = REQUEST_RESOLV,
+         .on_block_ready = requestResolveDone,
+    },
     // {
     //     .state = REQUEST_CONNECTING,
     //     .on_arrival = request_connecting_init,
@@ -133,6 +133,12 @@ static void socksv5_write(TSelectorKey* key) {
     // ERROR HANDLING
 }
 
+static void socksv5_block(TSelectorKey *key) {
+    struct state_machine *stm = &ATTACHMENT(key)->stm;
+    const enum socks_state st = stm_handler_block(stm, key);
+    // ERROR HANDLING
+}
+
 void socksv5_passive_accept(TSelectorKey* key) {
     printf("New client received\n");
     struct sockaddr_storage clientAddress;
@@ -153,6 +159,7 @@ void socksv5_passive_accept(TSelectorKey* key) {
     handler->handle_read = socksv5_read;
     handler->handle_write = socksv5_write;
     handler->handle_close = socksv5_close;
+    handler->handle_block = socksv5_block;
 
     clientData->stm.initial = NEGOTIATION_READ; // TODO CAMBIAR LUEGO
     clientData->stm.max_state = ERROR;
