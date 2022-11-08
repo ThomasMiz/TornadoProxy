@@ -111,6 +111,8 @@ static inline void tryFlushBufferToFile() {
 
 #define LOG_PREPRINTPARAMS_MACRO(format)                             \
     {                                                                \
+        if (logFileFd < 0 && logStream == NULL)                      \
+            return 0;                                                \
         makeBufferSpace(LOG_BUFFER_MAX_PRINT_LENGTH);                \
         time_t T = time(NULL);                                       \
         struct tm tm = *localtime(&T);                               \
@@ -286,7 +288,7 @@ int logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLe
     metrics.currentConnectionCount++;
     metrics.totalConnectionCount++;
     if (metrics.currentConnectionCount > metrics.maxConcurrentConnections)
-        metrics.currentConnectionCount = metrics.maxConcurrentConnections;
+        metrics.maxConcurrentConnections = metrics.currentConnectionCount;
 
     char addrBuffer[ADDRSTR_BUFLEN];
     printSocketAddress(origin, addrBuffer);
