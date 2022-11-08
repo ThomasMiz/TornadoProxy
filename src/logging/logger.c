@@ -40,6 +40,11 @@
  */
 static TMetricsSnapshot metrics;
 
+int getMetricsSnapshot(TMetricsSnapshot* snapshot) {
+    memcpy(snapshot, &metrics, sizeof(TMetricsSnapshot));
+    return 0;
+}
+
 /** The buffer where logs are buffered. */
 static char* buffer = NULL;
 static size_t bufferStart = 0, bufferLength = 0, bufferCapacity = 0;
@@ -278,12 +283,19 @@ int logServerError(const char* err_msg, const char* info) {
 }
 
 int logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLength) {
+    metrics.currentConnectionCount++;
+    metrics.totalConnectionCount++;
+    if (metrics.currentConnectionCount > metrics.maxConcurrentConnections)
+        metrics.currentConnectionCount = metrics.maxConcurrentConnections;
+
     char addrBuffer[ADDRSTR_BUFLEN];
     printSocketAddress(origin, addrBuffer);
     LOG_PRINTF2("New client connection from %s assigned id %d", addrBuffer, clientId);
 }
 
 int logClientDisconnected(int clientId, const char* username, const char* reason) {
+    metrics.currentConnectionCount--;
+
     if (username == NULL) {
         LOG_PRINTF3("Client %d (not authenticated) disconnected%s%s", clientId, reason == NULL ? "" : ": ", reason == NULL ? "" : reason);
     } else {
@@ -338,5 +350,7 @@ int logClientConnectionRequestSuccess(int clientId, const char* username, const 
 }
 
 int logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived) {
+    metrics.totalBytesSent += bytesSent;
+    metrics.totalBytesReceived += bytesReceived;
     return 0;
 }
