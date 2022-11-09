@@ -21,6 +21,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+void doneArrival(const unsigned state, TSelectorKey* key){
+    printf("Done state \n");
+}
+void errorArrival(const unsigned state, TSelectorKey* key){
+    printf("Error state \n");
+}
+
 static const struct state_definition client_statb1[] = {
     {
         .state = NEGOTIATION_READ,
@@ -58,9 +65,11 @@ static const struct state_definition client_statb1[] = {
     },
     {
         .state = DONE,
+            .on_arrival = doneArrival,
     },
     {
         .state = ERROR,
+            .on_arrival = errorArrival,
     }};
 
 static void socksv5_read(TSelectorKey* key);

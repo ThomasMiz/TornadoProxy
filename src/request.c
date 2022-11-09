@@ -135,10 +135,11 @@ static void* requestNameResolution(void* data) {
 
 unsigned requestResolveDone(TSelectorKey* key) {
     printf("[Req resolve done ]\n");
+    TClientData* data = ATTACHMENT(key);
 
     struct addrinfo *ailist, *aip;
 
-    ailist = ATTACHMENT(key)->origin_resolution;
+    ailist = data->origin_resolution;
     char addr[64];
     for (aip = ailist; aip != NULL; aip = aip->ai_next) {
         printFlags(aip);
@@ -149,9 +150,14 @@ unsigned requestResolveDone(TSelectorKey* key) {
         printf("address: %s", printAddressPort(aip, addr));
         putchar('\n');
     }
-    freeaddrinfo(ailist);
+    //freeaddrinfo(ailist);
 
-    return COPY;
+    if(ailist == NULL){
+        selector_set_interest_key(key, OP_WRITE);
+        fillRequestAnswer(&data->client.reqParser, &data->originBuffer);
+        return ERROR;
+    }
+    return REQUEST_CONNECTING;
 }
 
 unsigned requestWrite(TSelectorKey* key) {

@@ -20,8 +20,11 @@ unsigned request_connecting(TSelectorKey* key) {
     TClientData* d = ATTACHMENT(key);
     TFdInterests curr_interests;
     selector_get_interests(key, &curr_interests);
+
+
     if (d->client_fd == key->fd) // Se llama primero al handler del cliente, y entonces nos conectamos al OS
     {
+        //TODO: Consider looping throw all the possible addresses given
         selector_set_interest(key->s, d->client_fd, INTEREST_OFF(curr_interests, OP_WRITE));
         assert(d->origin_resolution != NULL);
         d->origin_fd = socket(d->origin_resolution->ai_family, d->origin_resolution->ai_socktype, d->origin_resolution->ai_protocol);

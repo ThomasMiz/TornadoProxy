@@ -61,7 +61,7 @@ unsigned negotiationWrite(TSelectorKey* key) {
         return NEGOTIATION_WRITE;
     }
 
-    if (selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
+    if (hasNegotiationErrors(&data->client.negParser) || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
         return ERROR;
     }
 
