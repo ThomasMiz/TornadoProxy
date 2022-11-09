@@ -1,6 +1,7 @@
 #include "negotiationParser.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #define VERSION_5 0x05
 

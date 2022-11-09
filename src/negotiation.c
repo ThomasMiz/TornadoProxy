@@ -8,8 +8,8 @@ void negotiationReadInit(const unsigned state, TSelectorKey* key) {
     TClientData* data = ATTACHMENT(key);
 
     // TODO: this should not be here
-    buffer_init(&data->readBuffer, CLIENT_RECV_BUFFER_SIZE, data->inReadBuffer);
-    buffer_init(&data->writeBuffer, CLIENT_RECV_BUFFER_SIZE, data->inWriteBuffer);
+    buffer_init(&data->readBuffer, BUFFER_SIZE, data->inReadBuffer);
+    buffer_init(&data->writeBuffer, BUFFER_SIZE, data->inWriteBuffer);
     initNegotiationParser(&data->client.negParser);
 }
 

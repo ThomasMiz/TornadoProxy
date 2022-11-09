@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stdint.h> // uint8_t
 #include <unistd.h> // size_t, ssize_t
-
 /**
  * buffer.c - buffer con acceso directo (útil para I/O) que mantiene
  *            mantiene puntero de lectura y de escritura.

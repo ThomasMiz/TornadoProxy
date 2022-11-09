@@ -1,9 +1,13 @@
 #ifndef REQUEST_PARSER_H
 #define REQUEST_PARSER_H
 
+#include <sys/types.h>
+
 #include "buffer.h"
 #include <netinet/ip.h>
 #include <stdint.h>
+
+
 
 enum TReqCmd {
     REQ_CMD_CONNECT = 0x01,

@@ -1,8 +1,9 @@
 #ifndef SELECTOR_H_
 #define SELECTOR_H_
 
-#include <sys/time.h>
 #include <stdbool.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 /**
  * selector.c - un muliplexor de entrada salida
@@ -154,6 +155,9 @@ TSelectorStatus selector_set_interest(TSelector s, int fd, TFdInterests i);
 
 /** permite cambiar los intereses para un file descriptor */
 TSelectorStatus selector_set_interest_key(TSelectorKey* key, TFdInterests i);
+
+/** Devuelve los intereses del selector */
+TSelectorStatus selector_get_interests(TSelectorKey* key, TFdInterests* i);
 
 /**
  * se bloquea hasta que hay eventos disponible y los despacha.

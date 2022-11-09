@@ -1,22 +1,22 @@
 #ifndef _SOCKS5_H_
 #define _SOCKS5_H_
 
-
 #include "buffer.h"
 #include "negotiation.h"
 #include "requestParser.h"
 #include "selector.h"
 #include "socks5.h"
 #include "stm.h"
+#include <netdb.h>
 
 // obtiene el struct socks5* desde la key
 #define ATTACHMENT(key) ((TClientData*)(key)->data)
-#define CLIENT_RECV_BUFFER_SIZE 4096
+#define BUFFER_SIZE 8192
+#define N(x) (sizeof(x) / sizeof((x)[0]))
 
 typedef struct TClientData {
     TFdHandler handler;
-    char* buffer;
-    unsigned int bufferLength;
+
     struct state_machine stm;
     union {
         TNegParser negParser;
@@ -25,13 +25,20 @@ typedef struct TClientData {
 
     // Added this buffer, consider removing the plain buffer from this struct.
     struct buffer readBuffer;
-    uint8_t inReadBuffer[CLIENT_RECV_BUFFER_SIZE];
+    uint8_t inReadBuffer[BUFFER_SIZE];
     struct buffer writeBuffer;
-    uint8_t inWriteBuffer[CLIENT_RECV_BUFFER_SIZE];
+    uint8_t inWriteBuffer[BUFFER_SIZE];
 
+    char* buffer;
+    unsigned int bufferLength;
 
-    //
-    struct addrinfo * origin_resolution;
+    // De stm
+    uint8_t client_buffer_array[BUFFER_SIZE];
+    uint8_t origin_buffer_array[BUFFER_SIZE];
+    buffer client_buffer;
+    buffer origin_buffer;
+
+    struct addrinfo* origin_resolution;
     int client_fd;
     // informacion del OS
     int origin_fd;
@@ -40,10 +47,8 @@ typedef struct TClientData {
 enum socks_state {
     /*
         recibe el mensaje `hello` del cliente y lo procesa
-
     Intereses:
         - OP_READ sobre client_fd
-
     Transiciones:
         - HELLO_READ mientras el mensaje no esta completo
         - HELLO_WRITE cuando esta completo
@@ -53,10 +58,8 @@ enum socks_state {
 
     /*
         envia la respuesta del `hello` al cliente
-
     Intereses:
         - OP_WRITE sobre client_fd
-
     Transiciones:
         - HELLO_WRITE mientras queden bytes por enviar
         - REQUEST_READ cuando se enviaron todos los bytes
@@ -66,10 +69,8 @@ enum socks_state {
 
     /*
         recibe el mensaje `request` del cliente e inicia su proceso
-
     Intereses:
         - OP_READ sobre client_fd
-
     Transiciones:
         - REQUEST_READ mientras el mensaje no este completo
         - REQUEST_RESOLV si quiere resolver un nombre DNS
@@ -81,10 +82,8 @@ enum socks_state {
 
     /*
         Espera la resolucion DNS
-
     Intereses:
         - OP_NOOP sobre client_fd. Espera un evento de que la tarea bloqueante terminó
-
     Transiciones:
         - REQUEST_CONNECTING si se logra la resolucion y se puede iniciar la conexion al OS.
         - REQUEST_WRITE en otro caso
@@ -93,22 +92,18 @@ enum socks_state {
 
     /*
         Espera que se establezca la conesion al OS
-
     Intereses:
         - OP_WRITE sobre client_fd
-
     Transiciones:
         - REQUEST_CWRITE cuando se haya logrado o no establecer la conexion
     */
-    //    REQUEST_CONNECTING,
+    REQUEST_CONNECTING,
 
     /*
         Envia la respuesta del `request` al cliente
-
     Intereses:
         - OP_WRITE sobre client_fd
         - OP_NOOP sobre origin_fd
-
     Transiciones:
         - HELLO_WRITE mientras queden bytes por enviar
         - COPY si el request fue exitoso y teemos que copiar el contenido de los descriptores
@@ -118,11 +113,9 @@ enum socks_state {
 
     /*
         Copia bytes entre client_fd y origin_fd
-
     Intereses:
         - OP_READ si hay espacio para escribir en el buffer de lectura
         - OP_WRITE si hay bytes para leer en el buffer de escritura
-
     Transiciones:
         - DONE cuando no queda nada mas por copiar
     */
@@ -137,6 +130,7 @@ enum socks_state {
 void socksv5_passive_accept(TSelectorKey* key);
 unsigned socksv5_handle_read(TSelectorKey* key);
 unsigned socksv5_handle_write(TSelectorKey* key);
-void socksv5_handle_close(TSelectorKey* key);
+void socksv5_handle_close(const unsigned int, TSelectorKey* key);
+TFdHandler* get_state_handler();
 
 #endif
