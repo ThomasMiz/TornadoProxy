@@ -24,19 +24,11 @@ typedef struct TClientData {
     } client;
 
     // Added this buffer, consider removing the plain buffer from this struct.
-    struct buffer readBuffer;
-    uint8_t inReadBuffer[BUFFER_SIZE];
-    struct buffer writeBuffer;
-    uint8_t inWriteBuffer[BUFFER_SIZE];
+    struct buffer clientBuffer;
+    uint8_t inClientBuffer[BUFFER_SIZE];
 
-    char* buffer;
-    unsigned int bufferLength;
-
-    // De stm
-    uint8_t client_buffer_array[BUFFER_SIZE];
-    uint8_t origin_buffer_array[BUFFER_SIZE];
-    buffer client_buffer;
-    buffer origin_buffer;
+    struct buffer originBuffer;
+    uint8_t inOriginBuffer[BUFFER_SIZE];
 
     struct addrinfo* origin_resolution;
     int client_fd;

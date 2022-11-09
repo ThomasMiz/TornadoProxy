@@ -129,8 +129,8 @@ void socksv5_passive_accept(TSelectorKey* key) {
     clientData->stm.states = client_statb1;
     clientData->client_fd = newClientSocket;
 
-    buffer_init(&clientData->origin_buffer, N(clientData->origin_buffer_array), clientData->origin_buffer_array);
-    buffer_init(&clientData->client_buffer, N(clientData->client_buffer_array), clientData->client_buffer_array);
+    buffer_init(&clientData->originBuffer, BUFFER_SIZE, clientData->inOriginBuffer);
+    buffer_init(&clientData->clientBuffer, BUFFER_SIZE, clientData->inClientBuffer);
 
     /*struct sockaddr_in* sockaddr = malloc(sizeof(struct sockaddr_in));
 
