@@ -1,7 +1,10 @@
 #include "selector.h"
 #include "socks5.h"
 #include <errno.h>
+#include <stdio.h>
+#include <assert.h>
 #include "request_connecting.h"
+#include "netutils.h"
 
 void request_connecting_init(const unsigned state, TSelectorKey* key) {
     printf("init\n");

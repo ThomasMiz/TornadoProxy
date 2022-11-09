@@ -1,5 +1,7 @@
 #include "copy.h"
-
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 unsigned socksv5_handle_read(TSelectorKey* key) {
     TClientData* clientData = key->data;
     buffer* client_buffer = &clientData->client_buffer;

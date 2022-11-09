@@ -26,7 +26,7 @@ static void socksv5_read(TSelectorKey* key);
 static void socksv5_write(TSelectorKey* key);
 static void socksv5_close(TSelectorKey* key);
 static void socksv5_block(TSelectorKey* key);
-static const TFdHandler handler = {
+static TFdHandler handler = {
     .handle_read = socksv5_read,
     .handle_write = socksv5_write,
     .handle_close = socksv5_close,
