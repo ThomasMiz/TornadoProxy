@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <regex.h>
 
 #include "selector.h"
 #include "users.h"
@@ -23,6 +24,35 @@ typedef struct {
 static TUserData* users;
 static unsigned int usersLength, usersCapacity;
 static unsigned int adminUsersCount;
+
+static const char* usersFile;
+
+static regex_t usernameValidationRegex;
+static regex_t passwordValidationRegex;
+
+static TUserStatus validateUsername(const char* username) {
+    if (strlen(username) > USERS_MAX_USERNAME_LENGTH)
+        return EUSER_CREDTOOLONG;
+
+    if (regexec(&usernameValidationRegex, username, 0, NULL, 0) != 0)
+        return EUSER_BADUSERNAME;
+
+    return EUSER_OK;
+}
+
+static TUserStatus validatePassword(const char* password) {
+    if (strlen(password) > USERS_MAX_PASSWORD_LENGTH)
+        return EUSER_CREDTOOLONG;
+
+    if (regexec(&passwordValidationRegex, password, 0, NULL, 0) != 0)
+        return EUSER_BADPASSWORD;
+
+    return EUSER_OK;
+}
+
+static int loadUsersFile() {
+    return 0;
+}
 
 /**
  * @brief Returns the index in the users array at which a username can be found.
@@ -51,16 +81,37 @@ static int usersGetIndexOf(const char* username) {
 }
 
 int usersInit(const char* usersFileParam) {
+    users = NULL;
+    usersLength = 0;
+    adminUsersCount = 0;
+    usersCapacity = 0;
+
+    if (regcomp(&usernameValidationRegex, USERS_USERNAME_REGEX, 0) != 0) {
+        fprintf(stderr, "ERROR: Failed to compile username validation regex. This should not happen.\n");
+        return -1;
+    }
+
+    if (regcomp(&passwordValidationRegex, USERS_PASSWORD_REGEX, 0) != 0) {
+        fprintf(stderr, "ERROR: Failed to compile password validation regex. This should not happen.\n");
+        regfree(&usernameValidationRegex);
+        return -1;
+    }
+
     users = malloc(USERS_ARRAY_MIN_SIZE * sizeof(TUserData));
     if (users == NULL) {
-        fprintf(stderr, "Failed to malloc initial array for users");
+        fprintf(stderr, "Failed to malloc initial array for users\n");
+        regfree(&usernameValidationRegex);
+        regfree(&passwordValidationRegex);
         return -1;
     }
     usersCapacity = USERS_ARRAY_MIN_SIZE;
-    usersLength = 0;
-    adminUsersCount = 0;
 
-    usersCreate(USERS_DEFAULT_USERNAME, USERS_DEFAULT_PASSWORD, 0, UPRIV_ADMIN, 0);
+    usersFile = (usersFileParam != NULL && usersFileParam[0] != '\0') ? usersFileParam : USERS_DEFAULT_FILE;
+    loadUsersFile();
+
+    if (usersLength == 0)
+        usersCreate(USERS_DEFAULT_USERNAME, USERS_DEFAULT_PASSWORD, 0, UPRIV_ADMIN, 0);
+
     return 0;
 }
 
@@ -69,7 +120,7 @@ TUserStatus usersLogin(const char* username, const char* password, TUserPrivilig
         password = "";
 
     if (usersLength == 0) {
-        fprintf(stderr, "WARNING: Login failed because there are no users in the system"); // TODO: Use logging system
+        fprintf(stderr, "WARNING: Login failed because there are no users in the system\n"); // TODO: Use logging system
         return EUSER_WRONGUSERNAME;
     }
 
@@ -101,9 +152,9 @@ TUserStatus usersCreate(const char* username, const char* password, int updatePa
         TUserData* user = &users[index];
 
         if (updatePassword) {
-            size_t newPasswordLength = strlen(password);
-            if (newPasswordLength > USERS_MAX_PASSWORD_LENGTH)
-                status = EUSER_CREDTOOLONG;
+            TUserStatus passwordStatus = validatePassword(password);
+            if (passwordStatus != EUSER_OK)
+                status = passwordStatus;
             else
                 strcpy(user->password, password);
         }
@@ -123,13 +174,17 @@ TUserStatus usersCreate(const char* username, const char* password, int updatePa
     // The user doesn't exist. Let's create it.
     // First we check that we haven't reached the system's limit.
     if (usersLength >= USERS_MAX_COUNT) {
-        fprintf(stderr, "ERROR: Attempted to create new user, but the limit of users on the system has been reached"); // TODO: Use logging system
+        fprintf(stderr, "ERROR: Attempted to create new user, but the limit of users on the system has been reached\n"); // TODO: Use logging system
         return EUSER_LIMITREACHED;
     }
 
-    // Ensure the credentials aren't too long.
-    if (strlen(username) > USERS_MAX_USERNAME_LENGTH || strlen(password) > USERS_MAX_PASSWORD_LENGTH)
-        return EUSER_CREDTOOLONG;
+    // Ensure the credentials aren't too long and are in a valid format.
+    TUserStatus status;
+    status = validateUsername(username);
+    if (status == EUSER_OK)
+        status = validatePassword(password);
+    if (status != EUSER_OK)
+        return status;
 
     // Ensure the users array has enough space.
     if (usersLength == usersCapacity) {
@@ -180,6 +235,9 @@ TUserStatus usersDelete(const char* username) {
 }
 
 TUserStatus usersFinalize() {
+    free(users);
+    regfree(&usernameValidationRegex);
+    regfree(&passwordValidationRegex);
     return EUSER_OK;
 }
 

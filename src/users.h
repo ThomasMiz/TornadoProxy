@@ -1,6 +1,8 @@
 #ifndef _USERS_H_
 #define _USERS_H_
 
+#include "selector.h"
+
 /** The maximum length of a user's username. */
 #define USERS_MAX_USERNAME_LENGTH 31
 /** The maximum length of a user's password. */
@@ -16,7 +18,11 @@
 #define USERS_DEFAULT_USERNAME "admin"
 #define USERS_DEFAULT_PASSWORD "admin"
 
-#include "selector.h"
+/** A regex used for username validation, independent of string length. */
+#define USERS_USERNAME_REGEX "^[a-zA-Z][a-zA-Z0-9_\\-ñ]*$"
+/** A regex used for password validation, independent of string length. */
+#define USERS_PASSWORD_REGEX "^[ -9;-~]*$"
+// The password can contain any ASCII char between 32 (' ') and 126 ('~'), except for ':'.
 
 /**
  * Represents a user's privilige level.
@@ -36,8 +42,10 @@ typedef enum {
     EUSER_WRONGPASSWORD = 3,
     EUSER_LIMITREACHED = 4,
     EUSER_CREDTOOLONG = 5,
-    EUSER_BADOPERATION = 6,
-    EUSER_NOMEMORY = 7,
+    EUSER_BADUSERNAME = 6,
+    EUSER_BADPASSWORD = 7,
+    EUSER_BADOPERATION = 8,
+    EUSER_NOMEMORY = 9,
     EUSER_UNKNOWNERROR = -1,
 } TUserStatus;
 
@@ -67,8 +75,9 @@ TUserStatus usersLogin(const char* username, const char* password, TUserPrivilig
  * @param updatePassword Whether to update the password if the user already exists.
  * @param privilige The privilige level for the user.
  * @param updatePrivilige Whether to update the user's privilige level if the user already exists.
- * @returns A value from TUserStatus. Either OK, ALREADYEXISTS, CREDTOOLONG, LIMITREACHED, 
- * NOMEMORY, or BADOPERATION (if downgrading priviliges from last admin in the system).
+ * @returns A value from TUserStatus. Either OK, ALREADYEXISTS, CREDTOOLONG, BADUSERNAME,
+ * BADPASSWORD, LIMITREACHED, NOMEMORY, or BADOPERATION (if downgrading priviliges from last
+ * admin in the system).
 */
 TUserStatus usersCreate(const char* username, const char* password, int updatePassword, TUserPriviligeLevel privilige, int updatePrivilige);
 
