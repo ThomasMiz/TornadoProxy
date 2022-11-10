@@ -50,5 +50,8 @@ unsigned request_connecting(TSelectorKey* key) {
     printf("Connected to %s\n", buf);
     selector_set_interest(key->s, d->origin_fd, OP_READ);
     selector_set_interest(key->s, d->client_fd, OP_READ);
-    return COPY;
+    if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&d->client.reqParser, &d->originBuffer)) {
+        return ERROR;
+    }
+    return REQUEST_WRITE;
 }
