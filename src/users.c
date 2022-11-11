@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -12,8 +13,8 @@
 #define USERS_ARRAY_MIN_SIZE 8
 #define USERS_ARRAY_SIZE_GRANULARITY 8
 
-#define USERS_FILE_PERMISSION_BITS 666
-#define USERS_FILE_OPEN_FLAGS (O_WRONLY | O_CREAT | O_TRUNC)
+#define USERS_FILE_OPEN_READ_MODE "r"
+#define USERS_FILE_OPEN_WRITE_MODE "w"
 
 typedef struct {
     char username[USERS_MAX_USERNAME_LENGTH + 1];
@@ -50,7 +51,156 @@ static TUserStatus validatePassword(const char* password) {
     return EUSER_OK;
 }
 
+static int skipUntilNextLine(FILE* file, unsigned int* line) {
+    // Skip until the next line or EOF is reached.
+    int c;
+    do {
+        c = fgetc(file);
+
+        if (c == '\n')
+            (*line)++;
+
+    } while (c > 0 && c != '\n');
+    return c;
+}
+
+static int skipWhitespaces(FILE* file, unsigned int* line) {
+    // Skip whitespaces until we find something non-space, then return it.
+    int c;
+    do {
+        c = fgetc(file);
+        if (c == '\n')
+            (*line)++;
+    } while (isspace(c));
+    return c;
+}
+
+/**
+ * @brief Parses a single user from a line in a users file stream. Returns 0 on success.
+ * If a parsing error occurres, the function skips until the next line (or EOF) and returns 1.
+ * If EOF is reached unexpectedly, -1 is returned.
+ */
+static int loadUsersFileSingleLine(FILE* file, unsigned int* line, TUserData* userData) {
+    int c = skipWhitespaces(file, line);
+
+    // If we reached end of file, return -1.
+    if (c < 0)
+        return -1;
+
+    // 'c' contains the privilige level, either '#' or '@'.
+    if (c == '#')
+        userData->priviligeLevel = UPRIV_USER;
+    else if (c == '@')
+        userData->priviligeLevel = UPRIV_ADMIN;
+    else {
+        fprintf(stderr, "ERROR: Reading users file, unknown privilige indicator character in line %u: '%c'\n", *line, c); // TODO: Use logging
+        return skipUntilNextLine(file, line);
+    }
+
+    int usernameLength = 0;
+    while ((c = fgetc(file)) >= 0 && c != ':') {
+        if (c < 32) {
+            fprintf(stderr, "ERROR: Reading users file, invalid username char in line %u\n", *line); // TODO: Use logging
+            if (c != '\n')
+                return skipUntilNextLine(file, line);
+
+            (*line)++;
+            return 1;
+        }
+
+        if (usernameLength == USERS_MAX_USERNAME_LENGTH) {
+            fprintf(stderr, "ERROR: Reading users file, username too long in line %u\n", *line); // TODO: Use logging
+            return 1;
+        }
+
+        userData->username[usernameLength++] = c;
+    }
+    userData->username[usernameLength] = '\0';
+
+    if (c < 0)
+        return -1;
+
+    int passwordLength = 0;
+    while ((c = fgetc(file)) >= 32) {
+        if (passwordLength == USERS_MAX_PASSWORD_LENGTH) {
+            fprintf(stderr, "ERROR: Reading users file, password too long in line %u\n", *line); // TODO: Use logging
+            return 1;
+        }
+
+        userData->password[passwordLength++] = c;
+    }
+    userData->password[passwordLength] = '\0';
+
+    if (c == '\n')
+        ungetc(c, file);
+    return 0;
+}
+
 static int loadUsersFile() {
+    FILE* file = fopen(usersFile, USERS_FILE_OPEN_READ_MODE);
+    if (file == NULL) {
+        fprintf(stderr, "ERROR: Couldn't find or open users file for reading \"%s\": %s\n", usersFile, strerror(errno)); // TODO: Use logging
+        return -1;
+    }
+
+    unsigned int line = 1;
+    TUserData userData;
+
+    int result;
+    do {
+        result = loadUsersFileSingleLine(file, &line, &userData);
+        if (result != 0)
+            continue;
+
+        TUserStatus status = usersCreate(userData.username, userData.password, 0, userData.priviligeLevel, 0);
+        switch (status) {
+            case EUSER_OK:
+                break;
+            case EUSER_ALREADYEXISTS:
+                fprintf(stderr, "ERROR: Reading users file, duplicate user in line %u\n", line); // TODO: Use logging
+                break;
+            case EUSER_BADUSERNAME:
+                fprintf(stderr, "ERROR: Reading users file, invalid username in line %u\n", line); // TODO: Use logging
+                break;
+            case EUSER_BADPASSWORD:
+                fprintf(stderr, "ERROR: Reading users file, invalid password in line %u\n", line); // TODO: Use logging
+                break;
+            case EUSER_LIMITREACHED:
+                fprintf(stderr, "ERROR: Reading users file, users limit reached in line %u\n", line); // TODO: Use logging
+                result = -1;
+                break;
+            default:
+                fprintf(stderr, "ERROR: Reading users file, unknown user creation error in line %u\n", line); // TODO: Use logging
+                break;
+        }
+    } while (result >= 0);
+
+    fclose(file);
+    return 0;
+}
+
+static int saveUsersFile() {
+    FILE* file = fopen(usersFile, USERS_FILE_OPEN_WRITE_MODE);
+    if (file == NULL) {
+        fprintf(stderr, "ERROR: Couldn't create or open users file for writing \"%s\": %s\n", usersFile, strerror(errno)); // TODO: Use logging
+        return -1;
+    }
+
+    for (int i = 0; i < usersLength; i++) {
+        const TUserData* user = &users[i];
+        int status = fprintf(file, "%c%s:%s\n", user->priviligeLevel == UPRIV_ADMIN ? '@' : '#', user->username, user->password);
+        if (status < 0) {
+            fprintf(stderr, "ERROR: Failure while writing to users file \"%s\": %s\n", usersFile, strerror(errno)); // TODO: Use logging
+            break;
+        }
+    }
+
+    if (fclose(file) < 0) {
+        fprintf(stderr, "ERROR: Failure while writing to users file \"%s\": %s\n", usersFile, strerror(errno)); // TODO: Use logging
+        return -1;
+    }
+
+    fprintf(stderr, "Users saved to \"%s\"\n", usersFile); // TODO: Use logging
     return 0;
 }
 
@@ -86,31 +236,37 @@ int usersInit(const char* usersFileParam) {
     adminUsersCount = 0;
     usersCapacity = 0;
 
+    // Compile the regexes that are use for username and password validation.
     if (regcomp(&usernameValidationRegex, USERS_USERNAME_REGEX, 0) != 0) {
-        fprintf(stderr, "ERROR: Failed to compile username validation regex. This should not happen.\n");
+        fprintf(stderr, "ERROR: Failed to compile username validation regex. This should not happen.\n"); // TODO: Use logging
         return -1;
     }
 
     if (regcomp(&passwordValidationRegex, USERS_PASSWORD_REGEX, 0) != 0) {
-        fprintf(stderr, "ERROR: Failed to compile password validation regex. This should not happen.\n");
+        fprintf(stderr, "ERROR: Failed to compile password validation regex. This should not happen.\n"); // TODO: Use logging
         regfree(&usernameValidationRegex);
         return -1;
     }
 
+    // Malloc an initial array for the users.
     users = malloc(USERS_ARRAY_MIN_SIZE * sizeof(TUserData));
     if (users == NULL) {
-        fprintf(stderr, "Failed to malloc initial array for users\n");
+        fprintf(stderr, "Failed to malloc initial array for users\n"); // TODO: Use logging
         regfree(&usernameValidationRegex);
         regfree(&passwordValidationRegex);
         return -1;
     }
     usersCapacity = USERS_ARRAY_MIN_SIZE;
 
+    // Load the users from the save file.
     usersFile = (usersFileParam != NULL && usersFileParam[0] != '\0') ? usersFileParam : USERS_DEFAULT_FILE;
     loadUsersFile();
 
-    if (usersLength == 0)
+    // If no users are present on the system, create the default user.
+    if (usersLength == 0) {
         usersCreate(USERS_DEFAULT_USERNAME, USERS_DEFAULT_PASSWORD, 0, UPRIV_ADMIN, 0);
+        fprintf(stderr, "WARNING: No users detected. Created default user: \"" USERS_DEFAULT_USERNAME "\" \"" USERS_DEFAULT_PASSWORD "\"\n"); // TODO: Use logging
+    }
 
     return 0;
 }
@@ -235,13 +391,14 @@ TUserStatus usersDelete(const char* username) {
 }
 
 TUserStatus usersFinalize() {
+    saveUsersFile();
     free(users);
     regfree(&usernameValidationRegex);
     regfree(&passwordValidationRegex);
     return EUSER_OK;
 }
 
-void usersPrintAllDebug() {
+void usersPrintAllDebug() { // TODO: Remove
     if (usersLength == 0) {
         printf("There are no users in the system.\n");
         return;
