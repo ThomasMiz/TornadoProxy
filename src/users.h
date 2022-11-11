@@ -14,7 +14,7 @@
 /* The users file has a simple text format so it can be easily modified in a text editor by the
  * server administrator.
  * Each line contains the data about a single user. First, a character indicating the level of
- * privilige. '@' for admin, '#' for user. This is followed by the username, followed by a ':',
+ * privilege. '@' for admin, '#' for user. This is followed by the username, followed by a ':',
  * followed by the password.
  * The order in which the users are specified is irrelevant.
  *
@@ -41,12 +41,12 @@
 // The password can contain any ASCII char between 32 (' ') and 126 ('~'), except for ':'.
 
 /**
- * Represents a user's privilige level.
+ * Represents a user's privilege level.
  */
 typedef enum {
     UPRIV_USER = 0,
     UPRIV_ADMIN = 1
-} TUserPriviligeLevel;
+} TUserPrivilegeLevel;
 
 /**
  * Defines the possible status codes returned by functions from the users module.
@@ -77,25 +77,25 @@ int usersInit(const char* usersFile);
  * @param username The username of the user to check.
  * @param password The password of the user to check. An empty or null password is taken as a
  * "the user has no password".
- * @param outLevel A pointer to a variable where the user's privilige level will be written to.
+ * @param outLevel A pointer to a variable where the user's privilege level will be written to.
  * @returns A value from TUserStatus. Either OK, WRONGUSERNAME, or WRONGPASSWORD.
  */
-TUserStatus usersLogin(const char* username, const char* password, TUserPriviligeLevel* outLevel);
+TUserStatus usersLogin(const char* username, const char* password, TUserPrivilegeLevel* outLevel);
 
 /**
  * @brief Creates a user with the given username and password, or updates an existing user's
- * password or privilige level.
+ * password or privilege level.
  * @param username The username for the user.
  * @param password The password for the user. An empty or null password is taken as a "the user
  * has no password".
  * @param updatePassword Whether to update the password if the user already exists.
- * @param privilige The privilige level for the user.
- * @param updatePrivilige Whether to update the user's privilige level if the user already exists.
+ * @param privilege The privilege level for the user.
+ * @param updatePrivilege Whether to update the user's privilege level if the user already exists.
  * @returns A value from TUserStatus. Either OK, ALREADYEXISTS, CREDTOOLONG, BADUSERNAME,
- * BADPASSWORD, LIMITREACHED, NOMEMORY, or BADOPERATION (if downgrading priviliges from last
+ * BADPASSWORD, LIMITREACHED, NOMEMORY, or BADOPERATION (if downgrading privileges from last
  * admin in the system).
  */
-TUserStatus usersCreate(const char* username, const char* password, int updatePassword, TUserPriviligeLevel privilige, int updatePrivilige);
+TUserStatus usersCreate(const char* username, const char* password, int updatePassword, TUserPrivilegeLevel privilege, int updatePrivilege);
 
 /**
  * @brief Deletes a user from the system.

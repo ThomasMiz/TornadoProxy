@@ -19,7 +19,7 @@
 typedef struct {
     char username[USERS_MAX_USERNAME_LENGTH + 1];
     char password[USERS_MAX_PASSWORD_LENGTH + 1];
-    TUserPriviligeLevel priviligeLevel;
+    TUserPrivilegeLevel privilegeLevel;
 } TUserData;
 
 static TUserData* users;
@@ -87,13 +87,13 @@ static int loadUsersFileSingleLine(FILE* file, unsigned int* line, TUserData* us
     if (c < 0)
         return -1;
 
-    // 'c' contains the privilige level, either '#' or '@'.
+    // 'c' contains the privilege level, either '#' or '@'.
     if (c == '#')
-        userData->priviligeLevel = UPRIV_USER;
+        userData->privilegeLevel = UPRIV_USER;
     else if (c == '@')
-        userData->priviligeLevel = UPRIV_ADMIN;
+        userData->privilegeLevel = UPRIV_ADMIN;
     else {
-        fprintf(stderr, "ERROR: Reading users file, unknown privilige indicator character in line %u: '%c'\n", *line, c); // TODO: Use logging
+        fprintf(stderr, "ERROR: Reading users file, unknown privilege indicator character in line %u: '%c'\n", *line, c); // TODO: Use logging
         return skipUntilNextLine(file, line);
     }
 
@@ -152,7 +152,7 @@ static int loadUsersFile() {
         if (result != 0)
             continue;
 
-        TUserStatus status = usersCreate(userData.username, userData.password, 0, userData.priviligeLevel, 0);
+        TUserStatus status = usersCreate(userData.username, userData.password, 0, userData.privilegeLevel, 0);
         switch (status) {
             case EUSER_OK:
                 break;
@@ -188,7 +188,7 @@ static int saveUsersFile() {
 
     for (int i = 0; i < usersLength; i++) {
         const TUserData* user = &users[i];
-        int status = fprintf(file, "%c%s:%s\n", user->priviligeLevel == UPRIV_ADMIN ? '@' : '#', user->username, user->password);
+        int status = fprintf(file, "%c%s:%s\n", user->privilegeLevel == UPRIV_ADMIN ? '@' : '#', user->username, user->password);
         if (status < 0) {
             fprintf(stderr, "ERROR: Failure while writing to users file \"%s\": %s\n", usersFile, strerror(errno)); // TODO: Use logging
             break;
@@ -271,7 +271,7 @@ int usersInit(const char* usersFileParam) {
     return 0;
 }
 
-TUserStatus usersLogin(const char* username, const char* password, TUserPriviligeLevel* outLevel) {
+TUserStatus usersLogin(const char* username, const char* password, TUserPrivilegeLevel* outLevel) {
     if (password == NULL)
         password = "";
 
@@ -289,11 +289,11 @@ TUserStatus usersLogin(const char* username, const char* password, TUserPrivilig
     if (c != 0)
         return EUSER_WRONGPASSWORD;
 
-    *outLevel = users[index].priviligeLevel;
+    *outLevel = users[index].privilegeLevel;
     return EUSER_OK;
 }
 
-TUserStatus usersCreate(const char* username, const char* password, int updatePassword, TUserPriviligeLevel privilige, int updatePrivilige) {
+TUserStatus usersCreate(const char* username, const char* password, int updatePassword, TUserPrivilegeLevel privilege, int updatePrivilege) {
     if (password == NULL)
         password = "";
 
@@ -301,7 +301,7 @@ TUserStatus usersCreate(const char* username, const char* password, int updatePa
     int index = usersGetIndexOf(username);
     if (index >= 0) {
         // The user already exists. Let's see if we need to update anything.
-        if (!updatePassword && !updatePrivilige)
+        if (!updatePassword && !updatePrivilege)
             return EUSER_ALREADYEXISTS;
 
         TUserStatus status = EUSER_OK;
@@ -315,12 +315,12 @@ TUserStatus usersCreate(const char* username, const char* password, int updatePa
                 strcpy(user->password, password);
         }
 
-        if (updatePrivilige && user->priviligeLevel != privilige) {
-            if (user->priviligeLevel == UPRIV_ADMIN && adminUsersCount == 1) {
+        if (updatePrivilege && user->privilegeLevel != privilege) {
+            if (user->privilegeLevel == UPRIV_ADMIN && adminUsersCount == 1) {
                 status = EUSER_BADOPERATION;
             } else {
                 adminUsersCount--;
-                user->priviligeLevel = privilige;
+                user->privilegeLevel = privilege;
             }
         }
 
@@ -365,9 +365,9 @@ TUserStatus usersCreate(const char* username, const char* password, int updatePa
     // Copy the new user's data into the struct in the array.
     strcpy(users[insertIndex].username, username);
     strcpy(users[insertIndex].password, password);
-    users[insertIndex].priviligeLevel = privilige;
+    users[insertIndex].privilegeLevel = privilege;
 
-    if (privilige == UPRIV_ADMIN)
+    if (privilege == UPRIV_ADMIN)
         adminUsersCount++;
 
     return EUSER_OK;
@@ -378,7 +378,7 @@ TUserStatus usersDelete(const char* username) {
     if (index < 0)
         return EUSER_WRONGUSERNAME;
 
-    if (users[index].priviligeLevel == UPRIV_ADMIN) {
+    if (users[index].privilegeLevel == UPRIV_ADMIN) {
         if (adminUsersCount == 1)
             return EUSER_BADOPERATION;
         adminUsersCount--;
@@ -406,5 +406,5 @@ void usersPrintAllDebug() { // TODO: Remove
 
     printf("Printing all %d users:\n", usersLength);
     for (int i = 0; i < usersLength; i++)
-        printf("[%d] %s (%s) - %s\n", i, users[i].username, users[i].password, users[i].priviligeLevel == UPRIV_ADMIN ? "Admin" : "Filthy Peasant");
+        printf("[%d] %s (%s) - %s\n", i, users[i].username, users[i].password, users[i].privilegeLevel == UPRIV_ADMIN ? "Admin" : "Filthy Peasant");
 }
