@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include "selector.h"
+#include "mgmt.h"
 
 #define MGMTADDR_4 "127.0.0.1"
 
@@ -71,7 +72,7 @@ int main(int argc, char *argv[]) {
 	}
 
     const TFdHandler mgmtHandler = {
-        .handle_read = NULL,
+        .handle_read = mgmt_passive_accept_handler,
         .handle_write = NULL,
         .handle_close = NULL,
     };
