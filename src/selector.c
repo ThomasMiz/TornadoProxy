@@ -408,7 +408,24 @@ TSelectorStatus selector_set_interest(TSelector s, int fd, TFdInterests i) {
 finally:
     return ret;
 }
-TSelectorStatus selector_get_interests(TSelectorKey* key, TFdInterests* i) {
+
+TSelectorStatus selector_get_interests(TSelector s, int fd, TFdInterests* i) {
+    TSelectorStatus ret = SELECTOR_SUCCESS;
+
+    if (NULL == s || INVALID_FD(fd)) {
+        ret = SELECTOR_IARGS;
+        goto finally;
+    }
+    struct item* item = s->fds + fd;
+    if (!ITEM_USED(item)) {
+        ret = SELECTOR_IARGS;
+        goto finally;
+    }
+    *i = item->interest;
+finally:
+    return ret;
+}
+TSelectorStatus selector_get_interests_key(TSelectorKey* key, TFdInterests* i) {
     TSelectorStatus ret = SELECTOR_SUCCESS;
 
     if (NULL == key || INVALID_FD(key->fd)) {
