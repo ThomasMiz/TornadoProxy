@@ -1,4 +1,5 @@
 #include "negotiationParser.h"
+#include "logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -7,10 +8,12 @@
 
 typedef TNegState (*parseCharacter)(TNegParser* p, uint8_t c);
 
-TNegState parseVersion(TNegParser* p, uint8_t c);
-TNegState parseMethodCount(TNegParser* p, uint8_t c);
-TNegState parseMethods(TNegParser* p, uint8_t c);
-TNegState parseEnd(TNegParser* p, uint8_t c);
+static TNegState parseVersion(TNegParser* p, uint8_t c);
+static TNegState parseMethodCount(TNegParser* p, uint8_t c);
+static TNegState parseMethods(TNegParser* p, uint8_t c);
+static TNegState parseEnd(TNegParser* p, uint8_t c);
+
+static uint8_t requiredAuthMethod = NEG_METHOD_NO_AUTH;
 
 static parseCharacter stateRead[] = {
     /* VERSION      */ (parseCharacter)parseVersion,
@@ -50,37 +53,42 @@ uint8_t fillNegotiationAnswer(TNegParser* p, struct buffer* buffer) {
     return 0;
 }
 
-TNegState parseVersion(TNegParser* p, uint8_t c) {
+static TNegState parseVersion(TNegParser* p, uint8_t c) {
     if (c != VERSION_5) {
-        printf("[Neg parser: ERR] Client specified invalid version: %d\n", c);
+        log(INFO,"Client specified invalid version: %d\n", c);
         return NEG_ERROR;
     }
     return NEG_METHOD_COUNT;
 }
 
-TNegState parseMethodCount(TNegParser* p, uint8_t c) {
+static TNegState parseMethodCount(TNegParser* p, uint8_t c) {
     p->pendingMethods = c;
     if (c == 0) {
-        printf("[Neg parser: INF] Client did not specify auth methods \n");
         return NEG_END;
     }
-    printf("[Neg parser: INF] Client specified auth methods: ");
+    log(INFO,"Client specified %d auth methods: ", c);
     return NEG_METHODS;
 }
 
-TNegState parseMethods(TNegParser* p, uint8_t c) {
+static TNegState parseMethods(TNegParser* p, uint8_t c) {
     p->pendingMethods -= 1;
-    printf("%x%s", c, p->pendingMethods == 0 ? "\n" : ", ");
-    if (c == NEG_METHOD_NO_AUTH) {
-        p->authMethod = NEG_METHOD_NO_AUTH;
-    } else if (c == NEG_METHOD_PASS) {
-        // wait until pass/user auth method is developed
+    log(INFO, "%x%s", c, p->pendingMethods == 0 ? "\n" : ", ");
+    if (c == requiredAuthMethod) {
+        p->authMethod = requiredAuthMethod;
     }
     return p->pendingMethods == 0 ? NEG_END : NEG_METHODS;
 }
 
 /*Should not happen*/
-TNegState parseEnd(TNegParser* p, uint8_t c) {
-    printf("[Neg parser: BUG] Trying to call negotiation parser in END/ERROR state ");
+static TNegState parseEnd(TNegParser* p, uint8_t c) {
+    log(LOG_ERROR, "Trying to call negotiation parser in END/ERROR state with char: %c", c);
     return p->state;
+}
+
+uint8_t changeAuthMethod(TNegParser* p, TNegMethod authMethod){
+    if(authMethod == NEG_METHOD_PASS || authMethod == NEG_METHOD_NO_AUTH) {
+        requiredAuthMethod = authMethod;
+        return 0;
+    }
+    return 1;
 }
