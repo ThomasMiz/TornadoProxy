@@ -5,22 +5,22 @@
 #include <assert.h>
 #include "request_connecting.h"
 #include "netutils.h"
+#include "logger.h"
 
 void request_connecting_init(const unsigned state, TSelectorKey* key) {
-    printf("init\n");
     TClientData* d = ATTACHMENT(key);
     TFdInterests curr_interests;
     selector_get_interests(key, &curr_interests);
     selector_set_interest(key->s, d->client_fd, OP_WRITE);
-    printf("finished init\n");
+    log(DEBUG, "[Req con: init] ended for fd: %d", key->fd);
 }
 
 unsigned request_connecting(TSelectorKey* key) {
-    printf("connecting\n");
     TClientData* d = ATTACHMENT(key);
     TFdInterests curr_interests;
     selector_get_interests(key, &curr_interests);
 
+    log(DEBUG, "[Req con: request_connecting] started for fd: %d", key->fd);
 
     if (d->client_fd == key->fd) // Se llama primero al handler del cliente, y entonces nos conectamos al OS
     {

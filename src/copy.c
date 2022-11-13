@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "logger.h"
 unsigned socksv5_handle_read(TSelectorKey* key) {
     TClientData* clientData = key->data;
     buffer* clientBuffer = &clientData->clientBuffer;
@@ -14,7 +15,7 @@ unsigned socksv5_handle_read(TSelectorKey* key) {
     selector_get_interests(key, &curr_interests);
 
     if (client_fd == key->fd) {
-        printf("reading from fd client\n");
+        log(DEBUG,"[Copy: socksv5_handle_read] reading from fd client %d", client_fd);
         if (!buffer_can_write(originBuffer)) {
             selector_set_interest(key->s, client_fd, OP_READ | curr_interests); // revisar
             return COPY;
@@ -86,6 +87,7 @@ unsigned socksv5_handle_write(TSelectorKey* key) {
     size_t capacity;
     TFdInterests curr_interests;
     selector_get_interests(key, &curr_interests);
+
     // Try to send as many of the bytes as we have in the buffer.
     if (key->fd == client_fd) {
         printf("writing to client\n");
@@ -153,7 +155,9 @@ void socksv5_handle_close(const unsigned int state, TSelectorKey* key) {
     }
 
     // Close the socket file descriptor associated with this client.
-    close(key->fd);
+    //close(key->fd);
+
+
 
     printf("Client closed: %d\n", key->fd);
 }

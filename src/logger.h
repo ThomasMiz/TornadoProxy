@@ -9,7 +9,7 @@
 *  Alternativa: usar syslog para un log mas completo. Ver sección 13.4 del libro de  Stevens
 */
 
-typedef enum {DEBUG=0, INFO, ERROR, FATAL} LOG_LEVEL;
+typedef enum {DEBUG=0, INFO, LOG_ERROR, FATAL} LOG_LEVEL;
 
 extern LOG_LEVEL current_level;
 

@@ -161,15 +161,15 @@ unsigned requestResolveDone(TSelectorKey* key) {
 }
 
 unsigned requestWrite(TSelectorKey* key) {
-    printf("[Req write: INF] send at fd %d\n", key->fd);
     TClientData* data = ATTACHMENT(key);
+    printf("[Req write: INF] send at fd %d\n", data->client_fd);
 
     size_t writeLimit;    // how many bytes we want to send
     ssize_t writeCount;   // how many bytes where written
     uint8_t* writeBuffer; // buffer that stores the data to be sended
 
     writeBuffer = buffer_read_ptr(&data->originBuffer, &writeLimit);
-    writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
+    writeCount = send(data->client_fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
 
     if (writeCount < 0) {
         perror("[Req write: ERR] send()");
