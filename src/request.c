@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "logger.h"
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -53,14 +54,20 @@ static unsigned requestProcess(TSelectorKey* key) {
     TReqParser rp = data->client.reqParser;
     uint8_t atyp = rp.atyp;
 
-    printf("[Req read - process: INF] init process \n");
+    log(DEBUG, "[Req read - process] init process for fd: %d", key->fd);
 
     if (atyp == REQ_ATYP_IPV4) {
-        /*struct sockaddr_in *sockaddr = malloc(sizeof(struct sockaddr_in));
+        log(DEBUG, "[Req read - process] REQ_ATYP_IPV4 port: %d for fd: %d",data->client.reqParser.port, key->fd);
+        struct sockaddr_in *sockaddr = malloc(sizeof(struct sockaddr_in));
+        data->origin_resolution = calloc(1,sizeof(struct addrinfo));
+        if(sockaddr == NULL || data->origin_resolution == NULL){
+            log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
+            goto finally;
+        }
         *sockaddr = (struct sockaddr_in) {
             .sin_family = AF_INET,
             .sin_addr = rp.address.ipv4,
-            .sin_port = rp.port,
+            .sin_port = htons(rp.port),
         };
 
         *data->origin_resolution = (struct addrinfo)
@@ -69,39 +76,54 @@ static unsigned requestProcess(TSelectorKey* key) {
             .ai_socktype = SOCK_STREAM,
             .ai_addr = (struct sockaddr*)sockaddr,
             .ai_addrlen = sizeof(*sockaddr),
-        };*/
+        };
 
-        // Connect
-        // Return connecting if everything is ok, error otherwise
-        return COPY;
+        return REQUEST_CONNECTING;
     }
 
     if (atyp == REQ_ATYP_IPV6) {
-        // TODO
-        // Connect
-        // Return connecting if everything is ok, error otherwise
-        return COPY;
+        log(DEBUG, "[Req read - process] REQ_ATYP_IPV6 port: %d for fd: %d",data->client.reqParser.port, key->fd);
+        struct sockaddr_in6 *sockaddr = malloc(sizeof(struct sockaddr_in6));
+        data->origin_resolution = calloc(1,sizeof(struct addrinfo));
+        if(sockaddr == NULL || data->origin_resolution == NULL){
+            log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
+            goto finally;
+        }
+        *sockaddr = (struct sockaddr_in6) {
+            .sin6_family = AF_INET6,
+            .sin6_addr = rp.address.ipv6,
+            .sin6_port = htons(rp.port)
+        };
+
+        *data->origin_resolution = (struct addrinfo) {
+            .ai_family = AF_INET6,
+            .ai_socktype = SOCK_STREAM,
+            .ai_addr = (struct sockaddr*)sockaddr,
+            .ai_addrlen = sizeof(*sockaddr),
+        };
+
+        return REQUEST_CONNECTING;
     }
 
     if (atyp == REQ_ATYP_DOMAINNAME) {
-        printf("[Req read - process: INF] in REQ_ATYP_DOMAINNAME port: %d\n", data->client.reqParser.port);
+        log(DEBUG, "[Req read - process] REQ_ATYP_DOMAINNAME port: %d for fd: %d",data->client.reqParser.port, key->fd);
         pthread_t tid;
         TSelectorKey* key2 = malloc(sizeof(*key));
         memcpy(key2, key, sizeof(*key2));
         if (pthread_create(&tid, NULL, requestNameResolution, key2) == -1) {
-            printf("[Req read - process: INF] thread error\n");
-            data->client.reqParser.state = REQ_ERROR_GENERAL_FAILURE;
-            if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&data->client.reqParser, &data->originBuffer)) {
-                return ERROR;
-            }
-            return REQUEST_WRITE;
+            log(DEBUG, "[Req read - process] thread error fd: %d", key->fd);
+            goto finally;
         }
         printf("[Req read - process: INF] thread created ok\n");
         return REQUEST_RESOLV;
     }
 
-    // Should not happen, the parser just supports atyp ipv4, ipv6 and domainname. Returns an error in other case
-    return ERROR;
+    finally:
+    data->client.reqParser.state = REQ_ERROR_GENERAL_FAILURE;
+    if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&data->client.reqParser, &data->originBuffer)) {
+        return ERROR;
+    }
+    return REQUEST_WRITE;
 }
 
 static void* requestNameResolution(void* data) {
