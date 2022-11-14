@@ -1,16 +1,14 @@
+#include "auth.h"
+#include "../logger.h"
+#include "../socks5.h"
 
-#include "negotiation.h"
-#include "socks5.h"
-#include <stdio.h>
-
-void negotiationReadInit(const unsigned state, TSelectorKey* key) {
-    printf("[Neg read] init at socket fd %d\n", key->fd);
+void authReadInit(const unsigned state, TSelectorKey* key) {
+    log(DEBUG, "[Auth read] init at socket fd %d", key->fd);
     TClientData* data = ATTACHMENT(key);
-    initNegotiationParser(&data->client.negParser);
+    initAuthParser(&data->client.authParser);
 }
-
-unsigned negotiationRead(TSelectorKey* key) {
-    printf("[Neg read: INF] read at socket fd %d\n", key->fd);
+unsigned authRead(TSelectorKey* key) {
+    log(DEBUG, "[Auth read] read at socket fd %d", key->fd);
     TClientData* data = ATTACHMENT(key);
 
     size_t readLimit;    // how many bytes can be stored in the buffer
@@ -19,24 +17,24 @@ unsigned negotiationRead(TSelectorKey* key) {
 
     readBuffer = buffer_write_ptr(&data->clientBuffer, &readLimit);
     readCount = recv(key->fd, readBuffer, readLimit, 0);
-    printf("[Neg read: INF]  %ld bytes from client %d \n", readCount, key->fd);
+    log(DEBUG, "[Auth read]  %ld bytes from client %d", readCount, key->fd);
     if (readCount <= 0) {
         return ERROR;
     }
 
     buffer_write_adv(&data->clientBuffer, readCount);
-    negotiationParse(&data->client.negParser, &data->clientBuffer);
-    if (hasNegotiationReadEnded(&data->client.negParser)) {
-        if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillNegotiationAnswer(&data->client.negParser, &data->originBuffer)) {
+    authParse(&data->client.authParser, &data->clientBuffer);
+    if (hasAuthReadEnded(&data->client.authParser)) {
+        if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillAuthAnswer(&data->client.authParser, &data->originBuffer)) {
             return ERROR;
         }
-        return NEGOTIATION_WRITE;
+        return AUTH_WRITE;
     }
-    return NEGOTIATION_READ;
+    return AUTH_READ;
 }
 
-unsigned negotiationWrite(TSelectorKey* key) {
-    printf("[Neg write: INF] send at fd %d\n", key->fd);
+unsigned authWrite(TSelectorKey* key) {
+    log(DEBUG, "[Auth write] send at fd %d", key->fd);
     TClientData* data = ATTACHMENT(key);
 
     size_t writeLimit;    // how many bytes we want to send
@@ -47,18 +45,18 @@ unsigned negotiationWrite(TSelectorKey* key) {
     writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
 
     if (writeCount < 0) {
-        perror("[Neg write: ERR] send()");
+        log(LOG_ERROR, "[Auth write] send() at fd %d", key->fd);
         return ERROR;
     }
     if (writeCount == 0) {
-        printf("[Neg write: ERR] Failed to send(), client closed connection unexpectedly\n");
+        log(LOG_ERROR, "[Auth write] Failed to send(), client closed connection unexpectedly at fd %d", key->fd);
         return ERROR;
     }
-    printf("[Neg write: INF]  %ld bytes to client %d \n", writeCount, key->fd);
+    log(DEBUG, "[Auth write]  %ld bytes to client %d", writeCount, key->fd);
     buffer_read_adv(&data->originBuffer, writeCount);
 
     if (buffer_can_read(&data->originBuffer)) {
-        return NEGOTIATION_WRITE;
+        return AUTH_WRITE;
     }
 
     if (hasNegotiationErrors(&data->client.negParser) || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {

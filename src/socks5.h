@@ -1,8 +1,9 @@
 #ifndef _SOCKS5_H_
 #define _SOCKS5_H_
 
+#include "auth/authParser.h"
 #include "buffer.h"
-#include "negotiation.h"
+#include "negotiation/negotiation.h"
 #include "requestParser.h"
 #include "selector.h"
 #include "socks5.h"
@@ -21,6 +22,7 @@ typedef struct TClientData {
     union {
         TNegParser negParser;
         TReqParser reqParser;
+        TAuthParser authParser;
     } client;
 
     // Added this buffer, consider removing the plain buffer from this struct.
@@ -58,6 +60,9 @@ enum socks_state {
         - ERROR ante cualquier error (IO/parseo)
     */
     NEGOTIATION_WRITE,
+
+    AUTH_READ,
+    AUTH_WRITE,
 
     /*
         recibe el mensaje `request` del cliente e inicia su proceso

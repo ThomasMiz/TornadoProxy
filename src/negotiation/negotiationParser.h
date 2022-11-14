@@ -1,13 +1,13 @@
 #ifndef NEGOTIATION_PARSER_H
 #define NEGOTIATION_PARSER_H
 
-#include "buffer.h"
+#include "../buffer.h"
 
 typedef enum TNegMethod {
     NEG_METHOD_NO_AUTH = 0x00,
     NEG_METHOD_PASS = 0x02,
     NEG_METHOD_NO_MATCH = 0xFF
-}TNegMethod;
+} TNegMethod;
 typedef enum TNegState {
     NEG_VERSION = 0,  // The parser is waiting for the client version
     NEG_METHOD_COUNT, // The parser is waiting for the number of methos
@@ -15,8 +15,6 @@ typedef enum TNegState {
     NEG_END,          // All read for this state.
     NEG_ERROR
 } TNegState;
-
-
 
 typedef struct TNegParser {
     TNegState state;

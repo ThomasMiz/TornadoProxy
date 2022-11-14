@@ -1,4 +1,4 @@
-#include "../src/negotiationParser.h"
+#include "../src/negotiation/negotiationParser.h"
 #include <check.h>
 
 #define length(array) (sizeof(array) / sizeof(*(array)))

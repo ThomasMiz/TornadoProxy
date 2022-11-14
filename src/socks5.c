@@ -1,5 +1,6 @@
 #include "socks5.h"
 #include "assert.h"
+#include "auth/auth.h"
 #include "copy.h"
 #include "netutils.h"
 #include "request.h"
@@ -21,10 +22,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-void doneArrival(const unsigned state, TSelectorKey* key){
+void doneArrival(const unsigned state, TSelectorKey* key) {
     printf("Done state \n");
 }
-void errorArrival(const unsigned state, TSelectorKey* key){
+void errorArrival(const unsigned state, TSelectorKey* key) {
     printf("Error state \n");
 }
 
@@ -37,6 +38,16 @@ static const struct state_definition client_statb1[] = {
     {
         .state = NEGOTIATION_WRITE,
         .on_write_ready = negotiationWrite,
+    },
+    {
+        .state = AUTH_READ,
+        .on_arrival = authReadInit,
+        .on_read_ready = authRead,
+
+    },
+    {
+        .state = AUTH_WRITE,
+        .on_write_ready = authWrite,
     },
     {
         .state = REQUEST_READ,
@@ -65,11 +76,11 @@ static const struct state_definition client_statb1[] = {
     },
     {
         .state = DONE,
-            .on_arrival = doneArrival,
+        .on_arrival = doneArrival,
     },
     {
         .state = ERROR,
-            .on_arrival = errorArrival,
+        .on_arrival = errorArrival,
     }};
 
 static void socksv5_read(TSelectorKey* key);
@@ -140,27 +151,6 @@ void socksv5_passive_accept(TSelectorKey* key) {
 
     buffer_init(&clientData->originBuffer, BUFFER_SIZE, clientData->inOriginBuffer);
     buffer_init(&clientData->clientBuffer, BUFFER_SIZE, clientData->inClientBuffer);
-
-    /*struct sockaddr_in* sockaddr = malloc(sizeof(struct sockaddr_in));
-
-    clientData->origin_resolution = malloc(sizeof(struct addrinfo));
-
-    // HARDCODEAR OS
-    *sockaddr = (struct sockaddr_in){
-        .sin_family = AF_INET,
-        .sin_port = htons(5000),
-    };
-    inet_aton("0.0.0.0", &(sockaddr->sin_addr));
-    *(clientData->origin_resolution) = (struct addrinfo){
-        .ai_family = AF_INET,
-        .ai_socktype = SOCK_STREAM,
-        .ai_addr = (struct sockaddr*)sockaddr,
-        .ai_addrlen = sizeof(*sockaddr),
-    };
-    char buf[BUFFER_SIZE] = {0};
-    sockaddr_to_human(buf, BUFFER_SIZE, clientData->origin_resolution->ai_addr);
-
-    printf("Hardcoding origin to %s\n", buf);*/
 
     stm_init(&clientData->stm);
 

@@ -1,6 +1,6 @@
 include ./Makefile.inc
 
-SOURCES=$(wildcard src/*.c)
+SOURCES=$(wildcard src/*.c src/negotiation/*.c src/auth/*.c)
 OUTPUT_FOLDER=./bin
 OUTPUT_FILE=$(OUTPUT_FOLDER)/tornado
 
