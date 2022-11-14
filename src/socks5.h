@@ -7,6 +7,7 @@
 #include "requestParser.h"
 #include "selector.h"
 #include "socks5.h"
+#include "copy.h"
 #include "stm.h"
 #include <netdb.h>
 
@@ -36,6 +37,8 @@ typedef struct TClientData {
     int client_fd;
     // informacion del OS
     int origin_fd;
+
+    connections_t connections;
 } TClientData;
 
 enum socks_state {

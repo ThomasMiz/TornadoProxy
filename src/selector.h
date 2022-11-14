@@ -156,8 +156,11 @@ TSelectorStatus selector_set_interest(TSelector s, int fd, TFdInterests i);
 /** permite cambiar los intereses para un file descriptor */
 TSelectorStatus selector_set_interest_key(TSelectorKey* key, TFdInterests i);
 
+/** Devuelve los intereses del selector key */
+TSelectorStatus selector_get_interests_key(TSelectorKey* key, TFdInterests* i);
+
 /** Devuelve los intereses del selector */
-TSelectorStatus selector_get_interests(TSelectorKey* key, TFdInterests* i);
+TSelectorStatus selector_get_interests(TSelector s, int fd, TFdInterests* i);
 
 /**
  * se bloquea hasta que hay eventos disponible y los despacha.

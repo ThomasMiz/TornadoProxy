@@ -3,145 +3,171 @@
 #include <stdlib.h>
 #include <string.h>
 #include "logger.h"
-unsigned socksv5_handle_read(TSelectorKey* key) {
-    TClientData* clientData = key->data;
-    buffer* clientBuffer = &clientData->clientBuffer;
-    buffer* originBuffer = &clientData->originBuffer;
-    int client_fd = clientData->client_fd;
-    int origin_fd = clientData->origin_fd;
-    char tmp_buf[BUFFER_SIZE];
-    size_t capacity;
-    TFdInterests curr_interests;
-    selector_get_interests(key, &curr_interests);
+#include "socks5.h"
 
-    if (client_fd == key->fd) {
-        log(DEBUG,"[Copy: socksv5_handle_read] reading from fd client %d", client_fd);
-        if (!buffer_can_write(originBuffer)) {
-            selector_set_interest(key->s, client_fd, OP_READ | curr_interests); // revisar
-            return COPY;
-        }
+#define CLIENT_NAME "client"
+#define ORIGIN_NAME "origin"
 
-        u_int8_t* write_ptr = buffer_write_ptr(originBuffer, &capacity);
-        if (capacity > BUFFER_SIZE)
-            capacity = BUFFER_SIZE;
-        ssize_t read_bytes = read(client_fd, tmp_buf, capacity);
-        if (read_bytes > 0) {
-            memcpy(write_ptr, tmp_buf, read_bytes);
-            buffer_write_adv(originBuffer, read_bytes);
-            size_t remaining;
-            buffer_read_ptr(clientBuffer, &remaining);
-            printf("recv() %ld bytes from client %d [remaining to read %lu]\n", read_bytes, key->fd, remaining);
-            selector_set_interest(key->s, origin_fd, OP_WRITE);
-
-        } else { // EOF or err
-            printf("recv() returned %ld, closing client %d\n", read_bytes, key->fd);
-            selector_unregister_fd(key->s, key->fd);
-            return DONE;
-        }
-
-        TFdInterests newInterests = OP_WRITE;
-        if (buffer_can_write(originBuffer))
-            newInterests |= OP_READ;
-
-        selector_set_interest_key(key, newInterests);
-    } else { // fd == origin_fd
-        printf("reading from fd origin\n");
-        if (!buffer_can_write(clientBuffer)) {
-            selector_set_interest(key->s, origin_fd, OP_READ | curr_interests);
-            return COPY;
-        }
-
-        uint8_t* write_ptr = buffer_write_ptr(clientBuffer, &capacity);
-        if (capacity > BUFFER_SIZE)
-            capacity = BUFFER_SIZE;
-        ssize_t read_bytes = read(origin_fd, tmp_buf, capacity);
-        if (read_bytes > 0) {
-            memcpy(write_ptr, tmp_buf, read_bytes);
-            buffer_write_adv(clientBuffer, read_bytes);
-            size_t remaining;
-            buffer_read_ptr(originBuffer, &remaining);
-            printf("recv() %ld bytes from origin %d [remaining to read %lu]\n", read_bytes, key->fd, remaining);
-            selector_set_interest(key->s, client_fd, OP_WRITE);
-
-        } else { // EOF
-            printf("recv() returned %ld, closing origin %d\n", read_bytes, key->fd);
-            selector_unregister_fd(key->s, key->fd);
-            return DONE;
-        }
-
-        TFdInterests newInterests = OP_WRITE;
-        if (buffer_can_write(clientBuffer))
-            newInterests |= OP_READ;
-
-        selector_set_interest(key->s, client_fd, newInterests);
+static TFdInterests copy_compute_interests(TSelector s, copy_t* copy) {
+    TFdInterests ret = OP_NOOP;
+    if ((copy->duplex & OP_READ) && buffer_can_write(copy->other_buffer)) {
+        ret |= OP_READ;
     }
+    if ((copy->duplex & OP_WRITE) && buffer_can_read(copy->target_buffer)) {
+        ret |= OP_WRITE;
+    }
+    if (SELECTOR_SUCCESS != selector_set_interest(s, *copy->target_fd, ret)) {
+        abort();
+    }
+    return ret;
+}
+
+unsigned copy_read_handler(copy_t *copy) {
+    // TFdInterests curr_interests;
+    int target_fd = *copy->target_fd;
+    int other_fd = *copy->other_fd;
+    TSelector s = copy->s;
+    buffer * other_buffer = copy->other_buffer;
+    char * tmp_buf = copy->tmp_buf;
+    char * name = copy->name;
+    log(DEBUG, "[Copy: copy_read_handler] reading from fd %s %d", name, target_fd);
+    // TFdInterests curr_interests;
+    size_t capacity;
+    size_t remaining;
+    // selector_get_interests(s, target_fd, &curr_interests);
+    if (!buffer_can_write(other_buffer)) {
+        // selector_set_interest(s, target_fd, OP_READ | curr_interests); // revisar
+        return COPY;
+    }
+    u_int8_t* write_ptr = buffer_write_ptr(other_buffer, &(capacity));
+    if (capacity > BUFFER_SIZE)
+        capacity = BUFFER_SIZE;
+    ssize_t read_bytes = read(target_fd, tmp_buf, capacity);
+    if (read_bytes > 0) {
+        memcpy(write_ptr, tmp_buf, read_bytes);
+        buffer_write_adv(other_buffer, read_bytes);
+        buffer_write_ptr(other_buffer, &(remaining));
+        log(DEBUG, "recv() %ld bytes from %s %d [remaining buffer capacity %lu]\n", read_bytes, name, target_fd, remaining);
+        // selector_set_interest(s, other_fd, OP_WRITE);
+    } else { // EOF or err
+        log(DEBUG, "recv() returned %ld, closing %s %d\n", read_bytes, name, target_fd);
+        selector_unregister_fd(s, target_fd);
+        shutdown(target_fd, SHUT_RD);
+        copy->duplex &= ~OP_READ;
+        if (other_fd != -1) {
+            shutdown(*(copy->other_fd), SHUT_WR);
+            *(copy->other_duplex) &= ~OP_WRITE;
+        }
+    }
+
+    // TFdInterests newInterests = OP_WRITE;
+    // if (buffer_can_write(copy.other_buffer))
+    //     newInterests |= OP_READ;
+
+    // selector_set_interest(copy.s, copy.target_fd, newInterests);
+    copy_compute_interests(s,copy);
+    copy_compute_interests(s,copy->other_copy);
     return COPY;
 }
 
-unsigned socksv5_handle_write(TSelectorKey* key) {
-    TClientData* clientData = key->data;
-    buffer* clientBuffer = &clientData->clientBuffer;
-    buffer* origin_buffer = &clientData->originBuffer;
-    int client_fd = clientData->client_fd;
-    int origin_fd = clientData->origin_fd;
+unsigned copy_write_handler(copy_t * copy) {
+    // TFdInterests curr_interests;
+    int target_fd = *copy->target_fd;
+    TSelector s = copy->s;
+    buffer * target_buffer = copy->target_buffer;
+    char * name = copy->name;
+
+    log(DEBUG, "[Copy: copy_read_handler] writing to fd %s %d", name, target_fd);
+
+    // selector_get_interests(s, target_fd, &curr_interests);
     size_t capacity;
-    TFdInterests curr_interests;
-    selector_get_interests(key, &curr_interests);
-
-    // Try to send as many of the bytes as we have in the buffer.
-    if (key->fd == client_fd) {
-        printf("writing to client\n");
-        if (!buffer_can_read(clientBuffer)) {
-            selector_set_interest_key(key, INTEREST_OFF(curr_interests, OP_WRITE));
-            printf("copy\n");
-            return COPY;
+    ssize_t sent;
+    if (!buffer_can_read(target_buffer)) {
+        // selector_set_interest(s, target_fd, INTEREST_OFF(curr_interests, OP_WRITE));
+        return COPY;
+    }
+    uint8_t* read_ptr = buffer_read_ptr(target_buffer, &(capacity));
+    sent = send(target_fd, read_ptr, capacity, 0); // habia que usar algun flag?
+    if (sent == 0) {
+        log(DEBUG, "send() returned %ld, closing %s %d\n", sent, name, target_fd);
+        selector_unregister_fd(s, target_fd);
+        return DONE;
+    } else if (sent < 0) {
+        shutdown(*(copy->target_fd), SHUT_WR);
+        copy->duplex &= ~OP_WRITE;
+        if (*(copy->other_fd) != -1) {
+            shutdown(*(copy->other_fd), SHUT_RD);
+            *(copy->other_duplex) &= ~OP_READ;
         }
-        uint8_t* read_ptr = buffer_read_ptr(clientBuffer, &capacity);
-        ssize_t sent = send(client_fd, read_ptr, capacity, 0); // habia que usar algun flag?
-        if (sent <= 0) {
-            printf("send() returned %ld, closing client %d\n", sent, key->fd);
-            selector_unregister_fd(key->s, key->fd);
-            return DONE;
-        }
-        buffer_read_adv(clientBuffer, sent);
-
-        printf("send() %ld bytes to client %d [%lu remaining]\n", sent, key->fd, capacity - sent);
-
-        // Calculate the new interests for this socket. We want to read, and possibly write if we still have more buffer data.
-        TFdInterests newInterests = OP_READ;
-        if (buffer_can_read(clientBuffer))
-            newInterests |= OP_WRITE;
-
-        // Update the interests in the selector.
-        selector_set_interest_key(key, newInterests);
     } else {
-        printf("writing to origin\n");
-
-        if (!buffer_can_read(origin_buffer)) {
-            selector_set_interest_key(key, INTEREST_OFF(curr_interests, OP_WRITE));
-            return COPY;
-        }
-        uint8_t* read_ptr = buffer_read_ptr(origin_buffer, &capacity);
-        ssize_t sent = send(origin_fd, read_ptr, capacity, 0);
-        if (sent <= 0) {
-            printf("send() returned %ld, closing origin %d\n", sent, key->fd);
-            selector_unregister_fd(key->s, key->fd);
-            return DONE;
-        }
-        buffer_read_adv(origin_buffer, sent);
-
-        printf("send() %ld bytes to origin %d [%lu remaining]\n", sent, key->fd, capacity - sent);
-
-        // Calculate the new interests for this socket. We want to read, and possibly write if we still have more buffer data.
-        TFdInterests newInterests = OP_READ;
-        if (buffer_can_read(origin_buffer))
-            newInterests |= OP_WRITE;
-
-        // Update the interests in the selector.
-        selector_set_interest(key->s, origin_fd, newInterests);
+        buffer_read_adv(target_buffer, sent);
     }
 
+    log(DEBUG, "send() %ld bytes to %s %d [%lu remaining]\n", sent, name, target_fd, capacity - sent);
+        // TFdInterests newInterests = OP_READ;
+        // if (buffer_can_read(target_buffer))
+        //     newInterests |= OP_WRITE;
+
+        // selector_set_interest(s, target_fd, newInterests);
+    // Calculate the new interests for this socket. We want to read, and possibly write if we still have more buffer data.
+    copy_compute_interests(s,copy);
+    copy_compute_interests(s,copy->other_copy);
     return COPY;
+}
+
+void socksv5_handle_init(const unsigned int st, TSelectorKey* key) {
+    TClientData* data = ATTACHMENT(key);
+    connections_t* connections = &(data->connections);
+    int * client_fd = &data->client_fd;
+    int * origin_fd = &data->origin_fd;
+    copy_t* client_copy = &(connections->client_copy);
+    client_copy->target_fd = client_fd;
+    client_copy->other_fd = origin_fd;
+    client_copy->target_buffer = &data->clientBuffer;
+    client_copy->other_buffer = &data->originBuffer;
+    client_copy->name = CLIENT_NAME;
+    client_copy->s = key->s;
+    client_copy->duplex = OP_READ | OP_WRITE;
+
+    copy_t* origin_copy = &(connections->origin_copy);
+    origin_copy->target_fd = origin_fd;
+    origin_copy->other_fd = client_fd;
+    origin_copy->target_buffer = &data->originBuffer;
+    origin_copy->other_buffer = &data->clientBuffer;
+    origin_copy->name = ORIGIN_NAME;
+    origin_copy->s = key->s;
+    origin_copy->duplex = OP_READ | OP_WRITE;
+
+    client_copy->other_duplex = &(origin_copy->duplex);
+    client_copy->other_copy = &(connections->origin_copy);
+    origin_copy->other_duplex = &(client_copy->duplex);
+    origin_copy->other_copy = &(connections->client_copy);
+}
+unsigned socksv5_handle_read(TSelectorKey* key) {
+    log(DEBUG, "[Copy: socksv5_handle_read] reading from fd %d", key->fd);
+    TClientData* clientData = key->data;
+    connections_t* connections = &(clientData->connections);
+    copy_t* copy;
+    if (clientData->client_fd == key->fd) {
+        copy = &(connections->client_copy);
+    } else { // fd == origin_fd
+        copy = &(connections->origin_copy);
+    }
+    return copy_read_handler(copy);
+}
+
+unsigned socksv5_handle_write(TSelectorKey* key) {
+    log(DEBUG, "[Copy: socksv5_handle_write] writing to fd %d", key->fd);
+    TClientData* clientData = key->data;
+    connections_t* connections = &(clientData->connections);
+    copy_t* copy;
+    // Try to send as many of the bytes as we have in the buffer.
+    if (clientData->client_fd == key->fd) {
+        copy = &(connections->client_copy);
+    } else { // fd == origin_fd
+        copy = &(connections->origin_copy);
+    }
+    return copy_write_handler(copy);
 }
 
 void socksv5_handle_close(const unsigned int state, TSelectorKey* key) {
@@ -153,11 +179,6 @@ void socksv5_handle_close(const unsigned int state, TSelectorKey* key) {
             freeaddrinfo(clientData->origin_resolution);
         free(clientData);
     }
-
-    // Close the socket file descriptor associated with this client.
-    //close(key->fd);
-
-
 
     printf("Client closed: %d\n", key->fd);
 }

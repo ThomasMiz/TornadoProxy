@@ -70,6 +70,7 @@ static const struct state_definition client_statb1[] = {
     },
     {
         .state = COPY,
+        .on_arrival = socksv5_handle_init,
         .on_read_ready = socksv5_handle_read,
         .on_write_ready = socksv5_handle_write,
         .on_departure = socksv5_handle_close,

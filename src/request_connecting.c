@@ -10,7 +10,7 @@
 void request_connecting_init(const unsigned state, TSelectorKey* key) {
     TClientData* d = ATTACHMENT(key);
     TFdInterests curr_interests;
-    selector_get_interests(key, &curr_interests);
+    selector_get_interests_key(key, &curr_interests);
     selector_set_interest(key->s, d->client_fd, OP_WRITE);
     log(DEBUG, "[Req con: init] ended for fd: %d", key->fd);
 }
@@ -18,7 +18,7 @@ void request_connecting_init(const unsigned state, TSelectorKey* key) {
 unsigned request_connecting(TSelectorKey* key) {
     TClientData* d = ATTACHMENT(key);
     TFdInterests curr_interests;
-    selector_get_interests(key, &curr_interests);
+    selector_get_interests_key(key, &curr_interests);
 
     log(DEBUG, "[Req con: request_connecting] started for fd: %d", key->fd);
 

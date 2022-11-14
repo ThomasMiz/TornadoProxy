@@ -16,6 +16,7 @@
 
 #include "selector.h"
 #include "socks5.h"
+#include "logger.h"
 
 static bool terminationRequested = false;
 
