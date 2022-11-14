@@ -37,6 +37,7 @@ unsigned request_connecting(TSelectorKey* key) {
                 if (selector_register(key->s, d->origin_fd, get_state_handler(), OP_WRITE, d) != SELECTOR_SUCCESS) { // Registramos al FD del OS con OP_WRITE y la misma state machine, entonces esperamos a que se corra el handler para REQUEST_CONNECTING del lado del OS
                     return ERROR;
                 }
+                printf("aaaaaaa");
                 return REQUEST_CONNECTING;
             }
         }

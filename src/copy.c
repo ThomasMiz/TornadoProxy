@@ -51,13 +51,15 @@ unsigned copy_read_handler(copy_t *copy) {
         // selector_set_interest(s, other_fd, OP_WRITE);
     } else { // EOF or err
         log(DEBUG, "recv() returned %ld, closing %s %d\n", read_bytes, name, target_fd);
-        selector_unregister_fd(s, target_fd);
+        //selector_unregister_fd(s, target_fd);
         shutdown(target_fd, SHUT_RD);
         copy->duplex &= ~OP_READ;
         if (other_fd != -1) {
             shutdown(*(copy->other_fd), SHUT_WR);
             *(copy->other_duplex) &= ~OP_WRITE;
         }
+
+
     }
 
     // TFdInterests newInterests = OP_WRITE;
@@ -67,6 +69,9 @@ unsigned copy_read_handler(copy_t *copy) {
     // selector_set_interest(copy.s, copy.target_fd, newInterests);
     copy_compute_interests(s,copy);
     copy_compute_interests(s,copy->other_copy);
+    if(copy->duplex == OP_NOOP ){
+        return DONE;
+    }
     return COPY;
 }
 
@@ -88,7 +93,7 @@ unsigned copy_write_handler(copy_t * copy) {
     }
     uint8_t* read_ptr = buffer_read_ptr(target_buffer, &(capacity));
     sent = send(target_fd, read_ptr, capacity, 0); // habia que usar algun flag?
-    if (sent == 0) {
+    if (sent <= 0) {
         log(DEBUG, "send() returned %ld, closing %s %d\n", sent, name, target_fd);
         selector_unregister_fd(s, target_fd);
         return DONE;
@@ -171,14 +176,23 @@ unsigned socksv5_handle_write(TSelectorKey* key) {
 }
 
 void socksv5_handle_close(const unsigned int state, TSelectorKey* key) {
-    TClientData* clientData = key->data;
+    /*TClientData* clientData = key->data;
+
+    if((key->fd)!=-1) {
+        close(key->fd);
+        selector_unregister_fd(key->s, key->fd);
+    }
 
     // Free the memory associated with this client.
     if (clientData != NULL) {
-        if (clientData->origin_resolution != NULL)
-            freeaddrinfo(clientData->origin_resolution);
-        free(clientData);
-    }
+        if (clientData->origin_resolution != NULL) {
+            //freeaddrinfo(clientData->origin_resolution);
+            clientData->origin_resolution = NULL;
+        }
+        //free(clientData);
+        key->data = NULL;
+    }*/
+
 
     printf("Client closed: %d\n", key->fd);
 }

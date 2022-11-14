@@ -9,6 +9,7 @@
 #include "socks5.h"
 #include "copy.h"
 #include "stm.h"
+#include <stdbool.h>
 #include <netdb.h>
 
 // obtiene el struct socks5* desde la key
@@ -25,6 +26,8 @@ typedef struct TClientData {
         TReqParser reqParser;
         TAuthParser authParser;
     } client;
+
+    bool closed;
 
     // Added this buffer, consider removing the plain buffer from this struct.
     struct buffer clientBuffer;

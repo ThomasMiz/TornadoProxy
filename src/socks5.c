@@ -22,6 +22,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+void close_connection(TSelectorKey * key);
+
 void doneArrival(const unsigned state, TSelectorKey* key) {
     printf("Done state \n");
 }
@@ -102,25 +104,55 @@ TFdHandler* get_state_handler() {
 void socksv5_close(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     stm_handler_close(stm, key);
-    // ERROR HANDLING
 }
 
 static void socksv5_read(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     const enum socks_state st = stm_handler_read(stm, key);
-    // ERROR HANDLING
+    if(st == ERROR || st == DONE){
+        close_connection(key);
+    }
 }
 
 static void socksv5_write(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     const enum socks_state st = stm_handler_write(stm, key);
-    // ERROR HANDLING
+    if(st == ERROR || st == DONE){
+        close_connection(key);
+    }
 }
 
 static void socksv5_block(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     const enum socks_state st = stm_handler_block(stm, key);
-    // ERROR HANDLING
+    if(st == ERROR || st == DONE){
+        close_connection(key);
+    }
+}
+
+void close_connection(TSelectorKey * key) {
+    TClientData * data = ATTACHMENT(key);
+    if (data->closed)
+        return;
+    data->closed = true;
+
+    int clientSocket = data->client_fd;
+    int serverSocket = data->origin_fd;
+
+    if (serverSocket != -1) {
+        selector_unregister_fd(key->s, serverSocket);
+        close(serverSocket);
+    }
+    if (clientSocket != -1) {
+        selector_unregister_fd(key->s, clientSocket);
+        close(clientSocket);
+    }
+
+    if (data->origin_resolution != NULL) {
+        freeaddrinfo(data->origin_resolution);
+    }
+
+    free(data);
 }
 
 void socksv5_passive_accept(TSelectorKey* key) {

@@ -3,4 +3,4 @@ CFLAGS=-g -Wall -Wextra -pedantic -pedantic-errors -O3 -std=c11 -D_POSIX_C_SOURC
 
 LDFLAGS=-pthread
 
-CFLAGSMAC=-g -Wall -Wextra -pedantic -pedantic-errors -O3 -std=c11 -Wno-unused-parameter -Wno-implicit-fallthrough 
+CFLAGSMAC=-g -Wall -Wextra -pedantic -pedantic-errors -std=c11 -Wno-unused-parameter -Wno-implicit-fallthrough
