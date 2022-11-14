@@ -60,7 +60,11 @@ static unsigned requestProcess(TSelectorKey* key) {
         log(DEBUG, "[Req read - process] REQ_ATYP_IPV4 port: %d for fd: %d",data->client.reqParser.port, key->fd);
         struct sockaddr_in *sockaddr = malloc(sizeof(struct sockaddr_in));
         data->origin_resolution = calloc(1,sizeof(struct addrinfo));
-        if(sockaddr == NULL || data->origin_resolution == NULL){
+        if(sockaddr == NULL){
+            log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
+            goto finally;
+        }else if(data->origin_resolution == NULL){
+            free(sockaddr);
             log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
             goto finally;
         }
@@ -84,7 +88,11 @@ static unsigned requestProcess(TSelectorKey* key) {
         log(DEBUG, "[Req read - process] REQ_ATYP_IPV6 port: %d for fd: %d",data->client.reqParser.port, key->fd);
         struct sockaddr_in6 *sockaddr = malloc(sizeof(struct sockaddr_in6));
         data->origin_resolution = calloc(1,sizeof(struct addrinfo));
-        if(sockaddr == NULL || data->origin_resolution == NULL){
+        if(sockaddr == NULL){
+            log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
+            goto finally;
+        }else if(data->origin_resolution == NULL){
+            free(sockaddr);
             log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
             goto finally;
         }
@@ -116,10 +124,7 @@ static unsigned requestProcess(TSelectorKey* key) {
     }
 
     finally:
-    data->client.reqParser.state = REQ_ERROR_GENERAL_FAILURE;
-    if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&data->client.reqParser, &data->originBuffer)) {
-        return ERROR;
-    }
+    fillRequestAnswerWithState(key, REQ_ERROR_GENERAL_FAILURE);
     return REQUEST_WRITE;
 }
 
