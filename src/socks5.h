@@ -4,7 +4,7 @@
 #include "auth/authParser.h"
 #include "buffer.h"
 #include "negotiation/negotiation.h"
-#include "requestParser.h"
+#include "request/requestParser.h"
 #include "selector.h"
 #include "socks5.h"
 #include "copy.h"

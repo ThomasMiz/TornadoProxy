@@ -1,12 +1,12 @@
-#include "selector.h"
-#include "socks5.h"
+#include "../selector.h"
+#include "../socks5.h"
 #include <errno.h>
 #include <stdio.h>
 #include <assert.h>
 #include "request_connecting.h"
 #include "request.h"
-#include "netutils.h"
-#include "logger.h"
+#include "../netutils.h"
+#include "../logger.h"
 
 void request_connecting_init(const unsigned state, TSelectorKey* key) {
     TClientData* d = ATTACHMENT(key);

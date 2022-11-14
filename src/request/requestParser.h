@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 
-#include "buffer.h"
+#include "../buffer.h"
 #include <netinet/ip.h>
 #include <stdint.h>
 

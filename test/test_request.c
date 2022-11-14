@@ -1,4 +1,4 @@
-#include "../src/requestParser.h"
+#include "../src/request/requestParser.h"
 #include <check.h>
 
 #define length(array) (sizeof(array) / sizeof(*(array)))
