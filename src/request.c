@@ -14,13 +14,13 @@ static unsigned requestProcess(TSelectorKey* key);
 static void* requestNameResolution(void* data);
 
 void requestReadInit(const unsigned state, TSelectorKey* key) {
-    printf("[Req read] init at socket fd %d\n", key->fd);
+   log(DEBUG,"[Req read] init at socket fd %d", key->fd);
     TClientData* data = ATTACHMENT(key);
     initRequestParser(&data->client.reqParser);
 }
 
 unsigned requestRead(TSelectorKey* key) {
-    printf("[Req read: INF] read at socket fd %d\n", key->fd);
+    log(DEBUG,"[Req read: INF] read at socket fd %d", key->fd);
     TClientData* data = ATTACHMENT(key);
 
     size_t readLimit;    // how many bytes can be stored in the buffer
@@ -29,7 +29,7 @@ unsigned requestRead(TSelectorKey* key) {
 
     readBuffer = buffer_write_ptr(&data->clientBuffer, &readLimit);
     readCount = recv(key->fd, readBuffer, readLimit, 0);
-    printf("[Req read: INF]  %ld bytes from client %d \n", readCount, key->fd);
+    log(DEBUG,"[Req read: INF]  %ld bytes from client %d ", readCount, key->fd);
     if (readCount <= 0) {
         return ERROR;
     }
@@ -40,7 +40,7 @@ unsigned requestRead(TSelectorKey* key) {
         if (!hasRequestErrors(&data->client.reqParser)) {
             return requestProcess(key);
         }
-        printf("[Req read: INF]  req with errors\n");
+        log(LOG_ERROR,"Error parsing the request at fd %d", key->fd);
         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&data->client.reqParser, &data->originBuffer)) {
             return ERROR;
         }
@@ -73,7 +73,6 @@ static unsigned requestProcess(TSelectorKey* key) {
         *data->origin_resolution = (struct addrinfo)
         {
             .ai_family = AF_INET,
-            .ai_socktype = SOCK_STREAM,
             .ai_addr = (struct sockaddr*)sockaddr,
             .ai_addrlen = sizeof(*sockaddr),
         };
@@ -97,7 +96,6 @@ static unsigned requestProcess(TSelectorKey* key) {
 
         *data->origin_resolution = (struct addrinfo) {
             .ai_family = AF_INET6,
-            .ai_socktype = SOCK_STREAM,
             .ai_addr = (struct sockaddr*)sockaddr,
             .ai_addrlen = sizeof(*sockaddr),
         };
@@ -114,7 +112,6 @@ static unsigned requestProcess(TSelectorKey* key) {
             log(DEBUG, "[Req read - process] thread error fd: %d", key->fd);
             goto finally;
         }
-        printf("[Req read - process: INF] thread created ok\n");
         return REQUEST_RESOLV;
     }
 
@@ -127,7 +124,6 @@ static unsigned requestProcess(TSelectorKey* key) {
 }
 
 static void* requestNameResolution(void* data) {
-    printf("[Req read - name resolution thread: INF] thread init\n");
     TSelectorKey* key = (TSelectorKey*)data;
     TClientData* c = ATTACHMENT(key);
 
@@ -151,12 +147,10 @@ static void* requestNameResolution(void* data) {
     }
     selector_notify_block(key->s, key->fd);
     free(data);
-    printf("[Req read - name resolution thread: INF] thread end\n");
     return NULL;
 }
 
 unsigned requestResolveDone(TSelectorKey* key) {
-    printf("[Req resolve done ]\n");
     TClientData* data = ATTACHMENT(key);
 
     struct addrinfo *ailist, *aip;
@@ -172,19 +166,26 @@ unsigned requestResolveDone(TSelectorKey* key) {
         printf("address: %s", printAddressPort(aip, addr));
         putchar('\n');
     }
-    //freeaddrinfo(ailist);
 
     if(ailist == NULL){
-        selector_set_interest_key(key, OP_WRITE);
-        fillRequestAnswer(&data->client.reqParser, &data->originBuffer);
-        return ERROR;
+        return fillRequestAnswerWithState(key, REQ_ERROR_GENERAL_FAILURE);
     }
     return REQUEST_CONNECTING;
 }
 
+unsigned fillRequestAnswerWithState(TSelectorKey* key, int state){
+    TReqParser p = ATTACHMENT(key)->client.reqParser;
+    if(state >= 0){
+        p.state = state;
+    }
+    if(selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&p, &ATTACHMENT(key)->originBuffer)){
+        return ERROR;
+    }
+    return REQUEST_WRITE;
+}
+
 unsigned requestWrite(TSelectorKey* key) {
     TClientData* data = ATTACHMENT(key);
-    printf("[Req write: INF] send at fd %d\n", data->client_fd);
 
     size_t writeLimit;    // how many bytes we want to send
     ssize_t writeCount;   // how many bytes where written
@@ -194,21 +195,21 @@ unsigned requestWrite(TSelectorKey* key) {
     writeCount = send(data->client_fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
 
     if (writeCount < 0) {
-        perror("[Req write: ERR] send()");
+        log(LOG_ERROR,"send() at fd %d", key->fd);
         return ERROR;
     }
     if (writeCount == 0) {
-        printf("[Req write: ERR] Failed to send(), client closed connection unexpectedly\n");
+        log(LOG_ERROR,"Failed to send(), client closed connection unexpectedly at fd %d", key->fd);
         return ERROR;
     }
-    printf("[Req write: INF]  %ld bytes to client %d \n", writeCount, key->fd);
+    log(DEBUG,"[Req write: INF]  %ld bytes to client %d ", writeCount, key->fd);
     buffer_read_adv(&data->originBuffer, writeCount);
 
     if (buffer_can_read(&data->originBuffer)) {
         return REQUEST_WRITE;
     }
 
-    if (selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
+    if (hasRequestErrors(&data->client.reqParser) || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
         return ERROR;
     }
 

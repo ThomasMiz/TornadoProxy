@@ -72,7 +72,7 @@ static TNegState parseMethodCount(TNegParser* p, uint8_t c) {
 
 static TNegState parseMethods(TNegParser* p, uint8_t c) {
     p->pendingMethods -= 1;
-    log(INFO, "%x%s", c, p->pendingMethods == 0 ? "\n" : ", ");
+    log(INFO, "%x%s", c, p->pendingMethods == 0 ? " " : ", ");
     if (c == requiredAuthMethod) {
         p->authMethod = requiredAuthMethod;
     }

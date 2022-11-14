@@ -7,6 +7,7 @@
 #include "request_connecting.h"
 #include "selector.h"
 #include "stm.h"
+#include "logger.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <limits.h>
@@ -156,17 +157,16 @@ void close_connection(TSelectorKey * key) {
 }
 
 void socksv5_passive_accept(TSelectorKey* key) {
-    printf("New client received\n");
     struct sockaddr_storage clientAddress;
     socklen_t clientAddressLen = sizeof(clientAddress);
     int newClientSocket = accept(key->fd, (struct sockaddr*)&clientAddress, &clientAddressLen);
-    printf("New client accepted at socket fd %d\n", newClientSocket);
+    log(DEBUG,"New client accepted at socket fd %d", newClientSocket);
 
     // Consider using a function to initialize the TClientData structure.
     TClientData* clientData = calloc(1, sizeof(TClientData));
     if (clientData == NULL) {
         free(clientData);
-        printf("Failed to alloc clientData for new client! Did we run out of memory?\n");
+        log(LOG_ERROR, "Failed to alloc clientData for new client t socket fd %d", newClientSocket);
         close(newClientSocket);
         return;
     }
@@ -181,6 +181,7 @@ void socksv5_passive_accept(TSelectorKey* key) {
     clientData->stm.max_state = ERROR;
     clientData->stm.states = client_statb1;
     clientData->client_fd = newClientSocket;
+    clientData->origin_fd=-1;
 
     buffer_init(&clientData->originBuffer, BUFFER_SIZE, clientData->inOriginBuffer);
     buffer_init(&clientData->clientBuffer, BUFFER_SIZE, clientData->inClientBuffer);
@@ -190,9 +191,9 @@ void socksv5_passive_accept(TSelectorKey* key) {
     TSelectorStatus status = selector_register(key->s, newClientSocket, handler, OP_READ, clientData);
 
     if (status != SELECTOR_SUCCESS) {
-        printf("Failed to register new client into selector: %s\n", selector_error(status));
+        log(LOG_ERROR, "Failed to register new client into selector: %s", selector_error(status));
         free(clientData);
         return;
     }
-    printf("New client registered successfully!\n");
+    log(INFO, "New client registered successfully t socket fd %d", newClientSocket);
 }

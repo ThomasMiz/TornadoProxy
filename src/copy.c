@@ -47,10 +47,10 @@ unsigned copy_read_handler(copy_t *copy) {
         memcpy(write_ptr, tmp_buf, read_bytes);
         buffer_write_adv(other_buffer, read_bytes);
         buffer_write_ptr(other_buffer, &(remaining));
-        log(DEBUG, "recv() %ld bytes from %s %d [remaining buffer capacity %lu]\n", read_bytes, name, target_fd, remaining);
+        log(DEBUG, "recv() %ld bytes from %s %d [remaining buffer capacity %lu]", read_bytes, name, target_fd, remaining);
         // selector_set_interest(s, other_fd, OP_WRITE);
     } else { // EOF or err
-        log(DEBUG, "recv() returned %ld, closing %s %d\n", read_bytes, name, target_fd);
+        log(DEBUG, "recv() returned %ld, closing %s %d", read_bytes, name, target_fd);
         //selector_unregister_fd(s, target_fd);
         shutdown(target_fd, SHUT_RD);
         copy->duplex &= ~OP_READ;
@@ -94,7 +94,7 @@ unsigned copy_write_handler(copy_t * copy) {
     uint8_t* read_ptr = buffer_read_ptr(target_buffer, &(capacity));
     sent = send(target_fd, read_ptr, capacity, 0); // habia que usar algun flag?
     if (sent <= 0) {
-        log(DEBUG, "send() returned %ld, closing %s %d\n", sent, name, target_fd);
+        log(DEBUG, "send() returned %ld, closing %s %d", sent, name, target_fd);
         selector_unregister_fd(s, target_fd);
         return DONE;
     } else if (sent < 0) {
@@ -108,7 +108,7 @@ unsigned copy_write_handler(copy_t * copy) {
         buffer_read_adv(target_buffer, sent);
     }
 
-    log(DEBUG, "send() %ld bytes to %s %d [%lu remaining]\n", sent, name, target_fd, capacity - sent);
+    log(DEBUG, "send() %ld bytes to %s %d [%lu remaining]", sent, name, target_fd, capacity - sent);
         // TFdInterests newInterests = OP_READ;
         // if (buffer_can_read(target_buffer))
         //     newInterests |= OP_WRITE;
@@ -176,23 +176,5 @@ unsigned socksv5_handle_write(TSelectorKey* key) {
 }
 
 void socksv5_handle_close(const unsigned int state, TSelectorKey* key) {
-    /*TClientData* clientData = key->data;
-
-    if((key->fd)!=-1) {
-        close(key->fd);
-        selector_unregister_fd(key->s, key->fd);
-    }
-
-    // Free the memory associated with this client.
-    if (clientData != NULL) {
-        if (clientData->origin_resolution != NULL) {
-            //freeaddrinfo(clientData->origin_resolution);
-            clientData->origin_resolution = NULL;
-        }
-        //free(clientData);
-        key->data = NULL;
-    }*/
-
-
-    printf("Client closed: %d\n", key->fd);
+    log(DEBUG,"Client closed: %d", key->fd);
 }
