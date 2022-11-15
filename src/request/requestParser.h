@@ -23,6 +23,18 @@ enum TReqAtyp {
 #define REQ_MAX_DN_LENGHT 0xFF
 
 typedef enum TReqState {
+    REQ_VERSION = 0,   // The parser is waiting for the client version
+    REQ_CMD,       // The parser is waiting for CMD (Connect/bind/udp)
+    REQ_RSV,       // The parser is waiting for the reserved space X'00'
+    REQ_ATYP,      // The parser is waiting for the address type
+    REQ_DN_LENGHT, // If atype is 0x03, read the domainname length
+    REQ_DST_ADDR,
+    REQ_DST_PORT,
+    REQ_ERROR,
+    REQ_ENDED
+} TReqState;
+
+typedef enum TReqStatus{
     REQ_SUCCEDED = 0,
     REQ_ERROR_GENERAL_FAILURE,
     REQ_ERROR_CONNECTION_NOT_ALLOWED,
@@ -32,14 +44,7 @@ typedef enum TReqState {
     REQ_ERROR_TTL_EXPIRED,
     REQ_ERROR_COMMAND_NOT_SUPPORTED,
     REQ_ERROR_ADDRESS_TYPE_NOT_SUPPORTED,
-    REQ_VERSION,   // The parser is waiting for the client version
-    REQ_CMD,       // The parser is waiting for CMD (Connect/bind/udp)
-    REQ_RSV,       // The parser is waiting for the reserved space X'00'
-    REQ_ATYP,      // The parser is waiting for the address type
-    REQ_DN_LENGHT, // If atype is 0x03, read the domainname length
-    REQ_DST_ADDR,
-    REQ_DST_PORT
-} TReqState;
+}TReqStatus;
 
 typedef union TAddress {
     struct in_addr ipv4;
@@ -51,6 +56,7 @@ typedef union TAddress {
 
 typedef struct TReqParser {
     TReqState state;
+    TReqStatus status;
     uint8_t atyp;
     uint8_t totalAtypBytes; // Used to know read bytes for atyp and port
     uint8_t readBytes;

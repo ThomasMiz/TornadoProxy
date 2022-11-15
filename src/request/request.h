@@ -9,6 +9,6 @@ unsigned requestRead(TSelectorKey* key);
 
 unsigned requestWrite(TSelectorKey* key);
 unsigned requestResolveDone(TSelectorKey* key);
-unsigned fillRequestAnswerWithState(TSelectorKey* key, int state);
+unsigned fillRequestAnswerWitheErrorState(TSelectorKey* key, int state);
 
 #endif // NEGOTIATION_PARSER_H

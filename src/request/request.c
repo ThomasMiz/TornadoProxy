@@ -33,7 +33,6 @@ unsigned requestRead(TSelectorKey* key) {
     if (readCount <= 0) {
         return ERROR;
     }
-
     buffer_write_adv(&data->clientBuffer, readCount);
     requestParse(&data->client.reqParser, &data->clientBuffer);
     if (hasRequestReadEnded(&data->client.reqParser)) {
@@ -122,7 +121,7 @@ static unsigned requestProcess(TSelectorKey* key) {
     }
 
 finally:
-    fillRequestAnswerWithState(key, REQ_ERROR_GENERAL_FAILURE);
+    fillRequestAnswerWitheErrorState(key, REQ_ERROR_GENERAL_FAILURE);
     return REQUEST_WRITE;
 }
 
@@ -171,16 +170,17 @@ unsigned requestResolveDone(TSelectorKey* key) {
     }
 
     if (ailist == NULL) {
-        return fillRequestAnswerWithState(key, REQ_ERROR_GENERAL_FAILURE);
+        return fillRequestAnswerWitheErrorState(key, REQ_ERROR_GENERAL_FAILURE);
     }
     return REQUEST_CONNECTING;
 }
 
-unsigned fillRequestAnswerWithState(TSelectorKey* key, int state) {
+unsigned fillRequestAnswerWitheErrorState(TSelectorKey* key, int status) {
     TReqParser p = ATTACHMENT(key)->client.reqParser;
-    if (state >= 0) {
-        p.state = state;
+    if (status >= 0) {
+        p.status = status;
     }
+    p.state = REQ_ERROR;
     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&p, &ATTACHMENT(key)->originBuffer)) {
         return ERROR;
     }
