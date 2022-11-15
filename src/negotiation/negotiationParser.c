@@ -36,21 +36,21 @@ void initNegotiationParser(TNegParser* p) {
     p->authMethod = NEG_METHOD_NO_MATCH;
 }
 
-uint8_t hasNegotiationReadEnded(TNegParser* p) {
+bool hasNegotiationReadEnded(TNegParser* p) {
     return p->state == NEG_END || p->state == NEG_ERROR;
 }
-uint8_t hasNegotiationErrors(TNegParser* p) {
+bool hasNegotiationErrors(TNegParser* p) {
     return p->state == NEG_ERROR;
 }
 
-uint8_t fillNegotiationAnswer(TNegParser* p, struct buffer* buffer) {
+TNegRet fillNegotiationAnswer(TNegParser* p, struct buffer* buffer) {
     if (!buffer_can_write(buffer))
-        return 1;
+        return NEGR_FULLBUFFER;
     buffer_write(buffer, VERSION_5);
     if (!buffer_can_write(buffer))
-        return 1;
+        return NEGR_FULLBUFFER;
     buffer_write(buffer, p->authMethod);
-    return 0;
+    return NEGR_OK;
 }
 
 static TNegState parseVersion(TNegParser* p, uint8_t c) {
@@ -85,10 +85,10 @@ static TNegState parseEnd(TNegParser* p, uint8_t c) {
     return p->state;
 }
 
-uint8_t changeAuthMethod(TNegParser* p, TNegMethod authMethod) {
+TNegRet changeAuthMethod(TNegMethod authMethod) {
     if (authMethod == NEG_METHOD_PASS || authMethod == NEG_METHOD_NO_AUTH) {
         requiredAuthMethod = authMethod;
-        return 0;
+        return NEGR_OK;
     }
-    return 1;
+    return NEGR_INVALIDMETHOD;
 }
