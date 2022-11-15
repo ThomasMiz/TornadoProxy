@@ -43,7 +43,7 @@ TReqState requestParse(TReqParser* p, struct buffer* buffer) {
 }
 
 uint8_t hasRequestReadEnded(TReqParser* p) {
-    return p->state == REQ_SUCCEDED || p->state == REQ_ERROR;
+    return p->state == REQ_ENDED || p->state == REQ_ERROR;
 }
 uint8_t hasRequestErrors(TReqParser* p) {
     return p->state == REQ_ERROR;;

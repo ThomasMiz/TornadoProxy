@@ -4,7 +4,6 @@
 #include "copy.h"
 #include "netutils.h"
 #include "request/request.h"
-#include "request/request_connecting.h"
 #include "selector.h"
 #include "stm.h"
 #include "logger.h"
@@ -64,8 +63,8 @@ static const struct state_definition client_statb1[] = {
     },
     {
         .state = REQUEST_CONNECTING,
-        .on_arrival = request_connecting_init,
-        .on_write_ready = request_connecting,
+        .on_arrival = requestConectingInit,
+        .on_write_ready = requestConecting,
     },
     {
         .state = REQUEST_WRITE,

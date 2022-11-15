@@ -17,6 +17,7 @@ void authReadInit(const unsigned state, TSelectorKey* key) {
     TClientData* data = ATTACHMENT(key);
     initAuthParser(&data->client.authParser);
 }
+
 unsigned authRead(TSelectorKey* key) {
     log(DEBUG, "[Auth read] read at socket fd %d", key->fd);
     TClientData* data = ATTACHMENT(key);
