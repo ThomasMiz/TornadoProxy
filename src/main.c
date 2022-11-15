@@ -12,6 +12,7 @@
 #include "selector.h"
 #include "socks5.h"
 #include "args.h"
+#include "users.h"
 
 static bool terminationRequested = false;
 
@@ -28,11 +29,17 @@ int main(const int argc, char** argv) {
 
     // no tenemos nada que leer de stdin
     close(STDIN_FILENO);
+    usersInit(NULL);
 
     struct socks5args args;
     parse_args(argc, argv, &args);
 
     unsigned port = args.socks_port;
+
+
+
+
+
 
     const char *err_msg = NULL;
     TSelectorStatus ss = SELECTOR_SUCCESS;
@@ -117,6 +124,7 @@ int main(const int argc, char** argv) {
 
     int ret = 0;
     finally:
+    usersFinalize();
     if (ss != SELECTOR_SUCCESS) {
         fprintf(stderr, "%s: %s\n", (err_msg == NULL) ? "" : err_msg,
                 ss == SELECTOR_IO
@@ -131,6 +139,7 @@ int main(const int argc, char** argv) {
         selector_destroy(selector);
     }
     selector_close();
+
 
     // socksv5_pool_destroy();
 
