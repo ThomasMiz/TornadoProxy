@@ -4,10 +4,9 @@
 #include "../buffer.h"
 #include <stdbool.h>
 
-/* Parses the auth methods negotiation between the client and the server, following RFC 1928
+/** Parses the auth methods negotiation between the client and the server, following RFC 1928
  *
- * The client connects to the server, and sends a version
-   identifier/method selection message:
+ * The client connects to the server, and sends a version identifier/method selection message:
 
                    +----+----------+----------+
                    |VER | NMETHODS | METHODS  |
@@ -15,12 +14,10 @@
                    | 1  |    1     | 1 to 255 |
                    +----+----------+----------+
 
-   The VER field is set to X'05' for this version of the protocol.  The
-   NMETHODS field contains the number of method identifier octets that
-   appear in the METHODS field.
+   The VER field is set to X'05' for this version of the protocol.  The NMETHODS field contains the
+   number of method identifier octets that appear in the METHODS field.
 
-   The server selects from one of the methods given in METHODS, and
-   sends a METHOD selection message:
+   The server selects from one of the methods given in METHODS, and sends a METHOD selection message:
 
                          +----+--------+
                          |VER | METHOD |
@@ -28,8 +25,8 @@
                          | 1  |   1    |
                          +----+--------+
 
-   If the selected METHOD is X'FF', none of the methods listed by the
-   client are acceptable, and the client MUST close the connection.
+   If the selected METHOD is X'FF', none of the methods listed by the client are acceptable, and the
+   client MUST close the connection.
 
    The values currently defined for METHOD are:
           o  X'00' NO AUTHENTICATION REQUIRED
@@ -38,7 +35,6 @@
           o  X'03' to X'7F' IANA ASSIGNED
           o  X'80' to X'FE' RESERVED FOR PRIVATE METHODS
           o  X'FF' NO ACCEPTABLE METHODS
- *
  * */
 
 /* Just supporting NO AUTHENTICATION REQUIRED and USERNAME/PASSWORD auth methods */
