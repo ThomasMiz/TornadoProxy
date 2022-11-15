@@ -33,18 +33,22 @@ TAuthState authParse(TAuthParser* p, struct buffer* buffer) {
     return p->state;
 }
 
-uint8_t hasAuthReadEnded(TAuthParser* p) {
+bool hasAuthReadEnded(TAuthParser* p) {
     return p->state == AUTH_END || p->state == AUTH_INVALID_VERSION;
 }
 
-uint8_t fillAuthAnswer(TAuthParser* p, struct buffer* buffer) {
+bool hasAuthReadErrors(TAuthParser* p) {
+    return p->state == AUTH_INVALID_VERSION;
+}
+
+TAuthRet fillAuthAnswer(TAuthParser* p, struct buffer* buffer) {
     if (!buffer_can_write(buffer))
-        return 1;
+        return AUTHR_FULLBUFFER;
     buffer_write(buffer, AUTH_VERSION_1);
     if (!buffer_can_write(buffer))
-        return 1;
+        return AUTHR_FULLBUFFER;
     buffer_write(buffer, p->verification);
-    return 0;
+    return AUTHR_OK;
 }
 
 static TAuthState parseVersion(TAuthParser* p, uint8_t c) {

@@ -3,10 +3,10 @@
 #include "../socks5.h"
 #include "../users.h"
 
-static TAuthVerification validateUserAndPassword(TAuthParser * p){
+static TAuthVerification validateUserAndPassword(TAuthParser* p) {
     TUserPrivilegeLevel upl;
     TUserStatus userStatus = usersLogin(p->uname, p->passwd, &upl);
-    if(userStatus == EUSER_OK){
+    if (userStatus == EUSER_OK) {
         p->verification = AUTH_SUCCESSFUL;
     }
     return userStatus;
@@ -71,7 +71,7 @@ unsigned authWrite(TSelectorKey* key) {
         return AUTH_WRITE;
     }
 
-    if (hasNegotiationErrors(&data->client.negParser) || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
+    if (hasAuthReadErrors(&data->client.authParser) || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
         return ERROR;
     }
 
