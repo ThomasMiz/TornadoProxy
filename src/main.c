@@ -34,7 +34,7 @@ int main(const int argc, char** argv) {
 
     unsigned port = args.socks_port;
 
-    const char* err_msg = NULL;
+    const char *err_msg = NULL;
     TSelectorStatus ss = SELECTOR_SUCCESS;
     TSelector selector = NULL;
 
@@ -55,9 +55,9 @@ int main(const int argc, char** argv) {
     fprintf(stdout, "Listening on TCP port %d\n", port);
 
     // man 7 ip. no importa reportar nada si falla.
-    setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+    setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));
 
-    if (bind(server, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+    if (bind(server, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
         err_msg = "unable to bind socket";
         goto finally;
     }
@@ -77,11 +77,11 @@ int main(const int argc, char** argv) {
         goto finally;
     }
     const TSelectorInit conf = {
-        .signal = SIGALRM,
-        .select_timeout = {
-            .tv_sec = 10,
-            .tv_nsec = 0,
-        },
+            .signal = SIGALRM,
+            .select_timeout = {
+                    .tv_sec = 10,
+                    .tv_nsec = 0,
+            },
     };
     if (0 != selector_init(&conf)) {
         err_msg = "initializing selector";
@@ -94,9 +94,9 @@ int main(const int argc, char** argv) {
         goto finally;
     }
     const TFdHandler socksv5 = {
-        .handle_read = socksv5_passive_accept,
-        .handle_write = NULL,
-        .handle_close = NULL, // nada que liberar
+            .handle_read = socksv5_passive_accept,
+            .handle_write = NULL,
+            .handle_close = NULL, // nada que liberar
     };
     ss = selector_register(selector, server, &socksv5, OP_READ, NULL);
     if (ss != SELECTOR_SUCCESS) {
@@ -116,12 +116,12 @@ int main(const int argc, char** argv) {
     }
 
     int ret = 0;
-finally:
+    finally:
     if (ss != SELECTOR_SUCCESS) {
         fprintf(stderr, "%s: %s\n", (err_msg == NULL) ? "" : err_msg,
                 ss == SELECTOR_IO
-                    ? strerror(errno)
-                    : selector_error(ss));
+                ? strerror(errno)
+                : selector_error(ss));
         ret = 2;
     } else if (err_msg) {
         perror(err_msg);
