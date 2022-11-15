@@ -61,12 +61,6 @@ unsigned copy_read_handler(copy_t *copy) {
 
 
     }
-
-    // TFdInterests newInterests = OP_WRITE;
-    // if (buffer_can_write(copy.other_buffer))
-    //     newInterests |= OP_READ;
-
-    // selector_set_interest(copy.s, copy.target_fd, newInterests);
     copy_compute_interests(s,copy);
     copy_compute_interests(s,copy->other_copy);
     if(copy->duplex == OP_NOOP ){
@@ -92,7 +86,7 @@ unsigned copy_write_handler(copy_t * copy) {
         return COPY;
     }
     uint8_t* read_ptr = buffer_read_ptr(target_buffer, &(capacity));
-    sent = send(target_fd, read_ptr, capacity, 0); // habia que usar algun flag?
+    sent = send(target_fd, read_ptr, capacity, MSG_NOSIGNAL);
     if (sent <= 0) {
         log(DEBUG, "send() returned %ld, closing %s %d", sent, name, target_fd);
         selector_unregister_fd(s, target_fd);
@@ -109,12 +103,6 @@ unsigned copy_write_handler(copy_t * copy) {
     }
 
     log(DEBUG, "send() %ld bytes to %s %d [%lu remaining]", sent, name, target_fd, capacity - sent);
-        // TFdInterests newInterests = OP_READ;
-        // if (buffer_can_read(target_buffer))
-        //     newInterests |= OP_WRITE;
-
-        // selector_set_interest(s, target_fd, newInterests);
-    // Calculate the new interests for this socket. We want to read, and possibly write if we still have more buffer data.
     copy_compute_interests(s,copy);
     copy_compute_interests(s,copy->other_copy);
     return COPY;
