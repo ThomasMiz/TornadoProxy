@@ -1,22 +1,17 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <limits.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include <signal.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-
+#include <unistd.h>
 #include "selector.h"
 #include "socks5.h"
-#include "logger.h"
+#include "args.h"
 
 static bool terminationRequested = false;
 
@@ -25,29 +20,19 @@ static void sigterm_handler(const int signal) {
     terminationRequested = true;
 }
 
-int main(const int argc, const char** argv) {
-	setvbuf(stdout, NULL, _IONBF, 0);
-	setvbuf(stderr, NULL, _IONBF, 0);
-    unsigned port = 1080;
+int main(const int argc, char** argv) {
 
-    if (argc == 1) {
-        // utilizamos el default
-    } else if (argc == 2) {
-        char* end = 0;
-        const long sl = strtol(argv[1], &end, 10);
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stderr, NULL, _IONBF, 0);
 
-        if (end == argv[1] || '\0' != *end || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno) || sl < 0 || sl > USHRT_MAX) {
-            fprintf(stderr, "port should be an integer: %s\n", argv[1]);
-            return 1;
-        }
-        port = sl;
-    } else {
-        fprintf(stderr, "Usage: %s <port>\n", argv[0]);
-        return 1;
-    }
 
     // no tenemos nada que leer de stdin
-    close(0);
+    close(STDIN_FILENO);
+
+    struct socks5args args;
+    parse_args(argc, argv, &args);
+
+    unsigned port = args.socks_port;
 
     const char* err_msg = NULL;
     TSelectorStatus ss = SELECTOR_SUCCESS;
