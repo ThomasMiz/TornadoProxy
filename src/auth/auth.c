@@ -71,7 +71,7 @@ unsigned authWrite(TSelectorKey* key) {
         return AUTH_WRITE;
     }
 
-    if (hasAuthReadErrors(&data->client.authParser) || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
+    if (hasAuthReadErrors(&data->client.authParser)|| data->client.authParser.verification == AUTH_ACCESS_DENIED || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
         return ERROR;
     }
 
