@@ -7,8 +7,6 @@
 #include <netinet/ip.h>
 #include <stdint.h>
 
-
-
 enum TReqCmd {
     REQ_CMD_CONNECT = 0x01,
     REQ_CMD_BIND = 0x02,

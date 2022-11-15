@@ -1,4 +1,5 @@
 #include "request.h"
+#include "../logger.h"
 #include "../socks5.h"
 #include "../util.h"
 #include <netdb.h>
@@ -6,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../logger.h"
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -14,13 +14,13 @@ static unsigned requestProcess(TSelectorKey* key);
 static void* requestNameResolution(void* data);
 
 void requestReadInit(const unsigned state, TSelectorKey* key) {
-   log(DEBUG,"[Req read] init at socket fd %d", key->fd);
+    log(DEBUG, "[Req read] init at socket fd %d", key->fd);
     TClientData* data = ATTACHMENT(key);
     initRequestParser(&data->client.reqParser);
 }
 
 unsigned requestRead(TSelectorKey* key) {
-    log(DEBUG,"[Req read: INF] read at socket fd %d", key->fd);
+    log(DEBUG, "[Req read: INF] read at socket fd %d", key->fd);
     TClientData* data = ATTACHMENT(key);
 
     size_t readLimit;    // how many bytes can be stored in the buffer
@@ -29,7 +29,7 @@ unsigned requestRead(TSelectorKey* key) {
 
     readBuffer = buffer_write_ptr(&data->clientBuffer, &readLimit);
     readCount = recv(key->fd, readBuffer, readLimit, 0);
-    log(DEBUG,"[Req read: INF]  %ld bytes from client %d ", readCount, key->fd);
+    log(DEBUG, "[Req read: INF]  %ld bytes from client %d ", readCount, key->fd);
     if (readCount <= 0) {
         return ERROR;
     }
@@ -40,7 +40,7 @@ unsigned requestRead(TSelectorKey* key) {
         if (!hasRequestErrors(&data->client.reqParser)) {
             return requestProcess(key);
         }
-        log(LOG_ERROR,"Error parsing the request at fd %d", key->fd);
+        log(LOG_ERROR, "Error parsing the request at fd %d", key->fd);
         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&data->client.reqParser, &data->originBuffer)) {
             return ERROR;
         }
@@ -57,25 +57,24 @@ static unsigned requestProcess(TSelectorKey* key) {
     log(DEBUG, "[Req read - process] init process for fd: %d", key->fd);
 
     if (atyp == REQ_ATYP_IPV4) {
-        log(DEBUG, "[Req read - process] REQ_ATYP_IPV4 port: %d for fd: %d",data->client.reqParser.port, key->fd);
-        struct sockaddr_in *sockaddr = malloc(sizeof(struct sockaddr_in));
-        data->origin_resolution = calloc(1,sizeof(struct addrinfo));
-        if(sockaddr == NULL){
+        log(DEBUG, "[Req read - process] REQ_ATYP_IPV4 port: %d for fd: %d", data->client.reqParser.port, key->fd);
+        struct sockaddr_in* sockaddr = malloc(sizeof(struct sockaddr_in));
+        data->origin_resolution = calloc(1, sizeof(struct addrinfo));
+        if (sockaddr == NULL) {
             log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
             goto finally;
-        }else if(data->origin_resolution == NULL){
+        } else if (data->origin_resolution == NULL) {
             free(sockaddr);
             log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
             goto finally;
         }
-        *sockaddr = (struct sockaddr_in) {
+        *sockaddr = (struct sockaddr_in){
             .sin_family = AF_INET,
             .sin_addr = rp.address.ipv4,
             .sin_port = htons(rp.port),
         };
 
-        *data->origin_resolution = (struct addrinfo)
-        {
+        *data->origin_resolution = (struct addrinfo){
             .ai_family = AF_INET,
             .ai_addr = (struct sockaddr*)sockaddr,
             .ai_addrlen = sizeof(*sockaddr),
@@ -85,24 +84,23 @@ static unsigned requestProcess(TSelectorKey* key) {
     }
 
     if (atyp == REQ_ATYP_IPV6) {
-        log(DEBUG, "[Req read - process] REQ_ATYP_IPV6 port: %d for fd: %d",data->client.reqParser.port, key->fd);
-        struct sockaddr_in6 *sockaddr = malloc(sizeof(struct sockaddr_in6));
-        data->origin_resolution = calloc(1,sizeof(struct addrinfo));
-        if(sockaddr == NULL){
+        log(DEBUG, "[Req read - process] REQ_ATYP_IPV6 port: %d for fd: %d", data->client.reqParser.port, key->fd);
+        struct sockaddr_in6* sockaddr = malloc(sizeof(struct sockaddr_in6));
+        data->origin_resolution = calloc(1, sizeof(struct addrinfo));
+        if (sockaddr == NULL) {
             log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
             goto finally;
-        }else if(data->origin_resolution == NULL){
+        } else if (data->origin_resolution == NULL) {
             free(sockaddr);
             log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
             goto finally;
         }
-        *sockaddr = (struct sockaddr_in6) {
+        *sockaddr = (struct sockaddr_in6){
             .sin6_family = AF_INET6,
             .sin6_addr = rp.address.ipv6,
-            .sin6_port = htons(rp.port)
-        };
+            .sin6_port = htons(rp.port)};
 
-        *data->origin_resolution = (struct addrinfo) {
+        *data->origin_resolution = (struct addrinfo){
             .ai_family = AF_INET6,
             .ai_addr = (struct sockaddr*)sockaddr,
             .ai_addrlen = sizeof(*sockaddr),
@@ -112,7 +110,7 @@ static unsigned requestProcess(TSelectorKey* key) {
     }
 
     if (atyp == REQ_ATYP_DOMAINNAME) {
-        log(DEBUG, "[Req read - process] REQ_ATYP_DOMAINNAME port: %d for fd: %d",data->client.reqParser.port, key->fd);
+        log(DEBUG, "[Req read - process] REQ_ATYP_DOMAINNAME port: %d for fd: %d", data->client.reqParser.port, key->fd);
         pthread_t tid;
         TSelectorKey* key2 = malloc(sizeof(*key));
         memcpy(key2, key, sizeof(*key2));
@@ -123,7 +121,7 @@ static unsigned requestProcess(TSelectorKey* key) {
         return REQUEST_RESOLV;
     }
 
-    finally:
+finally:
     fillRequestAnswerWithState(key, REQ_ERROR_GENERAL_FAILURE);
     return REQUEST_WRITE;
 }
@@ -172,18 +170,18 @@ unsigned requestResolveDone(TSelectorKey* key) {
         putchar('\n');
     }
 
-    if(ailist == NULL){
+    if (ailist == NULL) {
         return fillRequestAnswerWithState(key, REQ_ERROR_GENERAL_FAILURE);
     }
     return REQUEST_CONNECTING;
 }
 
-unsigned fillRequestAnswerWithState(TSelectorKey* key, int state){
+unsigned fillRequestAnswerWithState(TSelectorKey* key, int state) {
     TReqParser p = ATTACHMENT(key)->client.reqParser;
-    if(state >= 0){
+    if (state >= 0) {
         p.state = state;
     }
-    if(selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&p, &ATTACHMENT(key)->originBuffer)){
+    if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&p, &ATTACHMENT(key)->originBuffer)) {
         return ERROR;
     }
     return REQUEST_WRITE;
@@ -200,14 +198,14 @@ unsigned requestWrite(TSelectorKey* key) {
     writeCount = send(data->client_fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
 
     if (writeCount < 0) {
-        log(LOG_ERROR,"send() at fd %d", key->fd);
+        log(LOG_ERROR, "send() at fd %d", key->fd);
         return ERROR;
     }
     if (writeCount == 0) {
-        log(LOG_ERROR,"Failed to send(), client closed connection unexpectedly at fd %d", key->fd);
+        log(LOG_ERROR, "Failed to send(), client closed connection unexpectedly at fd %d", key->fd);
         return ERROR;
     }
-    log(DEBUG,"[Req write: INF]  %ld bytes to client %d ", writeCount, key->fd);
+    log(DEBUG, "[Req write: INF]  %ld bytes to client %d ", writeCount, key->fd);
     buffer_read_adv(&data->originBuffer, writeCount);
 
     if (buffer_can_read(&data->originBuffer)) {

@@ -1,22 +1,17 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <limits.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include <signal.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-
+#include <unistd.h>
 #include "selector.h"
 #include "socks5.h"
-#include "logger.h"
+#include "args.h"
 
 static bool terminationRequested = false;
 
@@ -25,29 +20,19 @@ static void sigterm_handler(const int signal) {
     terminationRequested = true;
 }
 
-int main(const int argc, const char** argv) {
-	setvbuf(stdout, NULL, _IONBF, 0);
-	setvbuf(stderr, NULL, _IONBF, 0);
-    unsigned port = 1080;
+int main(const int argc, char** argv) {
 
-    if (argc == 1) {
-        // utilizamos el default
-    } else if (argc == 2) {
-        char* end = 0;
-        const long sl = strtol(argv[1], &end, 10);
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stderr, NULL, _IONBF, 0);
 
-        if (end == argv[1] || '\0' != *end || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno) || sl < 0 || sl > USHRT_MAX) {
-            fprintf(stderr, "port should be an integer: %s\n", argv[1]);
-            return 1;
-        }
-        port = sl;
-    } else {
-        fprintf(stderr, "Usage: %s <port>\n", argv[0]);
-        return 1;
-    }
 
     // no tenemos nada que leer de stdin
-    close(0);
+    close(STDIN_FILENO);
+
+    struct socks5args args;
+    parse_args(argc, argv, &args);
+
+    unsigned port = args.socks_port;
 
     const char* err_msg = NULL;
     TSelectorStatus ss = SELECTOR_SUCCESS;
@@ -153,4 +138,74 @@ finally:
         close(server);
     }
     return ret;
+}
+
+static int socketSetUp(char * port, char * addr,
+                         const struct fd_handler * selector_handler,
+                         int family) {
+    struct addrinfo hint, *res = NULL;
+    int ret, fd;
+
+    memset(&hint, 0, sizeof(hint));
+
+    hint.ai_family = family;
+    hint.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV | AI_PASSIVE;
+
+    if (getaddrinfo(addr, port, &hint, &res);) {
+        fprintf(stderr, "unable to get address info: %s", gai_strerror(ret));
+        error = true;
+        goto finally;
+    }
+
+    fd = socket(res->ai_family, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
+    if (fd == -1) {
+        error_msg = "unable to create socket";
+        error = true;
+        goto finally;
+    }
+
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) ==
+        -1) {
+        error_msg = "unable to set socket to reuse address";
+        error = true;
+        goto finally;
+    }
+
+    if (family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY,
+                                         &(int){1}, sizeof(int)) == -1) {
+        error_msg = "unable to set socket to ipv6_only";
+        error = true;
+        goto finally;
+    }
+
+    if (bind(fd, res->ai_addr, res->ai_addrlen) < 0) {
+        error_msg = "bind passive socket error";
+        error = true;
+        goto finally;
+    }
+
+    if (listen(fd, 50) < 0) {
+        error_msg = "listen passive socket error";
+        error = true;
+        goto finally;
+    }
+
+    int register_ret;
+    if ((register_ret = selector_register(selector, fd, selector_handler,
+                                          OP_READ, NULL)) != SELECTOR_SUCCESS) {
+        fprintf(stderr, "Passive socket register error: %s",
+                selector_error(register_ret));
+        error = true;
+        goto finally;
+    }
+
+    finally:
+    if (error && fd != -1) {
+        close(fd);
+        fd = -1;
+    }
+
+    freeaddrinfo(res);
+
+    return fd;
 }
