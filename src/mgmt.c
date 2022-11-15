@@ -92,7 +92,7 @@ static void handleMgmtClose(TSelectorKey *key) {
 
 static void parseMgmtClientRequest(TMgmtClient* clientData){
     size_t size;
-    static char buf[CLIENT_MGMT_BUFFER_SIZE];
+    char buf[CLIENT_MGMT_BUFFER_SIZE];
 
     uint8_t* readPtr = buffer_read_ptr(&(clientData->buffer), &size);
     memcpy(buf, readPtr, size);
@@ -134,7 +134,7 @@ void mgmt_passive_accept_handler(TSelectorKey *key){
         exit(3);
     }
     
-    static char responseBuf[CLIENT_MGMT_BUFFER_SIZE];
+    char responseBuf[CLIENT_MGMT_BUFFER_SIZE];
     snprintf(responseBuf, sizeof(responseBuf), "%s\n", helloMessage);
 
     size_t size;
