@@ -38,10 +38,6 @@ uint8_t hasAuthReadEnded(TAuthParser* p) {
 }
 
 uint8_t fillAuthAnswer(TAuthParser* p, struct buffer* buffer) {
-
-    // TODO: check if user:pass is valid
-    p->verification = AUTH_SUCCESSFUL;
-
     if (!buffer_can_write(buffer))
         return 1;
     buffer_write(buffer, AUTH_VERSION_1);

@@ -1,6 +1,16 @@
 #include "auth.h"
 #include "../logger.h"
 #include "../socks5.h"
+#include "../users.h"
+
+static TAuthVerification validateUserAndPassword(TAuthParser * p){
+    TUserPrivilegeLevel upl;
+    TUserStatus userStatus = usersLogin(p->uname, p->passwd, &upl);
+    if(userStatus == EUSER_OK){
+        p->verification = AUTH_SUCCESSFUL;
+    }
+    return userStatus;
+}
 
 void authReadInit(const unsigned state, TSelectorKey* key) {
     log(DEBUG, "[Auth read] init at socket fd %d", key->fd);
@@ -25,6 +35,7 @@ unsigned authRead(TSelectorKey* key) {
     buffer_write_adv(&data->clientBuffer, readCount);
     authParse(&data->client.authParser, &data->clientBuffer);
     if (hasAuthReadEnded(&data->client.authParser)) {
+        validateUserAndPassword(&data->client.authParser);
         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillAuthAnswer(&data->client.authParser, &data->originBuffer)) {
             return ERROR;
         }

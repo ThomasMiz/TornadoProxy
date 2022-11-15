@@ -36,9 +36,9 @@ int main(const int argc, char** argv) {
 
     unsigned port = args.socks_port;
 
-
-
-
+    for(int i=0 ; i<args.nusers ; ++i){
+        usersCreate(args.users[i].name, args.users[i].pass, 0, UPRIV_USER, 0);
+    }
 
 
     const char *err_msg = NULL;
