@@ -46,9 +46,10 @@ typedef enum TPDStatus{
     PDS_PASS_S2,        //  waiting for second S of PASS
     PDS_READING_PASS,   //  reading the password
 
-    // TODO: Check server answer
+    PDS_CHECK,          //  waiting for the server to send a + to indicate user/pass are valid
+                        //  or a - otherwise
 
-    PDS_END             //  Password read completely or not in pop3, the dissector is turned off
+    PDS_END             //  Password read completely, the dissector is turned off
 }TPDStatus;
 
 typedef struct TPDissector{
@@ -61,6 +62,10 @@ typedef struct TPDissector{
      * client is trying to connect to the POP3 default port: 110
      * It will be deactivated when the user/pass is obtained */
     bool isOn;
+
+    /* Once the user sended the whole username, assuming that the server is going to return
+     * a + for positive answers, it is possible to know if the username is valid */
+    bool validUsername;
 
     int clientFd;
     int originFd;
