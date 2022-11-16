@@ -1,6 +1,6 @@
 #include "logger.h"
 
-LOG_LEVEL current_level = INFO;
+LOG_LEVEL current_level = DEBUG;
 
 void setLogLevel(LOG_LEVEL newLevel) {
     if (newLevel >= DEBUG && newLevel <= FATAL)

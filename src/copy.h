@@ -8,7 +8,7 @@ typedef struct copy_t copy_t;
 struct copy_t{
     buffer * other_buffer;
     buffer * target_buffer;
-    char tmp_buf[8192];
+    //char tmp_buf[8192];
     int * target_fd;
     int * other_fd;
     TSelector s;

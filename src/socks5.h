@@ -9,6 +9,7 @@
 #include "socks5.h"
 #include "copy.h"
 #include "stm.h"
+#include "passwordDissector.h"
 #include <stdbool.h>
 #include <netdb.h>
 
@@ -28,6 +29,8 @@ typedef struct TClientData {
     } client;
 
     bool closed;
+
+    TPDissector pDissector;
 
     // Added this buffer, consider removing the plain buffer from this struct.
     struct buffer clientBuffer;

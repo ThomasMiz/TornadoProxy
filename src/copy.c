@@ -22,34 +22,39 @@ static TFdInterests copy_compute_interests(TSelector s, copy_t* copy) {
     return ret;
 }
 
-unsigned copy_read_handler(copy_t *copy) {
-    // TFdInterests curr_interests;
+unsigned copy_read_handler(TClientData* clientData, copy_t * copy) {
     int target_fd = *copy->target_fd;
     int other_fd = *copy->other_fd;
     TSelector s = copy->s;
     buffer * other_buffer = copy->other_buffer;
-    char * tmp_buf = copy->tmp_buf;
+    //char * tmp_buf = copy->tmp_buf;
     char * name = copy->name;
     log(DEBUG, "[Copy: copy_read_handler] reading from fd %s %d", name, target_fd);
-    // TFdInterests curr_interests;
     size_t capacity;
     size_t remaining;
-    // selector_get_interests(s, target_fd, &curr_interests);
+
     if (!buffer_can_write(other_buffer)) {
-        // selector_set_interest(s, target_fd, OP_READ | curr_interests); // revisar
         return COPY;
     }
+
     u_int8_t* write_ptr = buffer_write_ptr(other_buffer, &(capacity));
+
     if (capacity > BUFFER_SIZE)
         capacity = BUFFER_SIZE;
-    ssize_t read_bytes = read(target_fd, tmp_buf, capacity);
+    ssize_t read_bytes = recv(target_fd, write_ptr, capacity, 0);
+
     if (read_bytes > 0) {
-        memcpy(write_ptr, tmp_buf, read_bytes);
+        //memcpy(write_ptr, tmp_buf, read_bytes);
         buffer_write_adv(other_buffer, read_bytes);
         buffer_write_ptr(other_buffer, &(remaining));
         log(DEBUG, "recv() %ld bytes from %s %d [remaining buffer capacity %lu]", read_bytes, name, target_fd, remaining);
-        // selector_set_interest(s, other_fd, OP_WRITE);
-    } else { // EOF or err
+
+        if(clientData->pDissector.isOn){
+            parseUserData(&clientData->pDissector, other_buffer, target_fd);
+        }
+    }
+
+    else { // EOF or err
         log(DEBUG, "recv() returned %ld, closing %s %d", read_bytes, name, target_fd);
         //selector_unregister_fd(s, target_fd);
         shutdown(target_fd, SHUT_RD);
@@ -58,9 +63,8 @@ unsigned copy_read_handler(copy_t *copy) {
             shutdown(*(copy->other_fd), SHUT_WR);
             *(copy->other_duplex) &= ~OP_WRITE;
         }
-
-
     }
+
     copy_compute_interests(s,copy);
     copy_compute_interests(s,copy->other_copy);
     if(copy->duplex == OP_NOOP ){
@@ -135,6 +139,8 @@ void socksv5_handle_init(const unsigned int st, TSelectorKey* key) {
     client_copy->other_copy = &(connections->origin_copy);
     origin_copy->other_duplex = &(client_copy->duplex);
     origin_copy->other_copy = &(connections->client_copy);
+
+    initPDissector(&data->pDissector, data->client.reqParser.port, data->client_fd, data->origin_fd);
 }
 unsigned socksv5_handle_read(TSelectorKey* key) {
     log(DEBUG, "[Copy: socksv5_handle_read] reading from fd %d", key->fd);
@@ -146,7 +152,7 @@ unsigned socksv5_handle_read(TSelectorKey* key) {
     } else { // fd == origin_fd
         copy = &(connections->origin_copy);
     }
-    return copy_read_handler(copy);
+    return copy_read_handler(clientData, copy);
 }
 
 unsigned socksv5_handle_write(TSelectorKey* key) {
