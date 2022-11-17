@@ -246,7 +246,7 @@ unsigned requestConecting(TSelectorKey* key) {
     }
 
     if (error) {
-        return fillRequestAnswerWitheErrorState(key, REQ_ERROR_GENERAL_FAILURE);
+        return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(error));
     }
 
     selector_set_interest(key->s, d->origin_fd, OP_READ);
