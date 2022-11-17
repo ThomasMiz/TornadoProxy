@@ -17,6 +17,8 @@
 
 static unsigned requestProcess(TSelectorKey* key);
 static void* requestNameResolution(void* data);
+static unsigned startConnection(TSelectorKey * key);
+static TReqStatus connectErrorToRequestStatus(int e);
 
 void requestReadInit(const unsigned state, TSelectorKey* key) {
     log(DEBUG, "[Req read] init at socket fd %d", key->fd);
@@ -84,7 +86,7 @@ static unsigned requestProcess(TSelectorKey* key) {
             .ai_addrlen = sizeof(*sockaddr),
         };
 
-        return REQUEST_CONNECTING;
+        return startConnection(key);
     }
 
     if (atyp == REQ_ATYP_IPV6) {
@@ -110,7 +112,7 @@ static unsigned requestProcess(TSelectorKey* key) {
             .ai_addrlen = sizeof(*sockaddr),
         };
 
-        return REQUEST_CONNECTING;
+        return startConnection(key);
     }
 
     if (atyp == REQ_ATYP_DOMAINNAME) {
@@ -150,7 +152,8 @@ static void* requestNameResolution(void* data) {
 
     int err = getaddrinfo((char*)c->client.reqParser.address.domainname, service, &hints, &(c->origin_resolution));
     if (err != 0) {
-        // todo
+        log(LOG_ERROR, "[getaddrinfo error] for fd: %d", key->fd);
+        c->origin_resolution = NULL;
     }
     selector_notify_block(key->s, key->fd);
     free(data);
@@ -159,7 +162,7 @@ static void* requestNameResolution(void* data) {
 
 unsigned requestResolveDone(TSelectorKey* key) {
     TClientData* data = ATTACHMENT(key);
-
+    log(DEBUG, "[requestResolveDone] for fd: %d", key->fd);
     struct addrinfo *ailist, *aip;
 
     ailist = data->origin_resolution;
@@ -175,18 +178,17 @@ unsigned requestResolveDone(TSelectorKey* key) {
     }
 
     if (ailist == NULL) {
-        return fillRequestAnswerWitheErrorState(key, REQ_ERROR_GENERAL_FAILURE);
+        return fillRequestAnswerWitheErrorState(key, REQ_ERROR_HOST_UNREACHABLE);
     }
-    return REQUEST_CONNECTING;
+    return startConnection(key);
 }
 
 unsigned fillRequestAnswerWitheErrorState(TSelectorKey* key, int status) {
-    TReqParser p = ATTACHMENT(key)->client.reqParser;
-    if (status >= 0) {
-        p.status = status;
-    }
-    p.state = REQ_ERROR;
-    if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&p, &ATTACHMENT(key)->originBuffer)) {
+    TReqParser * p = &ATTACHMENT(key)->client.reqParser;
+
+    p->state = REQ_ERROR;
+    p->status = status;
+    if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(p, &ATTACHMENT(key)->originBuffer)) {
         return ERROR;
     }
     return REQUEST_WRITE;
@@ -194,7 +196,7 @@ unsigned fillRequestAnswerWitheErrorState(TSelectorKey* key, int status) {
 
 unsigned requestWrite(TSelectorKey* key) {
     TClientData* data = ATTACHMENT(key);
-
+    log(DEBUG, "rw p.state = %d ", data->client.reqParser.state);
     size_t writeLimit;    // how many bytes we want to send
     ssize_t writeCount;   // how many bytes where written
     uint8_t* writeBuffer; // buffer that stores the data to be sended
@@ -218,17 +220,14 @@ unsigned requestWrite(TSelectorKey* key) {
     }
 
     if (hasRequestErrors(&data->client.reqParser) || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
+        log(DEBUG, "requestWrite error %d ", key->fd);
         return ERROR;
     }
-
+    log(DEBUG, "requestWrite to copy %d ", key->fd);
     return COPY;
 }
 
 void requestConectingInit(const unsigned state, TSelectorKey* key) {
-    TClientData* d = ATTACHMENT(key);
-    TFdInterests curr_interests;
-    selector_get_interests_key(key, &curr_interests);
-    selector_set_interest(key->s, d->client_fd, OP_WRITE);
     log(DEBUG, "[Req con: init] ended for fd: %d", key->fd);
 }
 
@@ -237,35 +236,6 @@ unsigned requestConecting(TSelectorKey* key) {
     TFdInterests curr_interests;
     selector_get_interests_key(key, &curr_interests);
 
-    log(DEBUG, "[Req con: request_connecting] started for fd: %d", key->fd);
-
-    if (d->client_fd == key->fd) // Se llama primero al handler del cliente, y entonces nos conectamos al OS
-    {
-        // TODO: Consider looping throw all the possible addresses given
-        selector_set_interest(key->s, d->client_fd, INTEREST_OFF(curr_interests, OP_WRITE));
-        assert(d->origin_resolution != NULL);
-        d->origin_fd = socket(d->origin_resolution->ai_family, SOCK_STREAM | SOCK_NONBLOCK, d->origin_resolution->ai_protocol);
-        if (d->origin_fd >= 0) {
-            selector_fd_set_nio(d->origin_fd);
-            char address_buf[1024];
-            sockaddr_to_human(address_buf, 1024, d->origin_resolution->ai_addr);
-            printf("Connecting to %s\n", address_buf);
-            if (connect(d->origin_fd, d->origin_resolution->ai_addr, d->origin_resolution->ai_addrlen) == 0 || errno == EINPROGRESS) {
-                // Registramos al FD del OS con OP_WRITE y la misma state machine, entonces esperamos a que se corra el handler para REQUEST_CONNECTING del lado del OS
-                if (selector_register(key->s, d->origin_fd, get_state_handler(), OP_WRITE, d) != SELECTOR_SUCCESS) {
-                    return ERROR;
-                }
-                return REQUEST_CONNECTING;
-            }
-            // ECONNREFUSED  A connect() on a stream socket found no one listening on the remote address.
-            // ENETUNREACH   Network is unreachable.
-            // ETIMEDOUT
-        }
-        // General server failure
-        return ERROR;
-    }
-
-    // Ya nos conectamos (handler del lado del OS)
     char buf[BUFFER_SIZE];
     sockaddr_to_human(buf, BUFFER_SIZE, d->origin_resolution->ai_addr);
     log(DEBUG, "Checking connection status to %s", buf);
@@ -285,4 +255,55 @@ unsigned requestConecting(TSelectorKey* key) {
         return ERROR;
     }
     return REQUEST_WRITE;
+}
+
+static unsigned startConnection(TSelectorKey * key) {
+    TClientData* d = ATTACHMENT(key);
+
+    d->origin_fd = socket(d->origin_resolution->ai_family, SOCK_STREAM | SOCK_NONBLOCK, d->origin_resolution->ai_protocol);
+    if (d->origin_fd < 0) {
+        return ERROR;
+    }
+
+    selector_fd_set_nio(d->origin_fd);
+    char address_buf[1024];
+    sockaddr_to_human(address_buf, 1024, d->origin_resolution->ai_addr);
+    printf("Connecting to %s\n", address_buf);
+    if (connect(d->origin_fd, d->origin_resolution->ai_addr, d->origin_resolution->ai_addrlen) == 0 || errno == EINPROGRESS) {
+        // Registramos al FD del OS con OP_WRITE y la misma state machine, entonces esperamos a que se corra el handler para REQUEST_CONNECTING del lado del OS
+        if (selector_register(key->s, d->origin_fd, get_state_handler(), OP_WRITE, d) != SELECTOR_SUCCESS) {
+            return ERROR;
+        }
+        return REQUEST_CONNECTING;
+    }
+    log(DEBUG, "connection error in fd %d", key->fd);
+
+    //Could not connect to the first address, try with the next one, if exists
+    if(d->origin_resolution->ai_next != NULL){
+        close(d->origin_fd);
+        struct addrinfo * next = d->origin_resolution->ai_next;
+        d->origin_resolution->ai_next = NULL;
+        freeaddrinfo(d->origin_resolution);
+        d->origin_resolution = next;
+        return startConnection(key);
+    }
+    //Return a connection error after trying to connect to all the addresses
+    return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(errno));
+}
+
+static TReqStatus connectErrorToRequestStatus(int e) {
+    switch (e) {
+        case 0:
+            return REQ_SUCCEDED;
+        case ECONNREFUSED:
+            return REQ_ERROR_CONNECTION_REFUSED;
+        case EHOSTUNREACH:
+            return REQ_ERROR_HOST_UNREACHABLE;
+        case ENETUNREACH:
+            return REQ_ERROR_NTW_UNREACHABLE;
+        case ETIMEDOUT:
+            return REQ_ERROR_TTL_EXPIRED;
+        default:
+            return REQ_ERROR_GENERAL_FAILURE;
+    }
 }
