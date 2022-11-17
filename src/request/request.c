@@ -9,9 +9,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include "../netutils.h"
-#include "../selector.h"
-#include "request.h"
-#include <assert.h>
 #include <errno.h>
 
 
@@ -65,11 +62,11 @@ static unsigned requestProcess(TSelectorKey* key) {
     if (atyp == REQ_ATYP_IPV4) {
         log(DEBUG, "[Req read - process] REQ_ATYP_IPV4 port: %d for fd: %d", data->client.reqParser.port, key->fd);
         struct sockaddr_in* sockaddr = malloc(sizeof(struct sockaddr_in));
-        data->origin_resolution = calloc(1, sizeof(struct addrinfo));
+        data->originResolution = calloc(1, sizeof(struct addrinfo));
         if (sockaddr == NULL) {
             log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
             goto finally;
-        } else if (data->origin_resolution == NULL) {
+        } else if (data->originResolution == NULL) {
             free(sockaddr);
             log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
             goto finally;
@@ -80,7 +77,7 @@ static unsigned requestProcess(TSelectorKey* key) {
             .sin_port = htons(rp.port),
         };
 
-        *data->origin_resolution = (struct addrinfo){
+        *data->originResolution = (struct addrinfo){
             .ai_family = AF_INET,
             .ai_addr = (struct sockaddr*)sockaddr,
             .ai_addrlen = sizeof(*sockaddr),
@@ -92,11 +89,11 @@ static unsigned requestProcess(TSelectorKey* key) {
     if (atyp == REQ_ATYP_IPV6) {
         log(DEBUG, "[Req read - process] REQ_ATYP_IPV6 port: %d for fd: %d", data->client.reqParser.port, key->fd);
         struct sockaddr_in6* sockaddr = malloc(sizeof(struct sockaddr_in6));
-        data->origin_resolution = calloc(1, sizeof(struct addrinfo));
+        data->originResolution = calloc(1, sizeof(struct addrinfo));
         if (sockaddr == NULL) {
             log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
             goto finally;
-        } else if (data->origin_resolution == NULL) {
+        } else if (data->originResolution == NULL) {
             free(sockaddr);
             log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
             goto finally;
@@ -106,7 +103,7 @@ static unsigned requestProcess(TSelectorKey* key) {
             .sin6_addr = rp.address.ipv6,
             .sin6_port = htons(rp.port)};
 
-        *data->origin_resolution = (struct addrinfo){
+        *data->originResolution = (struct addrinfo){
             .ai_family = AF_INET6,
             .ai_addr = (struct sockaddr*)sockaddr,
             .ai_addrlen = sizeof(*sockaddr),
@@ -150,10 +147,10 @@ static void* requestNameResolution(void* data) {
     char service[6] = {0};
     sprintf(service, "%d", (int)c->client.reqParser.port);
 
-    int err = getaddrinfo((char*)c->client.reqParser.address.domainname, service, &hints, &(c->origin_resolution));
+    int err = getaddrinfo((char*)c->client.reqParser.address.domainname, service, &hints, &(c->originResolution));
     if (err != 0) {
         log(LOG_ERROR, "[getaddrinfo error] for fd: %d", key->fd);
-        c->origin_resolution = NULL;
+        c->originResolution = NULL;
     }
     selector_notify_block(key->s, key->fd);
     free(data);
@@ -165,7 +162,7 @@ unsigned requestResolveDone(TSelectorKey* key) {
     log(DEBUG, "[requestResolveDone] for fd: %d", key->fd);
     struct addrinfo *ailist, *aip;
 
-    ailist = data->origin_resolution;
+    ailist = data->originResolution;
     char addr[64];
     for (aip = ailist; aip != NULL; aip = aip->ai_next) {
         printFlags(aip);
@@ -202,7 +199,7 @@ unsigned requestWrite(TSelectorKey* key) {
     uint8_t* writeBuffer; // buffer that stores the data to be sended
 
     writeBuffer = buffer_read_ptr(&data->originBuffer, &writeLimit);
-    writeCount = send(data->client_fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
+    writeCount = send(data->clientFd, writeBuffer, writeLimit, MSG_NOSIGNAL);
 
     if (writeCount < 0) {
         log(LOG_ERROR, "send() at fd %d", key->fd);
@@ -237,11 +234,11 @@ unsigned requestConecting(TSelectorKey* key) {
     selector_get_interests_key(key, &curr_interests);
 
     char buf[BUFFER_SIZE];
-    sockaddr_to_human(buf, BUFFER_SIZE, d->origin_resolution->ai_addr);
+    sockaddr_to_human(buf, BUFFER_SIZE, d->originResolution->ai_addr);
     log(DEBUG, "Checking connection status to %s", buf);
 
     int error = 0;
-    if (getsockopt(d->origin_fd, SOL_SOCKET, SO_ERROR, &error, &(socklen_t){sizeof(int)})) {
+    if (getsockopt(d->originFd, SOL_SOCKET, SO_ERROR, &error, &(socklen_t){sizeof(int)})) {
         return fillRequestAnswerWitheErrorState(key, REQ_ERROR_GENERAL_FAILURE);
     }
 
@@ -249,8 +246,8 @@ unsigned requestConecting(TSelectorKey* key) {
         return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(error));
     }
 
-    selector_set_interest(key->s, d->origin_fd, OP_READ);
-    selector_set_interest(key->s, d->client_fd, OP_READ);
+    selector_set_interest(key->s, d->originFd, OP_READ);
+    selector_set_interest(key->s, d->clientFd, OP_READ);
     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&d->client.reqParser, &d->originBuffer)) {
         return ERROR;
     }
@@ -260,18 +257,17 @@ unsigned requestConecting(TSelectorKey* key) {
 static unsigned startConnection(TSelectorKey * key) {
     TClientData* d = ATTACHMENT(key);
 
-    d->origin_fd = socket(d->origin_resolution->ai_family, SOCK_STREAM | SOCK_NONBLOCK, d->origin_resolution->ai_protocol);
-    if (d->origin_fd < 0) {
+    d->originFd = socket(d->originResolution->ai_family, SOCK_STREAM | SOCK_NONBLOCK, d->originResolution->ai_protocol);
+    if (d->originFd < 0) {
         return ERROR;
     }
 
-    selector_fd_set_nio(d->origin_fd);
+    selector_fd_set_nio(d->originFd);
     char address_buf[1024];
-    sockaddr_to_human(address_buf, 1024, d->origin_resolution->ai_addr);
+    sockaddr_to_human(address_buf, 1024, d->originResolution->ai_addr);
     printf("Connecting to %s\n", address_buf);
-    if (connect(d->origin_fd, d->origin_resolution->ai_addr, d->origin_resolution->ai_addrlen) == 0 || errno == EINPROGRESS) {
-        // Registramos al FD del OS con OP_WRITE y la misma state machine, entonces esperamos a que se corra el handler para REQUEST_CONNECTING del lado del OS
-        if (selector_register(key->s, d->origin_fd, get_state_handler(), OP_WRITE, d) != SELECTOR_SUCCESS) {
+    if (connect(d->originFd, d->originResolution->ai_addr, d->originResolution->ai_addrlen) == 0 || errno == EINPROGRESS) {
+        if (selector_register(key->s, d->originFd, get_state_handler(), OP_WRITE, d) != SELECTOR_SUCCESS) {
             return ERROR;
         }
         return REQUEST_CONNECTING;
@@ -279,12 +275,12 @@ static unsigned startConnection(TSelectorKey * key) {
     log(DEBUG, "connection error in fd %d", key->fd);
 
     //Could not connect to the first address, try with the next one, if exists
-    if(d->origin_resolution->ai_next != NULL){
-        close(d->origin_fd);
-        struct addrinfo * next = d->origin_resolution->ai_next;
-        d->origin_resolution->ai_next = NULL;
-        freeaddrinfo(d->origin_resolution);
-        d->origin_resolution = next;
+    if(d->originResolution->ai_next != NULL){
+        close(d->originFd);
+        struct addrinfo * next = d->originResolution->ai_next;
+        d->originResolution->ai_next = NULL;
+        freeaddrinfo(d->originResolution);
+        d->originResolution = next;
         return startConnection(key);
     }
     //Return a connection error after trying to connect to all the addresses

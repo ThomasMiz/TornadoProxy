@@ -1,25 +1,16 @@
 #include "socks5.h"
-#include "assert.h"
 #include "auth/auth.h"
 #include "copy.h"
-#include "netutils.h"
 #include "request/request.h"
 #include "selector.h"
 #include "stm.h"
 #include "logger.h"
-#include <arpa/inet.h>
-#include <errno.h>
-#include <limits.h>
 #include <netdb.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 void close_connection(TSelectorKey * key);
@@ -136,8 +127,8 @@ void close_connection(TSelectorKey * key) {
         return;
     data->closed = true;
 
-    int clientSocket = data->client_fd;
-    int serverSocket = data->origin_fd;
+    int clientSocket = data->clientFd;
+    int serverSocket = data->originFd;
 
     if (serverSocket != -1) {
         selector_unregister_fd(key->s, serverSocket);
@@ -148,8 +139,8 @@ void close_connection(TSelectorKey * key) {
         close(clientSocket);
     }
 
-    if (data->origin_resolution != NULL) {
-        freeaddrinfo(data->origin_resolution);
+    if (data->originResolution != NULL) {
+        freeaddrinfo(data->originResolution);
     }
 
     free(data);
@@ -179,8 +170,8 @@ void socksv5_passive_accept(TSelectorKey* key) {
     clientData->stm.initial = NEGOTIATION_READ;
     clientData->stm.max_state = ERROR;
     clientData->stm.states = client_statb1;
-    clientData->client_fd = newClientSocket;
-    clientData->origin_fd=-1;
+    clientData->clientFd = newClientSocket;
+    clientData->originFd=-1;
 
     buffer_init(&clientData->originBuffer, BUFFER_SIZE, clientData->inOriginBuffer);
     buffer_init(&clientData->clientBuffer, BUFFER_SIZE, clientData->inClientBuffer);

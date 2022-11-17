@@ -39,10 +39,10 @@ typedef struct TClientData {
     struct buffer originBuffer;
     uint8_t inOriginBuffer[BUFFER_SIZE];
 
-    struct addrinfo* origin_resolution;
-    int client_fd;
+    struct addrinfo* originResolution;
+    int clientFd;
     // informacion del OS
-    int origin_fd;
+    int originFd;
 
     connections_t connections;
 } TClientData;

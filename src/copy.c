@@ -115,8 +115,8 @@ unsigned copy_write_handler(copy_t * copy) {
 void socksv5_handle_init(const unsigned int st, TSelectorKey* key) {
     TClientData* data = ATTACHMENT(key);
     connections_t* connections = &(data->connections);
-    int * client_fd = &data->client_fd;
-    int * origin_fd = &data->origin_fd;
+    int * client_fd = &data->clientFd;
+    int * origin_fd = &data->originFd;
     copy_t* client_copy = &(connections->client_copy);
     client_copy->target_fd = client_fd;
     client_copy->other_fd = origin_fd;
@@ -140,14 +140,14 @@ void socksv5_handle_init(const unsigned int st, TSelectorKey* key) {
     origin_copy->other_duplex = &(client_copy->duplex);
     origin_copy->other_copy = &(connections->client_copy);
 
-    initPDissector(&data->pDissector, data->client.reqParser.port, data->client_fd, data->origin_fd);
+    initPDissector(&data->pDissector, data->client.reqParser.port, data->clientFd, data->originFd);
 }
 unsigned socksv5_handle_read(TSelectorKey* key) {
     log(DEBUG, "[Copy: socksv5_handle_read] reading from fd %d", key->fd);
     TClientData* clientData = key->data;
     connections_t* connections = &(clientData->connections);
     copy_t* copy;
-    if (clientData->client_fd == key->fd) {
+    if (clientData->clientFd == key->fd) {
         copy = &(connections->client_copy);
     } else { // fd == origin_fd
         copy = &(connections->origin_copy);
@@ -161,7 +161,7 @@ unsigned socksv5_handle_write(TSelectorKey* key) {
     connections_t* connections = &(clientData->connections);
     copy_t* copy;
     // Try to send as many of the bytes as we have in the buffer.
-    if (clientData->client_fd == key->fd) {
+    if (clientData->clientFd == key->fd) {
         copy = &(connections->client_copy);
     } else { // fd == origin_fd
         copy = &(connections->origin_copy);
