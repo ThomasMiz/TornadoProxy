@@ -44,7 +44,7 @@ typedef struct TClientData {
     // informacion del OS
     int originFd;
 
-    connections_t connections;
+    TConnection connections;
 } TClientData;
 
 enum socks_state {

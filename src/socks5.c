@@ -63,10 +63,10 @@ static const struct state_definition client_statb1[] = {
     },
     {
         .state = COPY,
-        .on_arrival = socksv5_handle_init,
-        .on_read_ready = socksv5_handle_read,
-        .on_write_ready = socksv5_handle_write,
-        .on_departure = socksv5_handle_close,
+        .on_arrival = socksv5HandleInit,
+        .on_read_ready = socksv5HandleRead,
+        .on_write_ready = socksv5HandleWrite,
+        .on_departure = socksv5HandleClose,
     },
     {
         .state = DONE,
