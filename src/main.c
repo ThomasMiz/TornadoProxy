@@ -34,7 +34,7 @@ int main(const int argc, char** argv) {
     struct socks5args args;
     parse_args(argc, argv, &args);
 
-    unsigned port = args.socks_port;
+    unsigned port = args.socksPort;
 
     for(int i=0 ; i<args.nusers ; ++i){
         usersCreate(args.users[i].name, args.users[i].pass, 0, UPRIV_USER, 0);

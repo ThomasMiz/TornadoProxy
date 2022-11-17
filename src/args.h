@@ -10,24 +10,15 @@ struct users {
     char* pass;
 };
 
-struct doh {
-    char* host;
-    char* ip;
-    unsigned short port;
-    char* path;
-    char* query;
-};
-
 struct socks5args {
-    char* socks_addr;
-    unsigned short socks_port;
+    char* socksAddr;
+    unsigned short socksPort;
 
-    char* mng_addr;
-    unsigned short mng_port;
+    char* mngAddr;
+    unsigned short mngPort;
 
-    bool disectors_enabled;
+    bool disectorsEnabled;
 
-    struct doh doh;
     unsigned short nusers;
     struct users users[MAX_USERS];
 };
