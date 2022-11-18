@@ -140,7 +140,12 @@ void close_connection(TSelectorKey * key) {
     }
 
     if (data->originResolution != NULL) {
-        freeaddrinfo(data->originResolution);
+        if(data->client.reqParser.atyp != REQ_ATYP_DOMAINNAME){
+            free(data->originResolution->ai_addr);
+            free(data->originResolution);
+        }else {
+            freeaddrinfo(data->originResolution);
+        }
     }
 
     free(data);
@@ -169,6 +174,7 @@ void socksv5_passive_accept(TSelectorKey* key) {
 
     clientData->stm.initial = NEGOTIATION_READ;
     clientData->stm.max_state = ERROR;
+    clientData->closed = false;
     clientData->stm.states = client_statb1;
     clientData->clientFd = newClientSocket;
     clientData->originFd=-1;
