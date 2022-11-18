@@ -186,7 +186,7 @@ static int saveUsersFile() {
         return -1;
     }
 
-    for (int i = 0; i < usersLength; i++) {
+    for (unsigned int i = 0; i < usersLength; i++) {
         const TUserData* user = &users[i];
         int status = fprintf(file, "%c%s:%s\n", user->privilegeLevel == UPRIV_ADMIN ? '@' : '#', user->username, user->password);
         if (status < 0) {
@@ -405,6 +405,6 @@ void usersPrintAllDebug() { // TODO: Remove
     }
 
     printf("Printing all %d users:\n", usersLength);
-    for (int i = 0; i < usersLength; i++)
+    for (unsigned int i = 0; i < usersLength; i++)
         printf("[%d] %s (%s) - %s\n", i, users[i].username, users[i].password, users[i].privilegeLevel == UPRIV_ADMIN ? "Admin" : "Filthy Peasant");
 }

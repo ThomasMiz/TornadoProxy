@@ -13,11 +13,12 @@
 #include "socks5.h"
 #include "args.h"
 #include "users.h"
+#include "logging/logger.h"
 
 static bool terminationRequested = false;
 
 static void sigterm_handler(const int signal) {
-    printf("signal %d, cleaning up and exiting\n", signal);
+    // logString("Received termination signal, shutting down...");
     terminationRequested = true;
 }
 
@@ -45,6 +46,10 @@ int main(const int argc, char** argv) {
     TSelectorStatus ss = SELECTOR_SUCCESS;
     TSelector selector = NULL;
 
+
+    // logInit(selector, "", stdout);
+    // logString("Starting server...");
+
     // Listening on just IPv6 allow us to handle both IPv6 and IPv4 connections!
     // https://stackoverflow.com/questions/50208540/cant-listen-on-ipv4-and-ipv6-together-address-already-in-use
     struct sockaddr_in6 addr;
@@ -59,8 +64,6 @@ int main(const int argc, char** argv) {
         goto finally;
     }
 
-    fprintf(stdout, "Listening on TCP port %d\n", port);
-
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));
 
@@ -73,6 +76,12 @@ int main(const int argc, char** argv) {
         err_msg = "unable to listen";
         goto finally;
     }
+
+    // Get the local address at which our socket was found
+    struct sockaddr_storage listenAddress;
+    socklen_t listenAddressLen = sizeof(listenAddress);
+    int getsocknameResult = getsockname(server, (struct sockaddr*)&listenAddress, &listenAddressLen);
+    // logServerListening(getsocknameResult >= 0 ? (struct sockaddr*)&listenAddress : NULL, listenAddressLen);
 
     // registrar sigterm es útil para terminar el programa normalmente.
     // esto ayuda mucho en herramientas como valgrind.
@@ -118,9 +127,6 @@ int main(const int argc, char** argv) {
             goto finally;
         }
     }
-    if (err_msg == NULL) {
-        err_msg = "closing";
-    }
 
     int ret = 0;
     finally:
@@ -132,9 +138,12 @@ int main(const int argc, char** argv) {
                 : selector_error(ss));
         ret = 2;
     } else if (err_msg) {
-        perror(err_msg);
+        // logServerError(err_msg, strerror(errno));
         ret = 1;
     }
+
+    // logString("Goodbye");
+    // logFinalize();
     if (selector != NULL) {
         selector_destroy(selector);
     }
@@ -146,5 +155,6 @@ int main(const int argc, char** argv) {
     if (server >= 0) {
         close(server);
     }
+
     return ret;
 }

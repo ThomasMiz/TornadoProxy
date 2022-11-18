@@ -11,6 +11,11 @@
 #include "../netutils.h"
 #include <errno.h>
 
+#ifndef SOCK_NONBLOCK
+#include <fcntl.h>
+#define SOCK_NONBLOCK O_NONBLOCK
+#endif
+
 
 static unsigned requestProcess(TSelectorKey* key);
 static void* requestNameResolution(void* data);
