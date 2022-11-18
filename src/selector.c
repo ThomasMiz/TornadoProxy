@@ -213,6 +213,9 @@ static int items_max_fd(TSelector s) {
 }
 
 static void items_update_fdset_for_fd(TSelector s, const struct item* item) {
+    if(item->fd == -1){
+        return;
+    }
     FD_CLR(item->fd, &s->master_r);
     FD_CLR(item->fd, &s->master_w);
 

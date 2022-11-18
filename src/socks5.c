@@ -158,6 +158,14 @@ void socksv5_passive_accept(TSelectorKey* key) {
     int newClientSocket = accept(key->fd, (struct sockaddr*)&clientAddress, &clientAddressLen);
     log(DEBUG,"New client accepted at socket fd %d", newClientSocket);
 
+    if(newClientSocket < 0){
+        return;
+    }
+    if(newClientSocket > 1023){
+        close(newClientSocket);
+        return;
+    }
+
     // Consider using a function to initialize the TClientData structure.
     TClientData* clientData = calloc(1, sizeof(TClientData));
     if (clientData == NULL) {

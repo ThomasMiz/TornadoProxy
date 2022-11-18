@@ -121,6 +121,9 @@ static unsigned requestProcess(TSelectorKey* key) {
             log(DEBUG, "[Req read - process] thread error fd: %d", key->fd);
             goto finally;
         }
+        if (selector_set_interest_key(key, OP_NOOP) != SELECTOR_SUCCESS) {
+            return ERROR;
+        }
         return REQUEST_RESOLV;
     }
 
