@@ -9,11 +9,12 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include "selector.h"
 #include "socks5.h"
 #include "args.h"
 #include "users.h"
-#include "logging/logger.h"
+#include "logger.h"
 
 static bool terminationRequested = false;
 
@@ -49,13 +50,31 @@ int main(const int argc, char** argv) {
 
     // Listening on just IPv6 allow us to handle both IPv6 and IPv4 connections!
     // https://stackoverflow.com/questions/50208540/cant-listen-on-ipv4-and-ipv6-together-address-already-in-use
-    struct sockaddr_in6 addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin6_family = AF_INET6;
-    memcpy(&addr.sin6_addr, &in6addr_any, sizeof(addr.sin6_addr));
-    addr.sin6_port = htons(port);
+    struct sockaddr_in addr4;
+	struct sockaddr_in6 addr6;
+    int ipv6 = strchr(args.socksAddr, ':') != NULL; 
+    if(ipv6) {
+		memset(&addr6, 0, sizeof(addr6));
+		addr6.sin6_family = AF_INET6;
+		addr6.sin6_addr = in6addr_any;
+		addr6.sin6_port = htons(port);
+		if(inet_pton(AF_INET6, args.socksAddr, &addr6.sin6_addr) != 1) {
+			log(LOG_ERROR, "failed IP conversion for %s", "IPv6");
+			return -1;
+		}
+	} else {
+		memset(&addr4, 0, sizeof(addr4));
+		addr4.sin_family =AF_INET;
+		addr4.sin_addr.s_addr = INADDR_ANY;
+		addr4.sin_port = htons(port);
+		if(inet_pton(AF_INET, args.socksAddr, &addr4.sin_addr) != 1) {
+			log(LOG_ERROR, "failed IP conversion for %s", "IPv4");
+			return -1;
+		}
+	}
+  
 
-    const int server = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+    const int server = socket(ipv6? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (server < 0) {
         err_msg = "unable to create socket";
         goto finally;
@@ -66,7 +85,9 @@ int main(const int argc, char** argv) {
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));
 
-    if (bind(server, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+    
+    
+    if (bind(server,  ipv6 ? (struct sockaddr *)(&addr6) : (struct sockaddr *)(&addr4), ipv6 ? sizeof(addr6) : sizeof(addr4)) < 0) {
         err_msg = "unable to bind socket";
         goto finally;
     }

@@ -10,6 +10,8 @@
 #include <sys/types.h>
 #include "../netutils.h"
 #include <errno.h>
+#include <unistd.h>
+
 
 #ifndef SOCK_NONBLOCK
 #include <fcntl.h>
@@ -264,9 +266,11 @@ static unsigned startConnection(TSelectorKey * key) {
 
     d->originFd = socket(d->originResolution->ai_family, SOCK_STREAM | SOCK_NONBLOCK, d->originResolution->ai_protocol);
     if (d->originFd < 0) {
+        d->originFd = socket(d->originResolution->ai_family, SOCK_STREAM, d->originResolution->ai_protocol);
+    }
+    if (d->originFd < 0) {
         return ERROR;
     }
-
     selector_fd_set_nio(d->originFd);
     char address_buf[1024];
     sockaddr_to_human(address_buf, 1024, d->originResolution->ai_addr);
