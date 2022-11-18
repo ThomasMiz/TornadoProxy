@@ -233,9 +233,9 @@ unsigned requestConecting(TSelectorKey* key) {
     TFdInterests curr_interests;
     selector_get_interests_key(key, &curr_interests);
 
-    char buf[BUFFER_SIZE];
+    /*char buf[BUFFER_SIZE];
     sockaddr_to_human(buf, BUFFER_SIZE, d->originResolution->ai_addr);
-    log(DEBUG, "Checking connection status to %s", buf);
+    log(DEBUG, "Checking connection status to %s", buf);*/
 
     int error = 0;
     if (getsockopt(d->originFd, SOL_SOCKET, SO_ERROR, &error, &(socklen_t){sizeof(int)})) {
@@ -246,8 +246,8 @@ unsigned requestConecting(TSelectorKey* key) {
         return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(error));
     }
 
-    selector_set_interest(key->s, d->originFd, OP_READ);
-    selector_set_interest(key->s, d->clientFd, OP_READ);
+    selector_set_interest(key->s, d->originFd, OP_WRITE);
+    selector_set_interest(key->s, d->clientFd, OP_WRITE);
     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&d->client.reqParser, &d->originBuffer)) {
         return ERROR;
     }
@@ -267,7 +267,7 @@ static unsigned startConnection(TSelectorKey * key) {
     sockaddr_to_human(address_buf, 1024, d->originResolution->ai_addr);
     printf("Connecting to %s\n", address_buf);
     if (connect(d->originFd, d->originResolution->ai_addr, d->originResolution->ai_addrlen) == 0 || errno == EINPROGRESS) {
-        if (selector_register(key->s, d->originFd, get_state_handler(), OP_WRITE, d) != SELECTOR_SUCCESS) {
+        if (selector_register(key->s, d->originFd, get_state_handler(), OP_WRITE, d) != SELECTOR_SUCCESS || SELECTOR_SUCCESS != selector_set_interest(key->s, key->fd, OP_NOOP)) {
             return ERROR;
         }
         return REQUEST_CONNECTING;

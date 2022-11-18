@@ -17,6 +17,7 @@ static TFdInterests getInterests(TSelector s, TCopy * copy) {
         ret |= OP_WRITE;
     }
     if (SELECTOR_SUCCESS != selector_set_interest(s, *copy->targetFd, ret)) {
+        log(DEBUG, "%d", *copy->targetFd);
         abort();
     }
     return ret;
@@ -85,9 +86,6 @@ static unsigned copyWriteHandler(TCopy * copy) {
     sent = send(targetFd, readPtr, capacity, MSG_NOSIGNAL);
     if (sent <= 0) {
         log(DEBUG, "send() returned %ld, closing %s %d", sent, name, targetFd);
-        selector_unregister_fd(s, targetFd);
-        return DONE;
-    } else if (sent < 0) {
         shutdown(*(copy->targetFd), SHUT_WR);
         copy->duplex &= ~OP_WRITE;
         if (*(copy->otherFd) != -1) {
@@ -101,6 +99,9 @@ static unsigned copyWriteHandler(TCopy * copy) {
     log(DEBUG, "send() %ld bytes to %s %d [%lu remaining]", sent, name, targetFd, capacity - sent);
     getInterests(s,copy);
     getInterests(s,copy->otherCopy);
+    if(copy->duplex == OP_NOOP ){
+        return DONE;
+    }
     return COPY;
 }
 
