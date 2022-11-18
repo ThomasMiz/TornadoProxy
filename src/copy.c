@@ -118,6 +118,7 @@ void socksv5HandleInit(const unsigned int st, TSelectorKey* key) {
     clientCopy->name = CLIENT_NAME;
     clientCopy->s = key->s;
     clientCopy->duplex = OP_READ | OP_WRITE;
+    selector_set_interest(key->s, *clientFd, OP_READ);
 
     TCopy* originCopy = &(connections->originCopy);
     originCopy->targetFd = originFd;
@@ -127,6 +128,7 @@ void socksv5HandleInit(const unsigned int st, TSelectorKey* key) {
     originCopy->name = ORIGIN_NAME;
     originCopy->s = key->s;
     originCopy->duplex = OP_READ | OP_WRITE;
+    selector_set_interest(key->s, *originFd, OP_READ);
 
     clientCopy->otherDuplex = &(originCopy->duplex);
     clientCopy->otherCopy = &(connections->originCopy);

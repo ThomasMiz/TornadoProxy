@@ -95,6 +95,7 @@ TFdHandler* get_state_handler() {
 void socksv5_close(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     stm_handler_close(stm, key);
+    close_connection(key);
 }
 
 static void socksv5_read(TSelectorKey* key) {
