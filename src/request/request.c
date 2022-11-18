@@ -251,8 +251,8 @@ unsigned requestConecting(TSelectorKey* key) {
         return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(error));
     }
 
-    selector_set_interest(key->s, d->originFd, OP_WRITE);
-    selector_set_interest(key->s, d->clientFd, OP_WRITE);
+    /*selector_set_interest(key->s, d->originFd, OP_WRITE);
+    selector_set_interest(key->s, d->clientFd, OP_WRITE);*/
     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&d->client.reqParser, &d->originBuffer)) {
         return ERROR;
     }
