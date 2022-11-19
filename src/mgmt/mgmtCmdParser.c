@@ -1,5 +1,5 @@
 #include "mgmtCmdParser.h"
-#include "logger.h"
+#include "../logger.h"
 
 #define MGMT_MAX_ARGS 2
 

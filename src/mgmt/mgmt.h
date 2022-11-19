@@ -6,10 +6,10 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include "selector.h"
-#include "buffer.h"
-#include "stm.h"
-#include "./auth/authParser.h"
+#include "../selector.h"
+#include "../buffer.h"
+#include "../stm.h"
+#include "../auth/authParser.h"
 
 #define MGMT_BUFFER_SIZE 4096
 

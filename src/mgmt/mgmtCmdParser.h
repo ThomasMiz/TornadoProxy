@@ -1,7 +1,7 @@
 #ifndef MANAGEMENT_CMD_PARSER_H
 #define MANAGEMENT_CMD_PARSER_H
 
-#include "buffer.h"
+#include "../buffer.h"
 #include <stdbool.h>
 
 #define MGMT_CMD_COUNT 6
