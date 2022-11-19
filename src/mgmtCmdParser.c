@@ -118,6 +118,7 @@ static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
 
         //Check if the string ended
         if(p->slength == p->rlength){
+            p->args[p->readCommands].string[p->rlength]=0;
             p->readCommands++;
             if(p->readCommands == commands[c].argc){
                 return MGMT_END;

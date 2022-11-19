@@ -18,7 +18,6 @@ typedef enum TMgmtCmd {
    MGMT_CMD_STATISTICS
 } TMgmtCmd;
 
-
 typedef enum TMgmtState {
     MGMT_WAITING_CMD,
     MGMT_READING_ARGS,
@@ -46,7 +45,7 @@ typedef struct TMgmtParser {
 
     uint8_t slength;    // Lenght to read from a string arg
     uint8_t rlength;    // Already read bytes form a string
-    TArg args[MGMT_CMD_COUNT];
+    TArg args[MGMT_CMD_COUNT+1];
 } TMgmtParser;
 
 
