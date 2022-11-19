@@ -270,7 +270,7 @@ static unsigned startConnection(TSelectorKey * key) {
     sockaddr_to_human(address_buf, 1024, d->originResolution->ai_addr);
     printf("Connecting to %s\n", address_buf);
     if (connect(d->originFd, d->originResolution->ai_addr, d->originResolution->ai_addrlen) == 0 || errno == EINPROGRESS) {
-        if (selector_register(key->s, d->originFd, get_state_handler(), OP_WRITE, d) != SELECTOR_SUCCESS || SELECTOR_SUCCESS != selector_set_interest(key->s, key->fd, OP_NOOP)) {
+        if (selector_register(key->s, d->originFd, getStateHandler(), OP_WRITE, d) != SELECTOR_SUCCESS || SELECTOR_SUCCESS != selector_set_interest(key->s, key->fd, OP_NOOP)) {
             return ERROR;
         }
         return REQUEST_CONNECTING;

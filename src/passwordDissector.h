@@ -76,7 +76,7 @@ void initPDissector(TPDissector * pd, in_port_t port, int clientFd, int originFd
 TPDStatus parseUserData(TPDissector * pd, struct buffer * buffer, int fd);
 
 
-// TODO: consider saving a re
+
 void turnOffPDissector();
 void turnOnPDissector();
 

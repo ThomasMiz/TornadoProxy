@@ -88,7 +88,7 @@ static TFdHandler handler = {
     .handle_block = socksv5_block,
 };
 
-TFdHandler* get_state_handler() {
+TFdHandler* getStateHandler() {
     return &handler;
 }
 
@@ -152,7 +152,7 @@ void close_connection(TSelectorKey * key) {
     free(data);
 }
 
-void socksv5_passive_accept(TSelectorKey* key) {
+void socksv5PassivAccept(TSelectorKey* key) {
     struct sockaddr_storage clientAddress;
     socklen_t clientAddressLen = sizeof(clientAddress);
     int newClientSocket = accept(key->fd, (struct sockaddr*)&clientAddress, &clientAddressLen);

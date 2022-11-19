@@ -48,95 +48,97 @@ typedef struct TClientData {
 } TClientData;
 
 enum socks_state {
-    /*
-        recibe el mensaje `hello` del cliente y lo procesa
-    Intereses:
-        - OP_READ sobre client_fd
-    Transiciones:
-        - HELLO_READ mientras el mensaje no esta completo
-        - HELLO_WRITE cuando esta completo
-        - ERROR ante cualquier error (IO/parseo)
-    */
+
+    /* Reads and processes the negotiation.
+    Interests:
+        - OP_READ -> client_fd
+    Transitions:
+        - HELLO_READ if the message was not completely read
+        - HELLO_WRITE when the message is completely read
+        - ERROR if an error occurs (IO/parsing) */
     NEGOTIATION_READ = 0,
 
-    /*
-        envia la respuesta del `hello` al cliente
-    Intereses:
-        - OP_WRITE sobre client_fd
-    Transiciones:
-        - HELLO_WRITE mientras queden bytes por enviar
-        - REQUEST_READ cuando se enviaron todos los bytes
-        - ERROR ante cualquier error (IO/parseo)
-    */
+    /* Sends the negotiation answer to the client
+     Interests:
+        - OP_WRITE -> client_fd
+    Transitions:
+        - HELLO_WRITE if there are bytes to be sended
+        - AUTH_READ when all the bytes where sended, and authentication is required
+        - REQUEST_READ when all the bytes where sended, and no authentication is required
+        - ERROR if an error occurs (IO/parsing) */
     NEGOTIATION_WRITE,
 
+    /* Reads and processes the client authentication.
+    Interests:
+        - OP_READ -> client_fd
+    Transitions:
+        - AUTH_READ if the message was not completely read
+        - AUTH_WRITE when the message is completely read
+        - ERROR if an error occurs (IO/parsing) */
     AUTH_READ,
+
+    /* Sends the authentication answer to the client
+    Interests:
+       - OP_WRITE -> client_fd
+    Transitions:
+       - AUTH_WRITE if there are bytes to be sended
+       - REQUEST_READ when all the bytes where sended, and the auth provided was valid
+       - REQUEST_READ when all the bytes where sended, and no authentication is required
+       - ERROR if an error occurs (IO/parsing) */
     AUTH_WRITE,
 
-    /*
-        recibe el mensaje `request` del cliente e inicia su proceso
-    Intereses:
-        - OP_READ sobre client_fd
-    Transiciones:
-        - REQUEST_READ mientras el mensaje no este completo
-        - REQUEST_RESOLV si quiere resolver un nombre DNS
-        - REQUEST_CONNECTING si no requiere resolver DNS y podemos inicial la conexion con el OS
-        - REQUEST_WRITE si determinamos que el mensaje no lo podemos procesar (ej. no se soporta un comando)
-        - ERROR ante cualquier error (IO/parseo)
-    */
+    /* Reads and processes the client request.
+    Interests:
+        - OP_READ -> client_fd
+    Transitions:
+        - REQUEST_READ if the message was not completely read
+        - REQUEST_RESOLV if a DNS name needs to be resolved
+        - REQUEST_CONNECTING if no DNS name needs to be resolved
+        - REQUEST_WRITE if there were errors processing the request
+        - ERROR if an error occurs (IO/parsing) */
     REQUEST_READ,
 
-    /*
-        Espera la resolucion DNS
-    Intereses:
-        - OP_NOOP sobre client_fd. Espera un evento de que la tarea bloqueante terminó
-    Transiciones:
-        - REQUEST_CONNECTING si se logra la resolucion y se puede iniciar la conexion al OS.
-        - REQUEST_WRITE en otro caso
-    */
+    /* Waits for a DNS resolution
+    Interests:
+        - OP_NOOP -> client_fd
+    Transitions:
+        - REQUEST_CONNECTING if the resolution was successful
+        - REQUEST_WRITE otherwise */
     REQUEST_RESOLV,
 
-    /*
-        Espera que se establezca la conesion al OS
-    Intereses:
-        - OP_WRITE sobre client_fd
-    Transiciones:
-        - REQUEST_CWRITE cuando se haya logrado o no establecer la conexion
+    /* Waits util the connection is established
+    Interests:
+        - OP_WRITE -> client_fd
+    Transitions:
+        - REQUEST_WRITE when the connection is established
     */
     REQUEST_CONNECTING,
 
-    /*
-        Envia la respuesta del `request` al cliente
-    Intereses:
-        - OP_WRITE sobre client_fd
-        - OP_NOOP sobre origin_fd
-    Transiciones:
-        - HELLO_WRITE mientras queden bytes por enviar
-        - COPY si el request fue exitoso y teemos que copiar el contenido de los descriptores
-        - ERRO ante I/O error
-    */
+    /* Sends the request answer to the client
+    Interests:
+        - OP_WRITE -> client_fd
+        - OP_NOOP -> origin_fd
+    Transitions:
+        - HELLO_WRITE if there are bytes to be sended
+        - COPY if the request was successful
+        - ERROR I/O error */
     REQUEST_WRITE,
 
-    /*
-        Copia bytes entre client_fd y origin_fd
-    Intereses:
-        - OP_READ si hay espacio para escribir en el buffer de lectura
-        - OP_WRITE si hay bytes para leer en el buffer de escritura
-    Transiciones:
-        - DONE cuando no queda nada mas por copiar
-    */
+    /* copies bytes between client_fd and origin_fd
+    Interests:
+        - OP_READ if there is enough space to write in the reading buffer
+        - OP_WRITE if there are bytes to read from the writing buffer
+    Transitions:
+        - DONE when there is nothing else to copy */
     COPY,
 
-    // estados terminales
+    // Terminal states
     DONE,
     ERROR,
 
 };
 
-void socksv5_passive_accept(TSelectorKey* key);
-unsigned socksv5_handle_read(TSelectorKey* key);
-unsigned socksv5_handle_write(TSelectorKey* key);
-void socksv5_handle_close(const unsigned int, TSelectorKey* key);
-TFdHandler* get_state_handler();
+void socksv5PassivAccept(TSelectorKey* key);
+TFdHandler* getStateHandler();
 
 #endif

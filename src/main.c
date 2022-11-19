@@ -101,7 +101,7 @@ int main(const int argc, char** argv) {
         goto finally;
     }
     const TFdHandler socksv5 = {
-            .handle_read = socksv5_passive_accept,
+            .handle_read = socksv5PassivAccept,
             .handle_write = NULL,
             .handle_close = NULL, // nada que liberar
     };
