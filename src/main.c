@@ -15,7 +15,7 @@
 #include "args.h"
 #include "users.h"
 #include "logger.h"
-#include "mgmt.h"
+#include "mgmt/mgmt.h"
 
 static bool terminationRequested = false;
 

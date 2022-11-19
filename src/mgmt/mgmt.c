@@ -1,6 +1,7 @@
 #include "mgmt.h"
-#include "logger.h"
+#include "../logger.h"
 #include "mgmtAuth.h"
+#include "mgmtRequest.h"
 
 static void mgmtdoneArrival(const unsigned state, TSelectorKey* key) {
     printf("Done state \n");
@@ -23,12 +24,12 @@ static const struct state_definition client_statb1[] = {
     },
     {
         .state = MGMT_REQUEST_READ,
-        // .on_arrival = requestReadInit,
-        // .on_read_ready = requestRead,
+        .on_arrival = mgmtRequestReadInit,
+        .on_read_ready = mgmtRequestRead,
     },
     {
         .state = MGMT_REQUEST_WRITE,
-        // .on_write_ready = requestWrite,
+        .on_write_ready = mgmtRequestWrite,
     },
     {
         .state = MGMT_DONE,
