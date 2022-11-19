@@ -100,7 +100,7 @@ static TMgmtState parseCmd(TMgmtParser* p, uint8_t c){
     return commands[c].argc == 0 ? MGMTP_END : MGMTP_READING_ARGS;
 }
 static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
-    ARG_TYPE at = commands[c].argt[p->readCommands];
+    ARG_TYPE at = commands[p->cmd].argt[p->readCommands];
 
     if(at == STRING){
         //Reading string length
@@ -121,7 +121,8 @@ static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
         if(p->slength == p->rlength){
             p->args[p->readCommands].string[p->rlength]=0;
             p->readCommands++;
-            if(p->readCommands == commands[c].argc){
+            log(DEBUG, "String arg read: %s, read commands: %d", p->args[p->readCommands-1].string, p->readCommands);
+            if(p->readCommands == commands[p->cmd].argc){
                 return MGMTP_END;
             }
             //restart counters in case another string comes
@@ -131,6 +132,7 @@ static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
     }
 
     if(at == BYTE){
+        log(DEBUG, "Byte arg read: %d", c);
         p->args[p->readCommands++].byte = c;
         return p->readCommands == commands[c].argc ? MGMTP_END : MGMTP_READING_ARGS;
     }

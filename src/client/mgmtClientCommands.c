@@ -2,6 +2,7 @@
 #include "mgmtClientCommands.h"
 #include <sys/socket.h>
 #include <string.h>
+#include <strings.h>
 #include <stdio.h>
 
 #define ON "ON"
