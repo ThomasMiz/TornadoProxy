@@ -6,6 +6,17 @@
 #define ERROR_STATUS 1
 
 
+// Static strings to compare with argv[1].
+static const char *commandsFormat[] = {
+        "USERS",
+        "ADD-USER",
+        "DELETE-USER",
+        "GET-DISSECTOR-STATUS",
+        "SET-DISSECTOR-STATUS",
+        "STATISTICS",
+        NULL
+};
+
 int tcpClientSocket(const char *host, const char *service) {
     struct addrinfo addrCriteria;                   // Criteria for address match
     memset(&addrCriteria, 0, sizeof(addrCriteria)); // Zero out structure
@@ -93,4 +104,37 @@ int closeConnection(const char *errorMessage, const int socket){
 
     if(socket >= 0) close(socket);
     return -1;
+}
+
+bool commandExists(const char* command, int* commandReference){
+    for (int i = 0; commandsFormat[i] != 0; i++) {
+        if(strcmp(command, commandsFormat[i]) == 0){
+            (*commandReference) = i;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool argsQuantityOk(int command, int argc){
+    
+    if(command < 0 || argc <= 1)
+        return false;
+
+    switch(command) {
+        case CMD_USERS:
+            return true;                      // Usage: USERS
+        case CMD_ADD_USER: 
+            return (argc >= 4)? true : false; // Usage: ADD-USER <USER> <PASSWORD>
+        case CMD_DELETE_USER:
+            return (argc >= 3)? true : false; // Usage: DELETE-USER <USER> 
+        case CMD_GET_DISSECTOR_STATUS:
+            return true;                      // Usage: GET-DISSECTOR-STATUS 
+        case CMD_SET_DISSECTOR_STATUS:
+            return (argc >= 3)? true : false; // Usage: SET-DISSECTOR-STATUS <STATUS>
+        case CMD_STATS:                
+            return true;                      // Usage: STATISTICS
+        default:
+            return -1;
+    }
 }
