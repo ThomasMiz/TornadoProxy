@@ -67,14 +67,19 @@ int main(int argc, char *argv[]) {
         status = cmdUsers(sock, commandReference);
             break;
         case CMD_ADD_USER: 
+        status = cmdAddUser(sock, commandReference, argv[1], argv[2]);
             break;
         case CMD_DELETE_USER:
+        status = cmdDeleteUser(sock, commandReference, argv[1]);
             break;
         case CMD_GET_DISSECTOR_STATUS:
+        status = cmdGetDissectorStatus(sock, commandReference);
             break;
         case CMD_SET_DISSECTOR_STATUS:
+        status = cmdSetDissectorStatus(sock, commandReference, argv[1]);
             break;
         case CMD_STATS:
+        status = cmdStats(sock, commandReference);
             break;
         default: 
             return -1;
@@ -88,7 +93,7 @@ int main(int argc, char *argv[]) {
     uint8_t c;
     int qty;
     bool readCarriageReturn;
-    while ((qty = read(sock, &c, 1)) >= 0 && !(readCarriageReturn && c == '\n')) {
+    while ((qty = read(sock, &c, 1)) > 0 && !(readCarriageReturn && c == '\n')) {
         if (qty < 0) {
             printf("error reading from server\n");
             return -1;
