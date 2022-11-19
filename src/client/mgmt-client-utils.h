@@ -12,6 +12,15 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+typedef enum {
+    CMD_USERS = 0,
+    CMD_ADD_USER,
+    CMD_DELETE_USER,
+    CMD_GET_DISSECTOR_STATUS,
+    CMD_SET_DISSECTOR_STATUS,
+    CMD_STATS
+} TCommands;
+
 /**
  * @brief Handles socket creation and connection to the server.
  * @param service port to bind.
@@ -47,5 +56,24 @@ bool authenticate(char *username, char *password, int socket);
  */
 int closeConnection(const char* errorMessage, const int socket);
 
+
+/**
+ * @brief Verifies if the command inputted by the user exists.
+ * 
+ * @param command
+ * @param commandReference to store the reference value.
+ * @return true if command exists.
+ */
+bool commandExists(const char* command, int* commandReference);
+
+
+/**
+ * @brief Checks if the command has the necessary number of arguments to request the server.
+ * 
+ * @param command
+ * @param argc quantity of arguments recieved.
+ * @return true if the args quantity for a particular command is accurate.
+ */
+bool argsQuantityOk(int command, int argc);
 
 #endif
