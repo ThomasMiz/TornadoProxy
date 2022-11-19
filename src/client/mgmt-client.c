@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    if(argsQuantityOk(commandReference, argc)){
+    if(!argsQuantityOk(commandReference, argc)){
         printf("%s: few arguments\n", command);
         return -1;
     }
