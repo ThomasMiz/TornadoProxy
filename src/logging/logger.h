@@ -1,15 +1,15 @@
 #ifndef _LOGGER_H_
 #define _LOGGER_H_
 
-// // The logger makes copies of any data it needs from pointer parameters in the functions
-// // described in this file. aka "Don't worry about the memory lifecycle of pointer parameters".
+// The logger makes copies of any data it needs from pointer parameters in the functions
+// described in this file. aka "Don't worry about the memory lifecycle of pointer parameters".
 
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <unistd.h>
-// #include <sys/socket.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/socket.h>
 
-// #include "../selector.h"
+#include "../selector.h"
 
 // /**
 //  * @brief Initializes the logging system. Not calling this function will result is the
@@ -120,14 +120,14 @@
 //  */
 // int logClientConnectionRequestSuccess(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
 
-// /**
-//  * @brief Log that a client sent or received a specified amount of bytes to the remote
-//  * server it's connected to.
-//  * @param clientId The client's ID (it's socket's file descriptor).
-//  * @param username The client's username, or null if not logged in.
-//  * @param bytesSent The amount of bytes sent by the client to the remote server.
-//  * @param bytesReceived The amount of bytes sent by the remote server to the client.
-//  */
-// int logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived);
+/**
+ * @brief Log that a client sent or received a specified amount of bytes to the remote
+ * server it's connected to.
+ * @param clientId The client's ID (it's socket's file descriptor).
+ * @param username The client's username, or null if not logged in.
+ * @param bytesSent The amount of bytes sent by the client to the remote server.
+ * @param bytesReceived The amount of bytes sent by the remote server to the client.
+ */
+int logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived);
 
 #endif

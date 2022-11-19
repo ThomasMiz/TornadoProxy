@@ -13,32 +13,32 @@
 #include "logger.h"
 #include "metrics.h"
 
-// #define DEFAULT_LOG_FOLDER "./log"
-// #define DEFAULT_LOG_FILE (DEFAULT_LOG_FOLDER "/%02d-%02d-%04d.log")
-// #define DEFAULT_LOG_FILE_MAXSTRLEN 31
+#define DEFAULT_LOG_FOLDER "./log"
+#define DEFAULT_LOG_FILE (DEFAULT_LOG_FOLDER "/%02d-%02d-%04d.log")
+#define DEFAULT_LOG_FILE_MAXSTRLEN 31
 
-// /** The minimum allowed length for the log writing buffer. */
-// #define LOG_MIN_BUFFER_SIZE 0x1000 // 4 KBs
-// /** The maximum allowed length for the log writing buffer. */
-// #define LOG_MAX_BUFFER_SIZE 0x400000 // 4 MBs
-// /** The amount of bytes to expand the log buffer by when expanding. */
-// #define LOG_BUFFER_SIZE_GRANULARITY 0x1000 // 4 KBs
-// /** The maximum length a single print into the log buffer SHOULD require. */
-// #define LOG_BUFFER_MAX_PRINT_LENGTH 0x200 // 512 bytes
+/** The minimum allowed length for the log writing buffer. */
+#define LOG_MIN_BUFFER_SIZE 0x1000 // 4 KBs
+/** The maximum allowed length for the log writing buffer. */
+#define LOG_MAX_BUFFER_SIZE 0x400000 // 4 MBs
+/** The amount of bytes to expand the log buffer by when expanding. */
+#define LOG_BUFFER_SIZE_GRANULARITY 0x1000 // 4 KBs
+/** The maximum length a single print into the log buffer SHOULD require. */
+#define LOG_BUFFER_MAX_PRINT_LENGTH 0x200 // 512 bytes
 
-// #define LOG_FILE_PERMISSION_BITS 666
-// #define LOG_FOLDER_PERMISSION_BITS 666
-// #define LOG_FILE_OPEN_FLAGS (O_WRONLY | O_APPEND | O_CREAT | O_NONBLOCK)
+#define LOG_FILE_PERMISSION_BITS 666
+#define LOG_FOLDER_PERMISSION_BITS 666
+#define LOG_FILE_OPEN_FLAGS (O_WRONLY | O_APPEND | O_CREAT | O_NONBLOCK)
 
-// #define LOG_LINE_START "[%02d/%02d/%04d %02d:%02d:%02d] "
-// #define LOG_PRINTF_START_PARAMS tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec
+#define LOG_LINE_START "[%02d/%02d/%04d %02d:%02d:%02d] "
+#define LOG_PRINTF_START_PARAMS tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec
 
-// #define ADDRSTR_BUFLEN 64
+#define ADDRSTR_BUFLEN 64
 
-// /**
-//  * The current metrics values for this server.
-//  */
-// static TMetricsSnapshot metrics;
+/**
+ * The current metrics values for this server.
+ */
+static TMetricsSnapshot metrics;
 
 // int getMetricsSnapshot(TMetricsSnapshot* snapshot) {
 //     memcpy(snapshot, &metrics, sizeof(TMetricsSnapshot));
@@ -117,8 +117,7 @@
 //         time_t T = time(NULL);                                       \
 //         struct tm tm = *localtime(&T);                               \
 //         size_t maxlen = bufferCapacity - bufferLength - bufferStart; \
-//         int written = snprintf(buffer + bufferStart + bufferLength, maxlen, LOG_LINE_START format "\n", LOG_PRINTF_START_PARAMS); 
-    
+//         int written = snprintf(buffer + bufferStart + bufferLength, maxlen, LOG_LINE_START format "\n", LOG_PRINTF_START_PARAMS,
 
 // #define LOG_POSTPRINTPARAMS_MACRO );      \
 //     return postLogPrint(written, maxlen); \
@@ -351,8 +350,8 @@
 //     }
 // }
 
-// int logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived) {
-//     metrics.totalBytesSent += bytesSent;
-//     metrics.totalBytesReceived += bytesReceived;
-//     return 0;
-// }
+int logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived) {
+    metrics.totalBytesSent += bytesSent;
+    metrics.totalBytesReceived += bytesReceived;
+    return 0;
+}
