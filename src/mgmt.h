@@ -9,7 +9,7 @@
 #include "selector.h"
 #include "buffer.h"
 #include "stm.h"
-#include "mgmtAuthParser.h"
+#include "./auth/authParser.h"
 
 #define MGMT_BUFFER_SIZE 4096
 
@@ -20,18 +20,17 @@ typedef struct {
     union {
         // TNegParser negParser;
         // TReqParser reqParser;
-        MTAuthParser authParser;
+        TAuthParser authParser;
     } client;
 
     bool closed;
 
-    // Added this buffer, consider removing the plain buffer from this struct.
-    struct buffer buffer;
-    uint8_t rawBuffer[MGMT_BUFFER_SIZE];
+    struct buffer readBuffer;
+    uint8_t readRawBuffer[MGMT_BUFFER_SIZE];
+    struct buffer writeBuffer;
+    uint8_t writeRawBuffer[MGMT_BUFFER_SIZE];
 
-    struct addrinfo* originResolution;
     int clientFd;
-
 } TMgmtClient;
 
 #define GET_ATTACHMENT(key) ((TMgmtClient*)(key)->data)

@@ -2,6 +2,7 @@
 #define AUTH_PARSER_H
 
 #include "../buffer.h"
+#include "../users.h"
 #include <stdbool.h>
 
 #define AUTH_UNAME_MAX_LENGTH 0xFF
@@ -113,5 +114,8 @@ bool hasAuthReadErrors(TAuthParser* p);
  * @returns AUTHR_OK if the answer was stored correctly, AUTHR_FULLBUFFER if there was no enough space in the buffer.
  */
 TAuthRet fillAuthAnswer(TAuthParser* p, struct buffer* buffer);
+
+
+TUserStatus validateUserAndPassword(TAuthParser* p);
 
 #endif // NEGOTIATION_PARSER_H
