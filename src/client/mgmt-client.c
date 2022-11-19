@@ -88,13 +88,17 @@ int main(int argc, char *argv[]) {
 
     uint8_t c;
     uint8_t qty;
-    bool readCarriageReturn;
-    while ((qty = read(socket, &c, 1)) >= 0 && !(readCarriageReturn && c == '\n')) {
+    bool readCarriageReturn = false;
+    while ((qty = read(socket, &c, 1)) >= 0) {
         if (qty < 0) {
             printf("error reading from server\n");
             return -1;
         }
         putchar(c);
+
+        if (readCarriageReturn && c == '\n')
+            break;
+
         readCarriageReturn = c == '\r';
     }
 
