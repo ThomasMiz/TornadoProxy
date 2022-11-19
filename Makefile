@@ -1,11 +1,14 @@
 include ./Makefile.inc
 
 SOURCES=$(wildcard src/*.c src/negotiation/*.c src/auth/*.c src/request/*.c)
+
+
 OUTPUT_FOLDER=./bin
 OUTPUT_FILE=$(OUTPUT_FOLDER)/socks5v
 
 all:
 	mkdir -p $(OUTPUT_FOLDER)
+
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SOURCES) -o $(OUTPUT_FILE)
 
 mac:

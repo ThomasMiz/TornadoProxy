@@ -96,3 +96,12 @@ static TAuthState parseEnd(TAuthParser* p, uint8_t c) {
     log(LOG_ERROR, "Trying to call auth parser in END/ERROR state with char: %c", c);
     return p->state;
 }
+
+TUserStatus validateUserAndPassword(TAuthParser* p) {
+    TUserPrivilegeLevel upl;
+    TUserStatus userStatus = usersLogin(p->uname, p->passwd, &upl);
+    if (userStatus == EUSER_OK) {
+        p->verification = AUTH_SUCCESSFUL;
+    }
+    return userStatus;
+}

@@ -36,7 +36,6 @@ static const struct state_definition clientActions[] = {
         .state = AUTH_READ,
         .on_arrival = authReadInit,
         .on_read_ready = authRead,
-
     },
     {
         .state = AUTH_WRITE,
@@ -168,7 +167,6 @@ void socksv5PassivAccept(TSelectorKey* key) {
     // Consider using a function to initialize the TClientData structure.
     TClientData* clientData = calloc(1, sizeof(TClientData));
     if (clientData == NULL) {
-        free(clientData);
         log(LOG_ERROR, "Failed to alloc clientData for new client t socket fd %d", newClientSocket);
         close(newClientSocket);
         return;
