@@ -13,7 +13,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-void close_connection(TSelectorKey * key);
+void closeConnection(TSelectorKey * key);
 
 void doneArrival(const unsigned state, TSelectorKey* key) {
     printf("Done state \n");
@@ -22,7 +22,7 @@ void errorArrival(const unsigned state, TSelectorKey* key) {
     printf("Error state \n");
 }
 
-static const struct state_definition client_statb1[] = {
+static const struct state_definition clientActions[] = {
     {
         .state = NEGOTIATION_READ,
         .on_arrival = negotiationReadInit,
@@ -45,7 +45,6 @@ static const struct state_definition client_statb1[] = {
     {
         .state = REQUEST_READ,
         .on_arrival = requestReadInit,
-        //.on_departure = requestReadClose,
         .on_read_ready = requestRead,
     },
     {
@@ -77,52 +76,52 @@ static const struct state_definition client_statb1[] = {
         .on_arrival = errorArrival,
     }};
 
-static void socksv5_read(TSelectorKey* key);
-static void socksv5_write(TSelectorKey* key);
-static void socksv5_close(TSelectorKey* key);
-static void socksv5_block(TSelectorKey* key);
+static void socksv5Read(TSelectorKey* key);
+static void socksv5Write(TSelectorKey* key);
+static void socksv5Close(TSelectorKey* key);
+static void socksv5Block(TSelectorKey* key);
 static TFdHandler handler = {
-    .handle_read = socksv5_read,
-    .handle_write = socksv5_write,
-    .handle_close = socksv5_close,
-    .handle_block = socksv5_block,
+    .handle_read = socksv5Read,
+    .handle_write = socksv5Write,
+    .handle_close = socksv5Close,
+    .handle_block = socksv5Block,
 };
 
 TFdHandler* getStateHandler() {
     return &handler;
 }
 
-void socksv5_close(TSelectorKey* key) {
+void socksv5Close(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     stm_handler_close(stm, key);
-    close_connection(key);
+    closeConnection(key);
 }
 
-static void socksv5_read(TSelectorKey* key) {
+static void socksv5Read(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     const enum socks_state st = stm_handler_read(stm, key);
     if(st == ERROR || st == DONE){
-        close_connection(key);
+        closeConnection(key);
     }
 }
 
-static void socksv5_write(TSelectorKey* key) {
+static void socksv5Write(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     const enum socks_state st = stm_handler_write(stm, key);
     if(st == ERROR || st == DONE){
-        close_connection(key);
+        closeConnection(key);
     }
 }
 
-static void socksv5_block(TSelectorKey* key) {
+static void socksv5Block(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     const enum socks_state st = stm_handler_block(stm, key);
     if(st == ERROR || st == DONE){
-        close_connection(key);
+        closeConnection(key);
     }
 }
 
-void close_connection(TSelectorKey * key) {
+void closeConnection(TSelectorKey * key) {
     TClientData * data = ATTACHMENT(key);
     if (data->closed)
         return;
@@ -176,15 +175,15 @@ void socksv5PassivAccept(TSelectorKey* key) {
     }
 
     TFdHandler* handler = &clientData->handler;
-    handler->handle_read = socksv5_read;
-    handler->handle_write = socksv5_write;
-    handler->handle_close = socksv5_close;
-    handler->handle_block = socksv5_block;
+    handler->handle_read = socksv5Read;
+    handler->handle_write = socksv5Write;
+    handler->handle_close = socksv5Close;
+    handler->handle_block = socksv5Block;
 
     clientData->stm.initial = NEGOTIATION_READ;
     clientData->stm.max_state = ERROR;
     clientData->closed = false;
-    clientData->stm.states = client_statb1;
+    clientData->stm.states = clientActions;
     clientData->clientFd = newClientSocket;
     clientData->originFd=-1;
 

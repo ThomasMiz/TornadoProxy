@@ -135,7 +135,6 @@ enum socks_state {
     // Terminal states
     DONE,
     ERROR,
-
 };
 
 void socksv5PassivAccept(TSelectorKey* key);
