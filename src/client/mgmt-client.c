@@ -1,4 +1,7 @@
 #include "mgmt-client-utils.h"
+#include "buffer.h"
+#include <stdint.h>
+#include "mgmtClientCommands.h"
 
 #define SERVER "localhost" 
 #define PORT "8080"
@@ -58,8 +61,11 @@ int main(int argc, char *argv[]) {
         return closeConnection("Could not authenticate in server", sock);
     }
 
+
+    int status;
     switch (commandReference) {
         case CMD_USERS:
+        status = cmdUsers(sock, commandReference);
             break;
         case CMD_ADD_USER: 
             break;
@@ -75,7 +81,22 @@ int main(int argc, char *argv[]) {
             return -1;
     }
 
-    printf("Ok\n");
+    if (status) {
+        printf("error sending command\n");
+        return -1;
+    }
+
+    uint8_t c;
+    uint8_t qty;
+    bool readCarriageReturn;
+    while ((qty = read(socket, &c, 1)) >= 0 && !(readCarriageReturn && c == '\n')) {
+        if (qty < 0) {
+            printf("error reading from server\n");
+            return -1;
+        }
+        putchar(c);
+        readCarriageReturn = c == '\r';
+    }
 
     return 0;
 }
