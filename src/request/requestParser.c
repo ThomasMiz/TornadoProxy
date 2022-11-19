@@ -49,16 +49,16 @@ uint8_t hasRequestErrors(TReqParser* p) {
     return p->state == REQ_ERROR;
 }
 
-uint8_t fillRequestAnswer(TReqParser* p, struct buffer* buffer) {
+TReqRet fillRequestAnswer(TReqParser* p, struct buffer* buffer) {
     uint8_t answer[] = {0x05, p->status, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     int l = length(answer);
     for (int i = 0; i < l; ++i) {
         if (!buffer_can_write(buffer)) {
-            return 1;
+            return REQR_FULLBUFFER;
         }
         buffer_write(buffer, answer[i]);
     }
-    return 0;
+    return REQR_OK;
 }
 
 /*Should not happen*/
