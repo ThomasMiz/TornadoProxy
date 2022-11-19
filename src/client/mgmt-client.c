@@ -86,9 +86,9 @@ int main(int argc, char *argv[]) {
     }
 
     uint8_t c;
-    uint8_t qty;
+    int qty;
     bool readCarriageReturn;
-    while ((qty = read(socket, &c, 1)) >= 0 && !(readCarriageReturn && c == '\n')) {
+    while ((qty = read(sock, &c, 1)) >= 0 && !(readCarriageReturn && c == '\n')) {
         if (qty < 0) {
             printf("error reading from server\n");
             return -1;
