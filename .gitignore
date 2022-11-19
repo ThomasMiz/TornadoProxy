@@ -72,3 +72,5 @@ strace_out
 
 # Code analysis
 check
+analysis.txt
+gmon.out

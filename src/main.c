@@ -1,78 +1,49 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <limits.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include <signal.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-
-#include "logging/logger.h"
+#include <unistd.h>
 #include "selector.h"
 #include "socks5.h"
+#include "args.h"
+#include "users.h"
 
 static bool terminationRequested = false;
 
 static void sigterm_handler(const int signal) {
-    logString("Received termination signal, shutting down...");
+    printf("signal %d, cleaning up and exiting\n", signal);
     terminationRequested = true;
 }
 
-int main(const int argc, const char** argv) {
+int main(const int argc, char** argv) {
+
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);
-    unsigned port = 1080;
 
-    if (argc == 1) {
-        // utilizamos el default
-    } else if (argc == 2) {
-        char* end = 0;
-        const long sl = strtol(argv[1], &end, 10);
-
-        if (end == argv[1] || '\0' != *end || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno) || sl < 0 || sl > USHRT_MAX) {
-            fprintf(stderr, "port should be an integer: %s\n", argv[1]);
-            return 1;
-        }
-        port = sl;
-    } else {
-        fprintf(stderr, "Usage: %s <port>\n", argv[0]);
-        return 1;
-    }
 
     // no tenemos nada que leer de stdin
-    close(0);
+    close(STDIN_FILENO);
+    usersInit(NULL);
 
-    const char* err_msg = NULL;
+    struct socks5args args;
+    parse_args(argc, argv, &args);
+
+    unsigned port = args.socksPort;
+
+    for(int i=0 ; i<args.nusers ; ++i){
+        usersCreate(args.users[i].name, args.users[i].pass, 0, UPRIV_USER, 0);
+    }
+
+
+    const char *err_msg = NULL;
     TSelectorStatus ss = SELECTOR_SUCCESS;
     TSelector selector = NULL;
-
-    const TSelectorInit conf = {
-        .signal = SIGALRM,
-        .select_timeout = {
-            .tv_sec = 10,
-            .tv_nsec = 0,
-        },
-    };
-    if (0 != selector_init(&conf)) {
-        err_msg = "initializing selector";
-        goto finally;
-    }
-
-    selector = selector_new(1024);
-    if (selector == NULL) {
-        err_msg = "unable to create selector";
-        goto finally;
-    }
-
-    logInit(selector, "", stdout);
-    logString("Starting server...");
 
     // Listening on just IPv6 allow us to handle both IPv6 and IPv4 connections!
     // https://stackoverflow.com/questions/50208540/cant-listen-on-ipv4-and-ipv6-together-address-already-in-use
@@ -88,10 +59,12 @@ int main(const int argc, const char** argv) {
         goto finally;
     }
 
-    // man 7 ip. no importa reportar nada si falla.
-    setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+    fprintf(stdout, "Listening on TCP port %d\n", port);
 
-    if (bind(server, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+    // man 7 ip. no importa reportar nada si falla.
+    setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));
+
+    if (bind(server, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
         err_msg = "unable to bind socket";
         goto finally;
     }
@@ -100,12 +73,6 @@ int main(const int argc, const char** argv) {
         err_msg = "unable to listen";
         goto finally;
     }
-
-    // Get the local address at which our socket was found
-    struct sockaddr_storage listenAddress;
-    socklen_t listenAddressLen = sizeof(listenAddress);
-    int getsocknameResult = getsockname(server, (struct sockaddr*)&listenAddress, &listenAddressLen);
-    logServerListening(getsocknameResult >= 0 ? (struct sockaddr*)&listenAddress : NULL, listenAddressLen);
 
     // registrar sigterm es útil para terminar el programa normalmente.
     // esto ayuda mucho en herramientas como valgrind.
@@ -116,10 +83,27 @@ int main(const int argc, const char** argv) {
         err_msg = "getting server socket flags";
         goto finally;
     }
+    const TSelectorInit conf = {
+            .signal = SIGALRM,
+            .select_timeout = {
+                    .tv_sec = 10,
+                    .tv_nsec = 0,
+            },
+    };
+    if (0 != selector_init(&conf)) {
+        err_msg = "initializing selector";
+        goto finally;
+    }
+
+    selector = selector_new(1024);
+    if (selector == NULL) {
+        err_msg = "unable to create selector";
+        goto finally;
+    }
     const TFdHandler socksv5 = {
-        .handle_read = socksv5_passive_accept,
-        .handle_write = NULL,
-        .handle_close = NULL, // nada que liberar
+            .handle_read = socksv5PassivAccept,
+            .handle_write = NULL,
+            .handle_close = NULL, // nada que liberar
     };
     ss = selector_register(selector, server, &socksv5, OP_READ, NULL);
     if (ss != SELECTOR_SUCCESS) {
@@ -134,29 +118,33 @@ int main(const int argc, const char** argv) {
             goto finally;
         }
     }
-
-    int ret = 0;
-finally:
-    if (ss != SELECTOR_SUCCESS) {
-        logServerError((err_msg == NULL) ? "" : err_msg, ss == SELECTOR_IO ? strerror(errno) : selector_error(ss));
-        ret = 2;
-    } else if (err_msg) {
-        logServerError(err_msg, strerror(errno));
-        ret = 1;
+    if (err_msg == NULL) {
+        err_msg = "closing";
     }
 
-    logString("Goodbye");
-    logFinalize();
+    int ret = 0;
+    finally:
+    usersFinalize();
+    if (ss != SELECTOR_SUCCESS) {
+        fprintf(stderr, "%s: %s\n", (err_msg == NULL) ? "" : err_msg,
+                ss == SELECTOR_IO
+                ? strerror(errno)
+                : selector_error(ss));
+        ret = 2;
+    } else if (err_msg) {
+        perror(err_msg);
+        ret = 1;
+    }
     if (selector != NULL) {
         selector_destroy(selector);
     }
     selector_close();
+
 
     // socksv5_pool_destroy();
 
     if (server >= 0) {
         close(server);
     }
-
     return ret;
 }

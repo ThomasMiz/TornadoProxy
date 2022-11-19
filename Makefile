@@ -1,13 +1,16 @@
 include ./Makefile.inc
 
-SOURCES=$(wildcard src/*.c)
-SOURCES_LOGGING=$(wildcard src/logging/*.c)
+SOURCES=$(wildcard src/*.c src/negotiation/*.c src/auth/*.c src/request/*.c)
 OUTPUT_FOLDER=./bin
-OUTPUT_FILE=$(OUTPUT_FOLDER)/tornado
+OUTPUT_FILE=$(OUTPUT_FOLDER)/socks5v
 
 all:
 	mkdir -p $(OUTPUT_FOLDER)
-	$(GCC) $(GCCFLAGS) $(SOURCES) $(SOURCES_LOGGING) -o $(OUTPUT_FILE)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SOURCES) -o $(OUTPUT_FILE)
+
+mac:
+	mkdir -p $(OUTPUT_FOLDER)
+	$(CC) $(CFLAGSMAC) $(LDFLAGS) $(SOURCES) -o $(OUTPUT_FILE)
 
 clean:
 	rm -rf $(OUTPUT_FOLDER)

@@ -1,21 +1,22 @@
 /**
  * selector.c - un muliplexor de entrada salida
  */
-#include <stdio.h>  // perror
-#include <stdlib.h> // malloc
-#include <string.h> // memset
 #include <assert.h> // :)
 #include <errno.h>  // :)
 #include <pthread.h>
+#include <signal.h>
+#include <stdio.h>  // perror
+#include <stdlib.h> // malloc
+#include <string.h> // memset
 
-#include <stdint.h> // SIZE_MAX
-#include <unistd.h>
+#include "selector.h"
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <stdint.h> // SIZE_MAX
 #include <sys/select.h>
 #include <sys/signal.h>
-#include "selector.h"
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #define N(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -212,6 +213,9 @@ static int items_max_fd(TSelector s) {
 }
 
 static void items_update_fdset_for_fd(TSelector s, const struct item* item) {
+    if(item->fd == -1){
+        return;
+    }
     FD_CLR(item->fd, &s->master_r);
     FD_CLR(item->fd, &s->master_w);
 
@@ -302,8 +306,11 @@ void selector_destroy(TSelector s) {
                 }
             }
             pthread_mutex_destroy(&s->resolution_mutex);
-            for (struct blocking_job* j = s->resolution_jobs; j != NULL; j = j->next) {
-                free(j);
+            struct blocking_job* j = s->resolution_jobs;
+            while (j != NULL) {
+                struct blocking_job* aux = j;
+                j = j->next;
+                free(aux);
             }
             free(s->fds);
             s->fds = NULL;
@@ -405,6 +412,41 @@ finally:
     return ret;
 }
 
+TSelectorStatus selector_get_interests(TSelector s, int fd, TFdInterests* i) {
+    TSelectorStatus ret = SELECTOR_SUCCESS;
+
+    if (NULL == s || INVALID_FD(fd)) {
+        ret = SELECTOR_IARGS;
+        goto finally;
+    }
+    struct item* item = s->fds + fd;
+    if (!ITEM_USED(item)) {
+        ret = SELECTOR_IARGS;
+        goto finally;
+    }
+    *i = item->interest;
+finally:
+    return ret;
+}
+TSelectorStatus selector_get_interests_key(TSelectorKey* key, TFdInterests* i) {
+    TSelectorStatus ret = SELECTOR_SUCCESS;
+
+    if (NULL == key || INVALID_FD(key->fd)) {
+        ret = SELECTOR_IARGS;
+        goto finally;
+    }
+    struct item* item = key->s->fds + key->fd;
+    if (!ITEM_USED(item)) {
+        ret = SELECTOR_IARGS;
+        goto finally;
+    }
+    *i = item->interest;
+finally:
+    return ret;
+}
+
+
+
 TSelectorStatus selector_set_interest_key(TSelectorKey* key, TFdInterests i) {
     TSelectorStatus ret;
 
@@ -459,9 +501,8 @@ static void handle_block_notifications(TSelector s) {
         .s = s,
     };
     pthread_mutex_lock(&s->resolution_mutex);
-    for (struct blocking_job* j = s->resolution_jobs;
-         j != NULL;
-         j = j->next) {
+    struct blocking_job* j = s->resolution_jobs;
+    while (j != NULL) {
 
         struct item* item = s->fds + j->fd;
         if (ITEM_USED(item)) {
@@ -470,7 +511,9 @@ static void handle_block_notifications(TSelector s) {
             item->handler->handle_block(&key);
         }
 
-        free(j);
+        struct blocking_job* aux = j;
+        j = j->next;
+        free(aux);
     }
     s->resolution_jobs = 0;
     pthread_mutex_unlock(&s->resolution_mutex);

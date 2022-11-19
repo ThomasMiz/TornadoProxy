@@ -1,0 +1,3 @@
+@admin:admin
+#cami:1234
+#lala:lele
