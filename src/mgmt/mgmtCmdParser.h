@@ -19,10 +19,10 @@ typedef enum TMgmtCmd {
 } TMgmtCmd;
 
 typedef enum TMgmtState {
-    MGMT_WAITING_CMD,
-    MGMT_READING_ARGS,
-    MGMT_END,
-    MGMT_ERROR
+    MGMTP_WAITING_CMD,
+    MGMTP_READING_ARGS,
+    MGMTP_END,
+    MGMTP_ERROR
 }TMgmtState;
 
 typedef enum TMgmtStatus {

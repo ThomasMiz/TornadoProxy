@@ -1,6 +1,6 @@
 include ./Makefile.inc
 
-SOURCES=$(wildcard src/*.c src/negotiation/*.c src/auth/*.c src/request/*.c)
+SOURCES=$(wildcard src/*.c src/negotiation/*.c src/auth/*.c src/request/*.c src/mgmt/*.c)
 
 
 OUTPUT_FOLDER=./bin

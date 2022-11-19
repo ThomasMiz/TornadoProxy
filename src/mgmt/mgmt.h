@@ -10,6 +10,7 @@
 #include "../buffer.h"
 #include "../stm.h"
 #include "../auth/authParser.h"
+#include "mgmtCmdParser.h"
 
 #define MGMT_BUFFER_SIZE 4096
 
@@ -17,9 +18,9 @@ typedef struct {
     TFdHandler handler;
 
     struct state_machine stm;
+
     union {
-        // TNegParser negParser;
-        // TReqParser reqParser;
+        TMgmtParser cmdParser;
         TAuthParser authParser;
     } client;
 

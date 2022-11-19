@@ -54,16 +54,16 @@ static TMgmtState parseEnd(TMgmtParser* p, uint8_t c);
 
 
 static parseCharacter stateRead[] = {
-        /* MGMT_WAITING_CMD    */ parseCmd,
-        /* MGMT_READING_ARGS   */ parseArgs,
-        /* MGMT_END            */ parseEnd,
-        /* MGMT_ERROR          */ parseEnd};
+        /* MGMTP_WAITING_CMD    */ parseCmd,
+        /* MGMTP_READING_ARGS   */ parseArgs,
+        /* MGMTP_END            */ parseEnd,
+        /* MGMTP_ERROR          */ parseEnd};
 
 
 void initMgmtCmdParser(TMgmtParser* p){
     if(p==NULL)
         return;
-    p->state = MGMT_WAITING_CMD;
+    p->state = MGMTP_WAITING_CMD;
     p->readCommands = 0;
     p->slength = 0;
     p->rlength = 0;
@@ -75,12 +75,13 @@ TMgmtState mgmtCmdParse(TMgmtParser* p, struct buffer* buffer){
     return p->state;
 }
 bool hasMgmtCmdReadEnded(TMgmtParser* p){
-    return p->state == MGMT_END || p->state ==MGMT_ERROR;
+    return p->state == MGMTP_END || p->state ==MGMTP_ERROR;
 }
 bool hasMgmtCmdErrors(TMgmtParser* p){
-    return p->state ==MGMT_ERROR;
+    return p->state ==MGMTP_ERROR;
 }
 uint8_t fillMgmtCmdAnswer(TMgmtParser* p, struct buffer* buffer){
+    buffer_write(buffer, p->cmd + '0');
     return 0;
 }
 
@@ -93,10 +94,10 @@ static TMgmtState parseEnd(TMgmtParser* p, uint8_t c) {
 static TMgmtState parseCmd(TMgmtParser* p, uint8_t c){
     if(c>=MGMT_CMD_COUNT){
         p->status = MGMT_INVALID_CMD;
-        return MGMT_ERROR;
+        return MGMTP_ERROR;
     }
     p->cmd = c;
-    return commands[c].argc == 0 ? MGMT_END : MGMT_READING_ARGS;
+    return commands[c].argc == 0 ? MGMTP_END : MGMTP_READING_ARGS;
 }
 static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
     ARG_TYPE at = commands[c].argt[p->readCommands];
@@ -107,10 +108,10 @@ static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
             // Strings can not have a length of 0
             if(c == 0){
                 p->status = MGMT_INVALID_CMD;
-                return MGMT_ERROR;
+                return MGMTP_ERROR;
             }
             p->slength = c;
-            return MGMT_READING_ARGS;
+            return MGMTP_READING_ARGS;
         }
 
         //Reading string
@@ -121,20 +122,20 @@ static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
             p->args[p->readCommands].string[p->rlength]=0;
             p->readCommands++;
             if(p->readCommands == commands[c].argc){
-                return MGMT_END;
+                return MGMTP_END;
             }
             //restart counters in case another string comes
             p->slength = p->rlength = 0;
         }
-        return MGMT_READING_ARGS;
+        return MGMTP_READING_ARGS;
     }
 
     if(at == BYTE){
         p->args[p->readCommands++].byte = c;
-        return p->readCommands == commands[c].argc ? MGMT_END : MGMT_READING_ARGS;
+        return p->readCommands == commands[c].argc ? MGMTP_END : MGMTP_READING_ARGS;
     }
 
     // at == EMPTY
     log(LOG_ERROR, "Trying to parse empty arg, cmd: %d", p->cmd);
-    return MGMT_ERROR;
+    return MGMTP_ERROR;
 }
