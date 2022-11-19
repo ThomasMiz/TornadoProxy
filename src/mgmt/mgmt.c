@@ -108,7 +108,7 @@ void mgmtPassiveAccept(TSelectorKey* key) {
     handler->handle_write = mgmt_write;
     handler->handle_close = mgmt_close;
     handler->handle_block = mgmt_block;
-
+    
     clientData->stm.initial = MGMT_AUTH_READ;
     clientData->stm.max_state = MGMT_ERROR;
     clientData->closed = false;
