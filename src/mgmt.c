@@ -116,6 +116,7 @@ void mgmtPassiveAccept(TSelectorKey* key) {
 
 
     buffer_init(&(clientData->readBuffer),MGMT_BUFFER_SIZE, clientData->readRawBuffer);
+    buffer_init(&(clientData->writeBuffer),MGMT_BUFFER_SIZE, clientData->writeRawBuffer);
 
     stm_init(&clientData->stm);
 
