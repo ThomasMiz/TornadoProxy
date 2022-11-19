@@ -3,7 +3,7 @@
 #include "../socks5.h"
 #include "../users.h"
 
-static TAuthVerification validateUserAndPassword(TAuthParser* p) {
+static TUserStatus validateUserAndPassword(TAuthParser* p) {
     TUserPrivilegeLevel upl;
     TUserStatus userStatus = usersLogin(p->uname, p->passwd, &upl);
     if (userStatus == EUSER_OK) {

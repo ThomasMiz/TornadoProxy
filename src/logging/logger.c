@@ -350,6 +350,7 @@ int logClientConnectionRequestSuccess(int clientId, const char* username, const 
     }
 }
 
+
 int logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived) {
     metrics.totalBytesSent += bytesSent;
     metrics.totalBytesReceived += bytesReceived;

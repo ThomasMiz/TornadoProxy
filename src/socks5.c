@@ -36,7 +36,6 @@ static const struct state_definition clientActions[] = {
         .state = AUTH_READ,
         .on_arrival = authReadInit,
         .on_read_ready = authRead,
-
     },
     {
         .state = AUTH_WRITE,
