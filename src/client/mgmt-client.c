@@ -1,5 +1,4 @@
 #include "mgmt-client-utils.h"
-#include "buffer.h"
 #include <stdint.h>
 #include "mgmtClientCommands.h"
 
