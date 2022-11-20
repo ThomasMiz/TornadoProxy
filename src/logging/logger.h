@@ -5,7 +5,7 @@
 // described in this file. aka "Don't worry about the memory lifecycle of pointer parameters".
 
 // Define this to fully disable all loggin on compilation. Metrics will still work.
-//#define DISABLE_LOGGING
+//#define DISABLE_LOGGER
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,15 +53,15 @@ const char* loggerGetLevelString(TLogLevel level);
 
 int loggerIsEnabledFor(TLogLevel level);
 
+#ifdef DISABLE_LOGGER
+#define logf(level, format, ...)
+#else
 void loggerPrePrint();
 
 void loggerGetBufstartAndMaxlength(char** bufstartVar, size_t* maxlenVar);
 
 int loggerPostPrint(int written, size_t maxlen);
 
-#ifdef DISABLE_LOGGING
-#define logf(level, format, ...)
-#else
 #define logf(level, format, ...)                                                                                                          \
     if (loggerIsEnabledFor(level)) {                                                                                                      \
         loggerPrePrint();                                                                                                                 \
@@ -76,7 +76,6 @@ int loggerPostPrint(int written, size_t maxlen);
                                            loginternal_tm.tm_sec, ##__VA_ARGS__);                                                         \
         loggerPostPrint(loginternal_written, loginternal_maxlen);                                                                         \
     }
-
 #endif
 
 #define log(level, s) logf(level, "%s", s)

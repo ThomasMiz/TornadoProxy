@@ -40,6 +40,8 @@ int getMetricsSnapshot(TMetricsSnapshot* snapshot) {
     return 0;
 }
 
+#ifndef DISABLE_LOGGER
+
 /** The buffer where logs are buffered. */
 static char* buffer = NULL;
 static size_t bufferStart = 0, bufferLength = 0, bufferCapacity = 0;
@@ -162,13 +164,16 @@ static int tryOpenLogfile(const char* logFile, struct tm tm) {
     return fd;
 }
 
+#endif // end #ifndef DISABLE_LOGGER
+
 int loggerInit(TSelector selectorParam, const char* logFile, FILE* logStreamParam) {
     // Initialize all the metric values to zero.
     memset(&metrics, 0, sizeof(metrics));
 
+#ifndef DISABLE_LOGGER
     // Get the local time (to log when the server started)
-    time_t T = time(NULL);
-    struct tm tm = *localtime(&T);
+    time_t timeNow = time(NULL);
+    struct tm tm = *localtime(&timeNow);
 
     selector = selectorParam;
     logFileFd = selectorParam == NULL ? -1 : tryOpenLogfile(logFile, tm);
@@ -188,15 +193,17 @@ int loggerInit(TSelector selectorParam, const char* logFile, FILE* logStreamPara
         if (buffer == NULL) {
             close(logFileFd);
             logFileFd = -1;
-            fprintf(stderr, "WARNING: Failed to malloc a buffer for logging. How do you not have 4KBs?? 😡😡\n");
+            fprintf(stderr, "WARNING: Failed to malloc a buffer for logging. You don't have 4KBs?\n");
             return -1;
         }
     }
+#endif
 
     return 0;
 }
 
 int loggerFinalize() {
+#ifndef DISABLE_LOGGER
     // If a logging file is opened, flush buffers, unregister it, and close it.
     if (logFileFd >= 0) {
         selector_unregister_fd(selector, logFileFd); // This will also call the TFdHandler's close, and close the file.
@@ -214,11 +221,14 @@ int loggerFinalize() {
 
     // The logger does not handle closing the stream. We set it to NULL and forget.
     logStream = NULL;
+#endif
     return 0;
 }
 
 void loggerSetLevel(TLogLevel level) {
+#ifndef DISABLE_LOGGER
     logLevel = level;
+#endif
 }
 
 const char* loggerGetLevelString(TLogLevel level) {
@@ -239,9 +249,14 @@ const char* loggerGetLevelString(TLogLevel level) {
 }
 
 int loggerIsEnabledFor(TLogLevel level) {
-    return logLevel >= level && (logFileFd > 0 || logStream != NULL);
+#ifndef DISABLE_LOGGER
+    return level >= logLevel && (logFileFd > 0 || logStream != NULL);
+#else
+    return 0;
+#endif
 }
 
+#ifndef DISABLE_LOGGER
 void loggerPrePrint() {
     makeBufferSpace(LOG_BUFFER_MAX_PRINT_LENGTH);
 }
@@ -277,6 +292,7 @@ int loggerPostPrint(int written, size_t maxlen) {
     }
     return 0;
 }
+#endif
 
 void logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen) {
     logf(LOG_INFO, "Listening for TCP connections at %s", printSocketAddress(listenAddress));
