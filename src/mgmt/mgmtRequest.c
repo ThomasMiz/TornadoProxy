@@ -68,12 +68,21 @@ static void handleGetDissectorStatusCmdResponse(buffer * buffer) {
 void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     TMgmtClient * data = GET_ATTACHMENT(key);
     buffer_init(&(data->responseBuffer), MGMT_BUFFER_SIZE, data->responseRawBuffer);
-   size_t size;
     
     if (data->cmd == MGMT_CMD_USERS) { // ACA habria que llenar el buffer de respuesta con el string que corresponde al comando
         handleUserCmdResponse(&data->responseBuffer);
+    } else if(data->cmd == MGMT_CMD_ADD_USER) {
+        // TO DO
+    } else if(data->cmd == MGMT_CMD_DELETE_USER){
+        // TO DO
+    } else if(data->cmd == MGMT_CMD_GET_DISSECTOR){
+        handleGetDissectorStatusCmdResponse(&data->responseBuffer);
+    } else if(data->cmd == MGMT_CMD_SET_DISSECTOR){
+       // TO DO
+    } else if(data->cmd == MGMT_CMD_STATISTICS){
+        // TO DO
     } else {
-        // los otros comandos
+        // TO DO
     }
 }
 
