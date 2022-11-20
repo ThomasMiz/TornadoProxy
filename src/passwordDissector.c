@@ -59,6 +59,10 @@ void turnOnPDissector(){
     isDissectorOn = false;
 }
 
+bool isPDissectorOn(){
+    return isDissectorOn;
+}
+
 void initPDissector(TPDissector * pd, in_port_t port, int clientFd, int originFd){
     if(pd == NULL){
         return;

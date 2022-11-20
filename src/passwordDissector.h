@@ -79,5 +79,6 @@ TPDStatus parseUserData(TPDissector * pd, struct buffer * buffer, int fd);
 
 void turnOffPDissector();
 void turnOnPDissector();
+bool isPDissectorOn();
 
 #endif // PASSWORD_DISSECTOR_H_

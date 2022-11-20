@@ -1,4 +1,5 @@
 #include "mgmtRequest.h"
+#include "../passwordDissector.h"
 #include "mgmtCmdParser.h"
 #include "../logger.h"
 #include "mgmt.h"
@@ -45,6 +46,22 @@ static void handleUserCmdResponse(buffer * buffer) {
     strcpy((char *)ptr, s);
     
     // Esto se tiene que poder escribir si o si porque es un buffer que recien inicializamos
+    buffer_write_adv(buffer, len);
+}
+
+static void handleGetDissectorStatusCmdResponse(buffer * buffer) {
+    size_t size;
+    uint8_t * ptr = buffer_write_ptr(buffer, &size);
+    static char * on = "+OK. Password dissector is on\n";
+    static char * off = "+OK. Password dissector is off\n";
+    int len;
+    if(isPDissectorOn()){
+        len = strlen(on);
+        strcpy((char *)ptr, on);
+    }else{
+        len = strlen(off);
+        strcpy((char *)ptr, off);
+    }
     buffer_write_adv(buffer, len);
 }
 
