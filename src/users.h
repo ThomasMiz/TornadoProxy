@@ -110,4 +110,9 @@ TUserStatus usersDelete(const char* username);
  */
 TUserStatus usersFinalize();
 
+/**
+ * @brief Returns a const string with a human-readable representation of a given user privilige level.
+*/
+const char* usersPrivilegeToString(TUserPrivilegeLevel privilege);
+
 #endif

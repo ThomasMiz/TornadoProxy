@@ -228,7 +228,7 @@ static int usersGetIndexOf(const char* username) {
             right = midpoint - 1;
     }
 
-    return -(left + 1); // username not found 💀
+    return -(left + 1);
 }
 
 int usersInit(const char* usersFileParam) {
@@ -277,7 +277,7 @@ TUserStatus usersLogin(const char* username, const char* password, TUserPrivileg
         password = "";
 
     if (usersLength == 0) {
-        log(LOG_WARNING, "Login failed because there are no users in the system");
+        log(LOG_WARNING, "A login attempt failed because there are no users in the system");
         return EUSER_WRONGUSERNAME;
     }
 
@@ -325,13 +325,14 @@ TUserStatus usersCreate(const char* username, const char* password, int updatePa
             }
         }
 
+        logf(LOG_INFO, "%s%s%s updated for user %s (%s)", updatePassword ? "password" : "", updatePassword && updatePrivilege ? " and " : "", updatePrivilege ? "privilege" : "", username, usersPrivilegeToString(user->privilegeLevel));
         return status;
     }
 
     // The user doesn't exist. Let's create it.
     // First we check that we haven't reached the system's limit.
     if (usersLength >= USERS_MAX_COUNT) {
-        log(LOG_ERROR, "Attempted to create new user, but the limit of users on the system has been reached");
+        logf(LOG_ERROR, "Attempted to create new user, but the limit of users on the system has been reached (%d)", USERS_MAX_COUNT);
         return EUSER_LIMITREACHED;
     }
 
@@ -371,6 +372,7 @@ TUserStatus usersCreate(const char* username, const char* password, int updatePa
     if (privilege == UPRIV_ADMIN)
         adminUsersCount++;
 
+    logf(LOG_INFO, "Created user %s with %s privileges", username, usersPrivilegeToString(privilege));
     return EUSER_OK;
 }
 
@@ -380,14 +382,17 @@ TUserStatus usersDelete(const char* username) {
         return EUSER_WRONGUSERNAME;
 
     if (users[index].privilegeLevel == UPRIV_ADMIN) {
-        if (adminUsersCount == 1)
+        if (adminUsersCount == 1) {
+            logf(LOG_WARNING, "Attempted to delete user %s failed because there would be no admin users left", users[index].username);
             return EUSER_BADOPERATION;
+        }
         adminUsersCount--;
     }
 
     usersLength--;
     memmove(&users[index], &users[index + 1], (usersLength - index) * sizeof(TUserData));
 
+    logf(LOG_INFO, "Deleted user %s", username);
     return EUSER_OK;
 }
 
@@ -397,4 +402,15 @@ TUserStatus usersFinalize() {
     regfree(&usernameValidationRegex);
     regfree(&passwordValidationRegex);
     return EUSER_OK;
+}
+
+const char* usersPrivilegeToString(TUserPrivilegeLevel privilege) {
+    switch (privilege) {
+        case UPRIV_USER:
+            return "user";
+        case UPRIV_ADMIN:
+            return "admin";
+        default:
+            return "unknown";
+    }
 }

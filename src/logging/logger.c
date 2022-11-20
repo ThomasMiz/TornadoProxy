@@ -284,11 +284,6 @@ void logServerListening(const struct sockaddr* listenAddress, socklen_t listenAd
     logf(LOG_INFO, "Listening for TCP connections at %s", printSocketAddress(listenAddress));
 }
 
-void logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLength) {
-
-    logf(LOG_INFO, "New client connection from %s assigned id %d", printSocketAddress(origin), clientId);
-}
-
 void logClientDisconnected(int clientId, const char* username, const char* reason) {
 
     if (username == NULL) {

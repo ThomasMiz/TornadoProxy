@@ -88,16 +88,6 @@ int loggerPostPrint(int written, size_t maxlen);
 void logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen);
 
 /**
- * @brief Log that a new client connection has been established. This should be called
- * as soon as a TCP connection is established.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param origin The address the client is connecting from. This value is returned by
- * accept(). Null can be used to indicate unknown origin.
- * @param originLength the length of the socket address specified in origin.
- */
-void logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLength);
-
-/**
  * @brief Log that a client connection has disconnected. This should be called as soon
  * as the TCP connection is closed.
  * @param clientId The client's ID (it's socket's file descriptor).

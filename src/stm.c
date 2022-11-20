@@ -4,7 +4,7 @@
  */
 #include "stm.h"
 #include <stdio.h>
-#include "logger.h"
+#include "logging/logger.h"
 #include <stdlib.h>
 
 #define N(x) (sizeof(x) / sizeof((x)[0]))
@@ -36,7 +36,7 @@ handle_first(struct state_machine* stm, TSelectorKey* key) {
 
 inline static void jump(struct state_machine* stm, unsigned next, TSelectorKey* key) {
     if (next > stm->max_state) {
-        log(DEBUG, "%d", key->fd);
+        logf(LOG_DEBUG, "State state machine jump: %d", key->fd);
         abort();
     }
     if (stm->current != stm->states + next) {
@@ -55,7 +55,7 @@ unsigned
 stm_handler_read(struct state_machine* stm, TSelectorKey* key) {
     handle_first(stm, key);
     if (stm->current->on_read_ready == 0) {
-        log(DEBUG, "%d STATE: %d", key->fd, stm->current->state);
+        logf(LOG_DEBUG, "State machine read handler: %d STATE: %d", key->fd, stm->current->state);
         abort();
     }
     const unsigned int ret = stm->current->on_read_ready(key);
@@ -68,7 +68,7 @@ unsigned
 stm_handler_write(struct state_machine* stm, TSelectorKey* key) {
     handle_first(stm, key);
     if (stm->current->on_write_ready == 0) {
-        log(DEBUG, "%d", key->fd);
+        logf(LOG_DEBUG, "State machine write handler: %d", key->fd);
         abort();
     }
     const unsigned int ret = stm->current->on_write_ready(key);
@@ -81,7 +81,7 @@ unsigned
 stm_handler_block(struct state_machine* stm, TSelectorKey* key) {
     handle_first(stm, key);
     if (stm->current->on_block_ready == 0) {
-        log(DEBUG, "%d", key->fd);
+        logf(LOG_DEBUG, "State machine block handler: %d", key->fd);
         abort();
     }
     const unsigned int ret = stm->current->on_block_ready(key);
