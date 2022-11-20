@@ -2,6 +2,7 @@
 #include "../passwordDissector.h"
 #include "mgmtCmdParser.h"
 #include "../logger.h"
+#include "../users.h"
 #include "mgmt.h"
 #include "mgmtCmdParser.h"
 #include "../logging/metrics.h"
@@ -47,6 +48,38 @@ static void handleUserCmdResponse(buffer * buffer) {
     
     // Esto se tiene que poder escribir si o si porque es un buffer que recien inicializamos
     buffer_write_adv(buffer, len);
+}
+
+static void handleDeleteUserCmdResponse(buffer * buffer, TMgmtParser* p){
+    
+    size_t size;
+    uint8_t * ptr = buffer_write_ptr(buffer, &size);    
+    char * username = p->args[0].string;
+
+    static char* wrongUsernameMessage = "-ERR user doesn't exist";
+    static char* badOperationMessage = "-ERR cannot delete user because you are the last sysadmin\n";
+    static char* successMessage = "+OK user successfully deleted";
+    static char* unkownErrorMessage = "-ERR can't delete user, try again";
+    char* toReturn;
+
+    int status = usersDelete(username);
+
+    switch(status){
+        case EUSER_OK:
+            toReturn = successMessage;
+            break;
+        case EUSER_WRONGUSERNAME:
+            toReturn = wrongUsernameMessage;
+            break;
+        case EUSER_BADOPERATION:
+            toReturn = badOperationMessage;
+            break;
+        default:
+            toReturn = unkownErrorMessage;
+    }
+
+    strcpy((char *)ptr, toReturn);
+    buffer_write_adv(buffer, strlen(toReturn));
 }
 
 static void handleGetDissectorStatusCmdResponse(buffer * buffer) {
@@ -140,9 +173,9 @@ void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     if (data->cmd == MGMT_CMD_USERS) {
         handleUserCmdResponse(&data->responseBuffer);
     } else if(data->cmd == MGMT_CMD_ADD_USER) {
-        // TO DO
+       // TO DO
     } else if(data->cmd == MGMT_CMD_DELETE_USER){
-        // TO DO
+        handleDeleteUserCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if(data->cmd == MGMT_CMD_GET_DISSECTOR){
         handleGetDissectorStatusCmdResponse(&data->responseBuffer);
     } else if(data->cmd == MGMT_CMD_SET_DISSECTOR){
