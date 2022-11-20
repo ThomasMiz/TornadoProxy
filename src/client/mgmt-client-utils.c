@@ -71,7 +71,7 @@ bool authenticate(char *username, char *password, int socket) {
     memcpy(credentials + idx, password, passwordLength);
     idx += passwordLength;
     
-    if(send(socket, credentials, idx, MSG_DONTWAIT) < 0){
+    if(send(socket, credentials, idx, 0) < 0){
         printf("Error sending credentials to server\n");
         return false;
     }

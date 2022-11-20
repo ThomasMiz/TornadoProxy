@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <time.h>
 
 #include "../selector.h"
 
@@ -24,13 +25,21 @@
  * fprintf which may be blocking, halting the server. This stream is not closed by the
  * logging system.
  */
-int logInit(TSelector selector, const char* logFile, FILE* logStream);
+int loggerInit(TSelector selector, const char* logFile, FILE* logStream);
 
 /**
  * @brief Closes the logging system, flushing any remaining logs, closing any opened
  * files and unregistering them from the selector.
  */
-int logFinalize();
+int loggerFinalize();
+
+int loggerIsEnabled();
+
+void loggerPrePrint();
+
+void loggerGetBufstartAndMaxlength(char** bufstartVar, size_t* maxlenVar);
+
+int loggerPostPrint(int written, size_t maxlen);
 
 /**
  * @brief Log a raw string.
@@ -40,19 +49,34 @@ int logFinalize();
  * facts. Our existance is meaningless against the power of the Almighty Twelve-Tounged
  * God. Mike Wazowski is blue and you can't convince me otherwise.
  */
-int logString(const char* s);
+
+#define logf(format, ...)                                                                                                            \
+    if (loggerIsEnabled()) {                                                                                                         \
+        loggerPrePrint();                                                                                                            \
+        time_t loginternal_time = time(NULL);                                                                                        \
+        struct tm loginternal_tm = *localtime(&loginternal_time);                                                                    \
+        size_t loginternal_maxlen;                                                                                                   \
+        char* loginternal_bufstart;                                                                                                  \
+        loggerGetBufstartAndMaxlength(&loginternal_bufstart, &loginternal_maxlen);                                                   \
+        int loginternal_written = snprintf(loginternal_bufstart, loginternal_maxlen, "[%02d/%02d/%04d %02d:%02d:%02d] " format "\n", \
+                                           loginternal_tm.tm_mday, loginternal_tm.tm_mon + 1, loginternal_tm.tm_year + 1900,         \
+                                           loginternal_tm.tm_hour, loginternal_tm.tm_min, loginternal_tm.tm_sec, ##__VA_ARGS__);     \
+        loggerPostPrint(loginternal_written, loginternal_maxlen);                                                                    \
+    }
+
+#define log(s) logf("%s", s)
 
 /**
  * @brief Log that the server has opened a socket listening at the specified socekt.
  * @param listenSocket The address the server socket is bound to, or NULL if unknown.
  * @param listenSocketLen The length of the socket address specified in listenSocket.
  */
-int logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen);
+void logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen);
 
 /**
  * @brief Log that a server error ocurred.
  */
-int logServerError(const char* err_msg, const char* info);
+void logServerError(const char* err_msg, const char* info);
 
 /**
  * @brief Log that a new client connection has been established. This should be called
@@ -62,7 +86,7 @@ int logServerError(const char* err_msg, const char* info);
  * accept(). Null can be used to indicate unknown origin.
  * @param originLength the length of the socket address specified in origin.
  */
-int logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLength);
+void logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLength);
 
 /**
  * @brief Log that a client connection has disconnected. This should be called as soon
@@ -72,7 +96,7 @@ int logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLe
  * @param reason A human-readable string indicating why the client was disconnected.
  * For example, "connection closed by client", "no valid auth method", "solar storm"
  */
-int logClientDisconnected(int clientId, const char* username, const char* reason);
+void logClientDisconnected(int clientId, const char* username, const char* reason);
 
 /**
  * @brief Log that a client attempted to authenticate, whether successfull or not.
@@ -81,7 +105,7 @@ int logClientDisconnected(int clientId, const char* username, const char* reason
  * @param user The username specified, or null if not loggin in with username.
  * @param successful Whether the authentication was successful.
  */
-int logClientAuthenticated(int clientId, const char* username, int successful);
+void logClientAuthenticated(int clientId, const char* username, int successful);
 
 /**
  * @brief Log that a client requested to connect to a remote IP address.
@@ -90,7 +114,7 @@ int logClientAuthenticated(int clientId, const char* username, int successful);
  * @param remote The address the client requested to connec to.
  * @param remoteLength The length of the address specified in remote.
  */
-int logClientConnectionRequestAddress(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
+void logClientConnectionRequestAddress(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
 
 /**
  * @brief Log that a client requested to connect to a remote domain name.
@@ -98,7 +122,7 @@ int logClientConnectionRequestAddress(int clientId, const char* username, const 
  * @param username The client's username, or null if not logged in.
  * @param domainname The domain name the client requested to connect to.
  */
-int logClientConnectionRequestDomainname(int clientId, const char* username, const char* domainname);
+void logClientConnectionRequestDomainname(int clientId, const char* username, const char* domainname);
 
 /**
  * @brief Log that the server is attempting to establish a connection requested by a
@@ -108,7 +132,7 @@ int logClientConnectionRequestDomainname(int clientId, const char* username, con
  * @param remote The address the server is attempting to connect to.
  * @param remoteLength The length of the address specified in remote.
  */
-int logClientConnectionRequestAttempt(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
+void logClientConnectionRequestAttempt(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
 
 /**
  * @brief Log that the server has successfully established a connection requested by
@@ -118,7 +142,7 @@ int logClientConnectionRequestAttempt(int clientId, const char* username, const 
  * @param remote The address the server has to connect to.
  * @param remoteLength The length of the address specified in remote.
  */
-int logClientConnectionRequestSuccess(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
+void logClientConnectionRequestSuccess(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
 
 /**
  * @brief Log that a client sent or received a specified amount of bytes to the remote
@@ -128,6 +152,6 @@ int logClientConnectionRequestSuccess(int clientId, const char* username, const 
  * @param bytesSent The amount of bytes sent by the client to the remote server.
  * @param bytesReceived The amount of bytes sent by the remote server to the client.
  */
-int logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived);
+void logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived);
 
 #endif

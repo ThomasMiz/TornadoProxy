@@ -64,7 +64,7 @@ void initMgmtCmdParser(TMgmtParser* p){
     if(p==NULL)
         return;
     p->state = MGMTP_WAITING_CMD;
-    p->readCommands = 0;
+    p->readArgs = 0;
     p->slength = 0;
     p->rlength = 0;
 }
@@ -100,7 +100,7 @@ static TMgmtState parseCmd(TMgmtParser* p, uint8_t c){
     return commands[c].argc == 0 ? MGMTP_END : MGMTP_READING_ARGS;
 }
 static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
-    ARG_TYPE at = commands[c].argt[p->readCommands];
+    ARG_TYPE at = commands[p->cmd].argt[p->readArgs];
 
     if(at == STRING){
         //Reading string length
@@ -115,13 +115,14 @@ static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
         }
 
         //Reading string
-        p->args[p->readCommands].string[p->rlength++]=c;
+        p->args[p->readArgs].string[p->rlength++]=c;
 
         //Check if the string ended
         if(p->slength == p->rlength){
-            p->args[p->readCommands].string[p->rlength]=0;
-            p->readCommands++;
-            if(p->readCommands == commands[c].argc){
+            p->args[p->readArgs].string[p->rlength]=0;
+            p->readArgs++;
+            log(DEBUG, "String arg read: %s, read commands: %d", p->args[p->readArgs-1].string, p->readArgs);
+            if(p->readArgs == commands[p->cmd].argc){
                 return MGMTP_END;
             }
             //restart counters in case another string comes
@@ -131,8 +132,9 @@ static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
     }
 
     if(at == BYTE){
-        p->args[p->readCommands++].byte = c;
-        return p->readCommands == commands[c].argc ? MGMTP_END : MGMTP_READING_ARGS;
+        log(DEBUG, "Byte arg read: %d", c);
+        p->args[p->readArgs++].byte = c;
+        return p->readArgs == commands[p->cmd].argc ? MGMTP_END : MGMTP_READING_ARGS;
     }
 
     // at == EMPTY

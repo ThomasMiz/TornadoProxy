@@ -6,7 +6,6 @@
 #include "negotiation/negotiation.h"
 #include "request/requestParser.h"
 #include "selector.h"
-#include "socks5.h"
 #include "copy.h"
 #include "stm.h"
 #include "passwordDissector.h"
@@ -19,8 +18,6 @@
 #define N(x) (sizeof(x) / sizeof((x)[0]))
 
 typedef struct TClientData {
-    TFdHandler handler;
-
     struct state_machine stm;
     union {
         TNegParser negParser;
@@ -138,6 +135,6 @@ enum socks_state {
 };
 
 void socksv5PassivAccept(TSelectorKey* key);
-TFdHandler* getStateHandler();
+const TFdHandler* getStateHandler();
 
 #endif

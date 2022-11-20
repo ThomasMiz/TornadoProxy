@@ -41,7 +41,7 @@ typedef struct TMgmtParser {
     TMgmtStatus status;
     TMgmtCmd cmd;
 
-    uint8_t readCommands;
+    uint8_t readArgs;
 
     uint8_t slength;    // Lenght to read from a string arg
     uint8_t rlength;    // Already read bytes form a string

@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ADDRSTR_BUFLEN 64
+
 const char* printFamily(int family) {
     switch (family) {
         case AF_INET:
@@ -69,34 +71,42 @@ void printFlags(int flags) {
     }
 }
 
-char* printAddressPort(int family, struct sockaddr* addr, char outputBuf[]) {
+const char* printAddressPort(int family, struct sockaddr* address) {
+    if (address == NULL)
+        return "unknown address";
+
+    static char addrBuffer[ADDRSTR_BUFLEN];
     char abuf[INET6_ADDRSTRLEN];
     const char* addrAux;
     if (family == AF_INET) {
         struct sockaddr_in* sinp;
-        sinp = (struct sockaddr_in*)addr;
+        sinp = (struct sockaddr_in*)address;
         addrAux = inet_ntop(AF_INET, &sinp->sin_addr, abuf, INET_ADDRSTRLEN);
         if (addrAux == NULL)
             addrAux = "unknown";
-        strcpy(outputBuf, addrAux);
+        strcpy(addrBuffer, addrAux);
         if (sinp->sin_port != 0) {
-            sprintf(outputBuf + strlen(outputBuf), ": %d", ntohs(sinp->sin_port));
+            sprintf(addrBuffer + strlen(addrBuffer), ": %d", ntohs(sinp->sin_port));
         }
     } else if (family == AF_INET6) {
         struct sockaddr_in6* sinp;
-        sinp = (struct sockaddr_in6*)addr;
+        sinp = (struct sockaddr_in6*)address;
         addrAux = inet_ntop(AF_INET6, &sinp->sin6_addr, abuf, INET6_ADDRSTRLEN);
         if (addrAux == NULL)
             addrAux = "unknown";
-        strcpy(outputBuf, addrAux);
+        strcpy(addrBuffer, addrAux);
         if (sinp->sin6_port != 0)
-            sprintf(outputBuf + strlen(outputBuf), ": %d", ntohs(sinp->sin6_port));
+            sprintf(addrBuffer + strlen(addrBuffer), ": %d", ntohs(sinp->sin6_port));
     } else
-        strcpy(outputBuf, "unknown");
-    return outputBuf;
+        strcpy(addrBuffer, "unknown");
+    return addrBuffer;
 }
 
-int printSocketAddress(const struct sockaddr* address, char* addrBuffer) {
+const char* printSocketAddress(const struct sockaddr* address) {
+    if (address == NULL)
+        return "unknown address";
+
+    static char addrBuffer[ADDRSTR_BUFLEN];
     void* numericAddress;
     in_port_t port;
 
@@ -120,7 +130,7 @@ int printSocketAddress(const struct sockaddr* address, char* addrBuffer) {
         if (port != 0)
             sprintf(addrBuffer + strlen(addrBuffer), ":%u", port);
     }
-    return 1;
+    return addrBuffer;
 }
 
 int sockAddrsEqual(const struct sockaddr* addr1, const struct sockaddr* addr2) {

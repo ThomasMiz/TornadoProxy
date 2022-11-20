@@ -14,14 +14,14 @@
 #include "socks5.h"
 #include "args.h"
 #include "users.h"
-#include "logger.h"
+#include "logging/logger.h"
 #include "mgmt/mgmt.h"
 
 static bool terminationRequested = false;
 
 
 static void sigterm_handler(const int signal) {
-    printf("signal %d, cleaning up and exiting\n", signal);
+    logf("Signal %d, cleaning up and exiting", signal);
     terminationRequested = true;
 }
 
@@ -37,7 +37,8 @@ static uint8_t setupSockAddr(char * addr, unsigned short port, void * res) {
 		sock6.sin6_addr = in6addr_any;
 		sock6.sin6_port = htons(port);
 		if(inet_pton(AF_INET6, addr, &sock6.sin6_addr) != 1) {
-			log(LOG_ERROR, "failed IP conversion for %s", "IPv6");
+			//log(LOG_ERROR, "failed IP conversion for %s", "IPv6"); // TODO: Remove
+            logf("failed IP conversion for %s", "IPv6");
 			return -1;
 		}
         *((struct sockaddr_in6 * )res) = sock6;
@@ -48,7 +49,8 @@ static uint8_t setupSockAddr(char * addr, unsigned short port, void * res) {
 		sock4.sin_addr.s_addr = INADDR_ANY;
 		sock4.sin_port = htons(port);
 		if(inet_pton(AF_INET, addr, &sock4.sin_addr) != 1) {
-			log(LOG_ERROR, "failed IP conversion for %s", "IPv4");
+			//log(LOG_ERROR, "failed IP conversion for %s", "IPv4"); // TODO: Remove
+			logf("failed IP conversion for %s", "IPv4");
 			return -1;
 		}
         *((struct sockaddr_in * )res) = sock4;
@@ -63,6 +65,36 @@ int main(const int argc, char** argv) {
 
     // no tenemos nada que leer de stdin
     close(STDIN_FILENO);
+
+    // Creamos el selector
+    const char *err_msg = NULL;
+    TSelectorStatus ss = SELECTOR_SUCCESS;
+    TSelector selector = NULL;
+    const TSelectorInit conf = {
+            .signal = SIGALRM,
+            .select_timeout = {
+                    .tv_sec = 10,
+                    .tv_nsec = 0,
+            },
+    };
+    if (0 != selector_init(&conf)) {
+        // NOTE: Can't do logging without a selector
+        fprintf(stderr, "Failed to initialize selector. Server closing.");
+        exit(1);
+        // err_msg = "initializing selector";
+        // goto finally;
+    }
+
+    selector = selector_new(1024);
+    if (selector == NULL) {
+        fprintf(stderr, "Failed to create selector. Server closing.");
+        selector_close();
+        exit(1);
+        //err_msg = "unable to create selector";
+        //goto finally;
+    }
+
+    loggerInit(selector, "", stdout);
     usersInit(NULL);
 
     struct socks5args args;
@@ -74,20 +106,16 @@ int main(const int argc, char** argv) {
         usersCreate(args.users[i].name, args.users[i].pass, 0, UPRIV_USER, 0);
     }
 
-    const char *err_msg = NULL;
-    TSelectorStatus ss = SELECTOR_SUCCESS;
-    TSelector selector = NULL;
-
     // Listening on just IPv6 allow us to handle both IPv6 and IPv4 connections!
     // https://stackoverflow.com/questions/50208540/cant-listen-on-ipv4-and-ipv6-together-address-already-in-use
 
    
-    // log(DEBUG, "hola %d %d", sizeof(struct sockaddr_in), sizeof(struct sockaddr_in6));
+    // log(DEBUG, "hola %d %d", sizeof(struct sockaddr_in), sizeof(struct sockaddr_in6)); // TODO: Remove
     struct sockaddr_in6 aux;
     memset(&aux, 0, sizeof(aux));
     void * p = (void *)&aux;
     uint8_t size = setupSockAddr(args.socksAddr, args.socksPort,p);
-    // log(DEBUG, "hola %s", "a");
+    // log(DEBUG, "hola %s", "a"); // TODO: Remove
     int ipv6 = strchr(args.socksAddr, ':') != NULL; 
     const int server = socket(ipv6? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (server < 0) {
@@ -95,7 +123,8 @@ int main(const int argc, char** argv) {
         goto finally;
     }
 
-    fprintf(stdout, "Listening on TCP port %d\n", args.socksPort);
+    //fprintf(stdout, "Listening on TCP port %d\n", args.socksPort); // TODO: Remove
+    logf("Listening on TCP port %d", args.socksPort);
 
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));
@@ -120,7 +149,7 @@ int main(const int argc, char** argv) {
     // MANAGEMENT
     memset(&aux, 0, sizeof(aux));
     size = setupSockAddr(args.mngAddr, args.mngPort, p);
-    log(DEBUG, "hola %s", "a");
+    
     ipv6 = strchr(args.mngAddr, ':') != NULL; 
     const int mgmtServer = socket(ipv6? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (mgmtServer < 0) {
@@ -128,7 +157,8 @@ int main(const int argc, char** argv) {
         goto finally;
     }
 
-    fprintf(stdout, "Listening on TCP port %d (socks5) and %d (management)\n", args.socksPort, args.mngPort);
+    //fprintf(stdout, "Listening on TCP port %d (socks5) and %d (management)\n", args.socksPort, args.mngPort); // TODO: Remove
+    logf("Listening on TCP port %d (socks5) and %d (management)", args.socksPort, args.mngPort);
 
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(mgmtServer, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));
@@ -154,24 +184,6 @@ int main(const int argc, char** argv) {
     signal(SIGTERM, sigterm_handler);
     signal(SIGINT, sigterm_handler);
 
-    
-    const TSelectorInit conf = {
-            .signal = SIGALRM,
-            .select_timeout = {
-                    .tv_sec = 10,
-                    .tv_nsec = 0,
-            },
-    };
-    if (0 != selector_init(&conf)) {
-        err_msg = "initializing selector";
-        goto finally;
-    }
-
-    selector = selector_new(1024);
-    if (selector == NULL) {
-        err_msg = "unable to create selector";
-        goto finally;
-    }
     const TFdHandler socksv5 = {
             .handle_read = socksv5PassivAccept,
             .handle_write = NULL,
@@ -207,26 +219,10 @@ int main(const int argc, char** argv) {
         err_msg = "closing";
     }
 
-    ss = selector_register(selector, server, &management, OP_READ, NULL);
-    if (ss != SELECTOR_SUCCESS) {
-        err_msg = "registering fd";
-        goto finally; // si falla solo el de management, deberiamos abortar todo o el socks sigue andando?
-    }
-    while (!terminationRequested) {
-        err_msg = NULL;
-        ss = selector_select(selector);
-        if (ss != SELECTOR_SUCCESS) {
-            err_msg = "serving";
-            goto finally;
-        }
-    }
-    if (err_msg == NULL) {
-        err_msg = "closing";
-    }
-
     int ret = 0;
     finally:
     usersFinalize();
+    loggerFinalize();
     if (ss != SELECTOR_SUCCESS) {
         fprintf(stderr, "%s: %s\n", (err_msg == NULL) ? "" : err_msg,
                 ss == SELECTOR_IO
