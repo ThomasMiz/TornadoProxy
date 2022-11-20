@@ -1,5 +1,5 @@
 #include "authParser.h"
-#include "../logger.h"
+#include "../logging/logger.h"
 
 typedef TAuthState (*parseCharacter)(TAuthParser* p, uint8_t c);
 
@@ -53,14 +53,14 @@ TAuthRet fillAuthAnswer(TAuthParser* p, struct buffer* buffer) {
 
 static TAuthState parseVersion(TAuthParser* p, uint8_t c) {
     if (c != AUTH_VERSION_1) {
-        log(INFO, "Client specified invalid version: %d\n", c);
+        logf(LOG_DEBUG, "parseVersion: Client specified invalid version: %d", c);
         return AUTH_INVALID_VERSION;
     }
     return AUTH_ULEN;
 }
 
 static TAuthState parseUNameByteCount(TAuthParser* p, uint8_t c) {
-    log(DEBUG, "Username length: %d", c);
+    logf(LOG_DEBUG, "parseUNameByteCount: Username length: %d", c);
     if (c == 0) {
         return AUTH_PLEN;
     }
@@ -77,7 +77,7 @@ static TAuthState parseUsername(TAuthParser* p, uint8_t c) {
     return AUTH_UNAME;
 }
 static TAuthState parsePasswdByteCount(TAuthParser* p, uint8_t c) {
-    log(DEBUG, "Password length: %d", c);
+    logf(LOG_DEBUG, "parsePasswdByteCount: Password length: %d", c);
     if (c == 0) {
         return AUTH_END;
     }
@@ -93,7 +93,7 @@ static TAuthState parsePassword(TAuthParser* p, uint8_t c) {
     return AUTH_PASSWD;
 }
 static TAuthState parseEnd(TAuthParser* p, uint8_t c) {
-    log(LOG_ERROR, "Trying to call auth parser in END/ERROR state with char: %c", c);
+    logf(LOG_ERROR, "parseEnd: Trying to call auth parser in END/ERROR state with char: %c", c);
     return p->state;
 }
 

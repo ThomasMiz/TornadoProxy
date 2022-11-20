@@ -182,7 +182,7 @@ unsigned requestResolveDone(TSelectorKey* key) {
     }
 
     if (ailist == NULL) {
-        log(LOG_DEBUG, "requestResolveDone: no results!");
+        logf(LOG_DEBUG, "Resolve of domain name requested by %d returned no results", key->fd);
         return fillRequestAnswerWitheErrorState(key, REQ_ERROR_HOST_UNREACHABLE);
     }
 

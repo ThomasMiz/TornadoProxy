@@ -93,6 +93,7 @@ int main(const int argc, char** argv) {
     }
 
     loggerInit(selector, "", stdout);
+    loggerSetLevel(LOG_INFO);
     usersInit(NULL);
 
     struct socks5args args;
