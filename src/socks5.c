@@ -86,7 +86,7 @@ static TFdHandler handler = {
     .handle_block = socksv5Block,
 };
 
-TFdHandler* getStateHandler() {
+const TFdHandler* getStateHandler() {
     return &handler;
 }
 
@@ -172,12 +172,6 @@ void socksv5PassivAccept(TSelectorKey* key) {
         return;
     }
 
-    TFdHandler* handler = &clientData->handler;
-    handler->handle_read = socksv5Read;
-    handler->handle_write = socksv5Write;
-    handler->handle_close = socksv5Close;
-    handler->handle_block = socksv5Block;
-
     clientData->stm.initial = NEGOTIATION_READ;
     clientData->stm.max_state = ERROR;
     clientData->closed = false;
@@ -190,7 +184,7 @@ void socksv5PassivAccept(TSelectorKey* key) {
 
     stm_init(&clientData->stm);
 
-    TSelectorStatus status = selector_register(key->s, newClientSocket, handler, OP_READ, clientData);
+    TSelectorStatus status = selector_register(key->s, newClientSocket, getStateHandler(), OP_READ, clientData);
 
     if (status != SELECTOR_SUCCESS) {
         log(LOG_ERROR, "Failed to register new client into selector: %s", selector_error(status));

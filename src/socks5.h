@@ -18,8 +18,6 @@
 #define N(x) (sizeof(x) / sizeof((x)[0]))
 
 typedef struct TClientData {
-    TFdHandler handler;
-
     struct state_machine stm;
     union {
         TNegParser negParser;
@@ -137,6 +135,6 @@ enum socks_state {
 };
 
 void socksv5PassivAccept(TSelectorKey* key);
-TFdHandler* getStateHandler();
+const TFdHandler* getStateHandler();
 
 #endif
