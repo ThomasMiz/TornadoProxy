@@ -25,7 +25,7 @@ Se generarán dos binarios llamados `sock5v` y `client` dentro del directorio `b
 
 ## Ejecucion
 
-### Servidor SOCK5
+### Servidor SOCKS5
 
 Se debe correr el comando:
 
