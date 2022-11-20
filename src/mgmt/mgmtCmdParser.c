@@ -134,7 +134,7 @@ static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
     if(at == BYTE){
         log(DEBUG, "Byte arg read: %d", c);
         p->args[p->readCommands++].byte = c;
-        return p->readCommands == commands[c].argc ? MGMTP_END : MGMTP_READING_ARGS;
+        return p->readCommands == commands[p->cmd].argc ? MGMTP_END : MGMTP_READING_ARGS;
     }
 
     // at == EMPTY
