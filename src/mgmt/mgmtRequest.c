@@ -52,8 +52,8 @@ static void handleUserCmdResponse(buffer * buffer) {
 static void handleGetDissectorStatusCmdResponse(buffer * buffer) {
     size_t size;
     uint8_t * ptr = buffer_write_ptr(buffer, &size);
-    static char * on = "+OK. Password dissector is on\n";
-    static char * off = "+OK. Password dissector is off\n";
+    static char * on = "+OK. Password dissector is: on\n";
+    static char * off = "+OK. Password dissector is: off\n";
     int len;
     if(isPDissectorOn()){
         len = strlen(on);
@@ -65,11 +65,31 @@ static void handleGetDissectorStatusCmdResponse(buffer * buffer) {
     buffer_write_adv(buffer, len);
 }
 
+static void handleSetDissectorStatusCmdResponse(buffer * buffer, TMgmtParser* p){
+    size_t size;
+    uint8_t turnOn = p->args[0].byte;                              // OFF = 0 : ON = 1
+
+    uint8_t * ptr = buffer_write_ptr(buffer, &size);
+    static char * on = "+OK. Dissector status: on\n";
+    static char * off = "+OK. Dissector status: off\n";
+    int len;
+    if(!turnOn){
+        turnOffPDissector();
+        len = strlen(off);
+        strcpy((char *)ptr, off);
+    } else {
+        turnOnPDissector();
+        len = strlen(on);
+        strcpy((char *)ptr, on);
+    }
+    buffer_write_adv(buffer,len);
+}
+
 void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     TMgmtClient * data = GET_ATTACHMENT(key);
     buffer_init(&(data->responseBuffer), MGMT_BUFFER_SIZE, data->responseRawBuffer);
     
-    if (data->cmd == MGMT_CMD_USERS) { // ACA habria que llenar el buffer de respuesta con el string que corresponde al comando
+    if (data->cmd == MGMT_CMD_USERS) {
         handleUserCmdResponse(&data->responseBuffer);
     } else if(data->cmd == MGMT_CMD_ADD_USER) {
         // TO DO
@@ -78,7 +98,7 @@ void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     } else if(data->cmd == MGMT_CMD_GET_DISSECTOR){
         handleGetDissectorStatusCmdResponse(&data->responseBuffer);
     } else if(data->cmd == MGMT_CMD_SET_DISSECTOR){
-       // TO DO
+        handleSetDissectorStatusCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if(data->cmd == MGMT_CMD_STATISTICS){
         // TO DO
     } else {
@@ -97,7 +117,6 @@ unsigned mgmtRequestWrite(TSelectorKey* key){
  // new
     writeBuffer = buffer_read_ptr(&data->responseBuffer, &writeLimit);
     writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
-    buffer_read_adv(&data->responseBuffer, writeCount);
     log(DEBUG, "[Mgmt req write] sent %ld bytes", writeCount);
 
 // ----
