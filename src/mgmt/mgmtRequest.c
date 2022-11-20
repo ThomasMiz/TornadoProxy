@@ -4,7 +4,7 @@
 #include "../logger.h"
 #include "mgmt.h"
 #include "mgmtCmdParser.h"
-
+#include "../logging/metrics.h"
 
 void mgmtRequestReadInit(const unsigned state, TSelectorKey* key){
     log(DEBUG, "[Mgmt req read] init at socket fd %d", key->fd);
@@ -85,6 +85,54 @@ static void handleSetDissectorStatusCmdResponse(buffer * buffer, TMgmtParser* p)
     buffer_write_adv(buffer,len);
 }
 
+static int copyMetric(int idx, uint8_t * buff, char * metricString, size_t metricValue){
+
+    char aux[256];
+    int len = strlen(metricString);
+
+    memcpy(buff + idx, metricString, len);
+    idx += len;
+    snprintf(aux, sizeof(aux), "%ld", metricValue);
+    memcpy(buff + idx, aux, 1);
+    idx+= strlen(aux);
+    memcpy(buff + idx, "\n", 1);
+    idx ++;
+
+    return idx;
+ }
+
+ static void handleStatisticsCmdResponse(buffer * buffer){
+
+    TMetricsSnapshot* metrics = calloc(1, sizeof(TMetricsSnapshot));
+    getMetricsSnapshot(metrics);
+
+    static char* successMessage = "+OK. Showing stats:\n";
+    int sucLength = strlen(successMessage);
+
+    static char* connectionCount = "CONC:";
+    static char* maxConcurrmetrics = "MCONC:";
+    static char* totalBytesRecv = "TBRECV:";
+    static char* totalBytesSent = "TBSENT";
+    static char* totalConnectionCount = "TCON:";
+ 
+    uint8_t statistics[512];
+    memcpy(statistics, successMessage, sucLength);
+    int idx = sucLength;
+
+    idx = copyMetric(idx, statistics, connectionCount, metrics->currentConnectionCount);
+    idx = copyMetric(idx, statistics, maxConcurrmetrics, metrics->maxConcurrentConnections);
+    idx = copyMetric(idx, statistics, totalBytesRecv, metrics->totalBytesReceived);
+    idx = copyMetric(idx, statistics, totalBytesSent, metrics->totalBytesSent);
+    idx = copyMetric(idx, statistics, totalConnectionCount, metrics->totalConnectionCount);
+    statistics[idx] = 0;
+
+    size_t size;
+    uint8_t* ptr = buffer_write_ptr(buffer, &size);
+    strcpy((char*)ptr, (char*)statistics);
+    buffer_write_adv(buffer, strlen((char *) statistics));
+    free(metrics);
+ }
+
 void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     TMgmtClient * data = GET_ATTACHMENT(key);
     buffer_init(&(data->responseBuffer), MGMT_BUFFER_SIZE, data->responseRawBuffer);
@@ -100,7 +148,7 @@ void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     } else if(data->cmd == MGMT_CMD_SET_DISSECTOR){
         handleSetDissectorStatusCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if(data->cmd == MGMT_CMD_STATISTICS){
-        // TO DO
+        handleStatisticsCmdResponse(&data->responseBuffer);
     } else {
         // TO DO
     }
