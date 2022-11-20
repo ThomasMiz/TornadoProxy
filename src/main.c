@@ -120,7 +120,7 @@ int main(const int argc, char** argv) {
     // MANAGEMENT
     memset(&aux, 0, sizeof(aux));
     size = setupSockAddr(args.mngAddr, args.mngPort, p);
-    log(DEBUG, "hola %s", "a");
+    
     ipv6 = strchr(args.mngAddr, ':') != NULL; 
     const int mgmtServer = socket(ipv6? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (mgmtServer < 0) {

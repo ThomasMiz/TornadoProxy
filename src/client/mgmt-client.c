@@ -11,6 +11,22 @@ int main(int argc, char *argv[]) {
         printf("Usage: %s <command> <arguments>\n", argv[0]);
         return -1;
     }
+    
+    if (strcmp("-h", argv[1]) == 0) {
+        printf("ha\n");
+            fprintf(stderr,
+            "Usage: %s [OPTION]...\n"
+            "\n"
+            "   -h                                 Imprime la ayuda y termina.\n" 
+            "   USERS                              Envía un pedido para obtener los usuarios registrados.\n" 
+            "   ADD-USER <username> <password>     Envía un pedido para agregar un usuario al registro del servidor.\n"
+            "   DELETE-USER <username>             Envía un pedido para borrar un usuario del registro del servidor.\n"
+            "   GET-DISSECTOR-STATUS               Envía un pedido para obtener el estado del disector de contraseñas.\n"
+            "   SET-DISSECTOR-STATUS [ON/OFF]      Envía un pedido para setear el estado del disector de contraseñas.\n"
+            "   STATISTICS                         Envía un pedido de las estadísticas del servidor.\n"
+            "\n","client");
+            return 0;
+    }
 
     char *command = argv[1];
     int commandReference;
