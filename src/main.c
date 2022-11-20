@@ -21,11 +21,11 @@ static bool terminationRequested = false;
 
 
 static void sigterm_handler(const int signal) {
-    logf("Signal %d, cleaning up and exiting", signal);
+    logf(LOG_INFO, "Signal %d, cleaning up and exiting", signal);
     terminationRequested = true;
 }
 
-static uint8_t setupSockAddr(char * addr, unsigned short port, void * res) {
+static socklen_t setupSockAddr(char * addr, unsigned short port, void * res) {
     int ipv6 = strchr(addr, ':') != NULL; 
     struct sockaddr_in sock4;
 	struct sockaddr_in6 sock6;
@@ -37,8 +37,7 @@ static uint8_t setupSockAddr(char * addr, unsigned short port, void * res) {
 		sock6.sin6_addr = in6addr_any;
 		sock6.sin6_port = htons(port);
 		if(inet_pton(AF_INET6, addr, &sock6.sin6_addr) != 1) {
-			//log(LOG_ERROR, "failed IP conversion for %s", "IPv6"); // TODO: Remove
-            logf("failed IP conversion for %s", "IPv6");
+            log(LOG_ERROR, "Failed IP conversion for IPv6");
 			return -1;
 		}
         *((struct sockaddr_in6 * )res) = sock6;
@@ -49,8 +48,7 @@ static uint8_t setupSockAddr(char * addr, unsigned short port, void * res) {
 		sock4.sin_addr.s_addr = INADDR_ANY;
 		sock4.sin_port = htons(port);
 		if(inet_pton(AF_INET, addr, &sock4.sin_addr) != 1) {
-			//log(LOG_ERROR, "failed IP conversion for %s", "IPv4"); // TODO: Remove
-			logf("failed IP conversion for %s", "IPv4");
+			log(LOG_ERROR, "Failed IP conversion for IPv4");
 			return -1;
 		}
         *((struct sockaddr_in * )res) = sock4;
@@ -95,6 +93,7 @@ int main(const int argc, char** argv) {
     }
 
     loggerInit(selector, "", stdout);
+    loggerSetLevel(LOG_INFO);
     usersInit(NULL);
 
     struct socks5args args;
@@ -114,7 +113,7 @@ int main(const int argc, char** argv) {
     struct sockaddr_in6 aux;
     memset(&aux, 0, sizeof(aux));
     void * p = (void *)&aux;
-    uint8_t size = setupSockAddr(args.socksAddr, args.socksPort,p);
+    socklen_t size = setupSockAddr(args.socksAddr, args.socksPort,p);
     // log(DEBUG, "hola %s", "a"); // TODO: Remove
     int ipv6 = strchr(args.socksAddr, ':') != NULL; 
     const int server = socket(ipv6? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -124,7 +123,7 @@ int main(const int argc, char** argv) {
     }
 
     //fprintf(stdout, "Listening on TCP port %d\n", args.socksPort); // TODO: Remove
-    logf("Listening on TCP port %d", args.socksPort);
+    logf(LOG_INFO, "Listening on TCP port %d", args.socksPort);
 
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));
@@ -158,7 +157,7 @@ int main(const int argc, char** argv) {
     }
 
     //fprintf(stdout, "Listening on TCP port %d (socks5) and %d (management)\n", args.socksPort, args.mngPort); // TODO: Remove
-    logf("Listening on TCP port %d (socks5) and %d (management)", args.socksPort, args.mngPort);
+    logf(LOG_INFO, "Listening on TCP port %d (socks5) and %d (management)", args.socksPort, args.mngPort);
 
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(mgmtServer, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));

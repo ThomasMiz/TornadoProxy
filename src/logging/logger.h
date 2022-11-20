@@ -4,6 +4,9 @@
 // The logger makes copies of any data it needs from pointer parameters in the functions
 // described in this file. aka "Don't worry about the memory lifecycle of pointer parameters".
 
+// Define this to fully disable all loggin on compilation.
+//#define DISABLE_LOGGER
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -12,9 +15,20 @@
 
 #include "../selector.h"
 
+typedef enum {
+    LOG_DEBUG = 0,
+    LOG_INFO = 1,
+    LOG_WARNING = 2,
+    LOG_ERROR = 3,
+    LOG_FATAL = 4
+} TLogLevel;
+
+#define MIN_LOG_LEVEL LOG_DEBUG
+#define MAX_LOG_LEVEL LOG_FATAL
+
 /**
  * @brief Initializes the logging system. Not calling this function will result is the
- * server running with logging disabled (but metrics will still work).
+ * server running with logging disabled.
  * @param selector The selector to use. This is requried as logging is typically buffered,
  * and to make writes non-blocking writing can only occur when the file descriptor is
  * available.
@@ -33,38 +47,38 @@ int loggerInit(TSelector selector, const char* logFile, FILE* logStream);
  */
 int loggerFinalize();
 
-int loggerIsEnabled();
+void loggerSetLevel(TLogLevel level);
 
+const char* loggerGetLevelString(TLogLevel level);
+
+int loggerIsEnabledFor(TLogLevel level);
+
+#ifdef DISABLE_LOGGER
+#define logf(level, format, ...)
+#else
 void loggerPrePrint();
 
 void loggerGetBufstartAndMaxlength(char** bufstartVar, size_t* maxlenVar);
 
 int loggerPostPrint(int written, size_t maxlen);
 
-/**
- * @brief Log a raw string.
- * @param s The string to log. If this string is a string, then it will be kept as a
- * string. If it is null-terminated, it will stay null-terminated. If Hawaii ceases to
- * exist, the calling of this function has no effect whatsover on such unfathomable
- * facts. Our existance is meaningless against the power of the Almighty Twelve-Tounged
- * God. Mike Wazowski is blue and you can't convince me otherwise.
- */
-
-#define logf(format, ...)                                                                                                            \
-    if (loggerIsEnabled()) {                                                                                                         \
-        loggerPrePrint();                                                                                                            \
-        time_t loginternal_time = time(NULL);                                                                                        \
-        struct tm loginternal_tm = *localtime(&loginternal_time);                                                                    \
-        size_t loginternal_maxlen;                                                                                                   \
-        char* loginternal_bufstart;                                                                                                  \
-        loggerGetBufstartAndMaxlength(&loginternal_bufstart, &loginternal_maxlen);                                                   \
-        int loginternal_written = snprintf(loginternal_bufstart, loginternal_maxlen, "[%02d/%02d/%04d %02d:%02d:%02d] " format "\n", \
-                                           loginternal_tm.tm_mday, loginternal_tm.tm_mon + 1, loginternal_tm.tm_year + 1900,         \
-                                           loginternal_tm.tm_hour, loginternal_tm.tm_min, loginternal_tm.tm_sec, ##__VA_ARGS__);     \
-        loggerPostPrint(loginternal_written, loginternal_maxlen);                                                                    \
+#define logf(level, format, ...)                                                                                                          \
+    if (loggerIsEnabledFor(level)) {                                                                                                      \
+        loggerPrePrint();                                                                                                                 \
+        time_t loginternal_time = time(NULL);                                                                                             \
+        struct tm loginternal_tm = *localtime(&loginternal_time);                                                                         \
+        size_t loginternal_maxlen;                                                                                                        \
+        char* loginternal_bufstart;                                                                                                       \
+        loggerGetBufstartAndMaxlength(&loginternal_bufstart, &loginternal_maxlen);                                                        \
+        int loginternal_written = snprintf(loginternal_bufstart, loginternal_maxlen, "[%02d/%02d/%04d %02d:%02d:%02d] [%s] " format "\n", \
+                                           loginternal_tm.tm_mday, loginternal_tm.tm_mon + 1, loginternal_tm.tm_year + 1900,              \
+                                           loginternal_tm.tm_hour, loginternal_tm.tm_min, loginternal_tm.tm_sec,                          \
+                                           loggerGetLevelString(level), ##__VA_ARGS__);                                                   \
+        loggerPostPrint(loginternal_written, loginternal_maxlen);                                                                         \
     }
+#endif
 
-#define log(s) logf("%s", s)
+#define log(level, s) logf(level, "%s", s)
 
 /**
  * @brief Log that the server has opened a socket listening at the specified socekt.
@@ -72,21 +86,6 @@ int loggerPostPrint(int written, size_t maxlen);
  * @param listenSocketLen The length of the socket address specified in listenSocket.
  */
 void logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen);
-
-/**
- * @brief Log that a server error ocurred.
- */
-void logServerError(const char* err_msg, const char* info);
-
-/**
- * @brief Log that a new client connection has been established. This should be called
- * as soon as a TCP connection is established.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param origin The address the client is connecting from. This value is returned by
- * accept(). Null can be used to indicate unknown origin.
- * @param originLength the length of the socket address specified in origin.
- */
-void logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLength);
 
 /**
  * @brief Log that a client connection has disconnected. This should be called as soon
@@ -108,23 +107,6 @@ void logClientDisconnected(int clientId, const char* username, const char* reaso
 void logClientAuthenticated(int clientId, const char* username, int successful);
 
 /**
- * @brief Log that a client requested to connect to a remote IP address.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param username The client's username, or null if not logged in.
- * @param remote The address the client requested to connec to.
- * @param remoteLength The length of the address specified in remote.
- */
-void logClientConnectionRequestAddress(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
-
-/**
- * @brief Log that a client requested to connect to a remote domain name.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param username The client's username, or null if not logged in.
- * @param domainname The domain name the client requested to connect to.
- */
-void logClientConnectionRequestDomainname(int clientId, const char* username, const char* domainname);
-
-/**
  * @brief Log that the server is attempting to establish a connection requested by a
  * client.
  * @param clientId The client's ID (it's socket's file descriptor).
@@ -143,15 +125,5 @@ void logClientConnectionRequestAttempt(int clientId, const char* username, const
  * @param remoteLength The length of the address specified in remote.
  */
 void logClientConnectionRequestSuccess(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
-
-/**
- * @brief Log that a client sent or received a specified amount of bytes to the remote
- * server it's connected to.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param username The client's username, or null if not logged in.
- * @param bytesSent The amount of bytes sent by the client to the remote server.
- * @param bytesReceived The amount of bytes sent by the remote server to the client.
- */
-void logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived);
 
 #endif

@@ -1,14 +1,13 @@
 #include "request.h"
-#include "../logger.h"
-#include "../socks5.h"
+#include "../logging/logger.h"
 #include "../logging/util.h"
+#include "../socks5.h"
 #include <netdb.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include "../netutils.h"
 #include <errno.h>
 #include <unistd.h>
 
@@ -25,13 +24,13 @@ static unsigned startConnection(TSelectorKey * key);
 static TReqStatus connectErrorToRequestStatus(int e);
 
 void requestReadInit(const unsigned state, TSelectorKey* key) {
-    log(DEBUG, "[Req read] init at socket fd %d", key->fd);
+    logf(LOG_DEBUG, "requestReadInit: Init at socket fd %d", key->fd);
     TClientData* data = ATTACHMENT(key);
     initRequestParser(&data->client.reqParser);
 }
 
 unsigned requestRead(TSelectorKey* key) {
-    log(DEBUG, "[Req read: INF] read at socket fd %d", key->fd);
+    logf(LOG_DEBUG, "requestRead: Read at socket fd %d", key->fd);
     TClientData* data = ATTACHMENT(key);
 
     size_t readLimit;    // how many bytes can be stored in the buffer
@@ -40,7 +39,7 @@ unsigned requestRead(TSelectorKey* key) {
 
     readBuffer = buffer_write_ptr(&data->clientBuffer, &readLimit);
     readCount = recv(key->fd, readBuffer, readLimit, 0);
-    log(DEBUG, "[Req read: INF]  %ld bytes from client %d ", readCount, key->fd);
+    logf(LOG_DEBUG, "requestRead: %ld bytes from client %d", readCount, key->fd);
     if (readCount <= 0) {
         return ERROR;
     }
@@ -50,7 +49,7 @@ unsigned requestRead(TSelectorKey* key) {
         if (!hasRequestErrors(&data->client.reqParser)) {
             return requestProcess(key);
         }
-        log(LOG_ERROR, "Error parsing the request at fd %d", key->fd);
+        logf(LOG_ERROR, "requestRead: Error parsing the request at fd %d", key->fd);
         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&data->client.reqParser, &data->originBuffer)) {
             return ERROR;
         }
@@ -64,18 +63,17 @@ static unsigned requestProcess(TSelectorKey* key) {
     TReqParser rp = data->client.reqParser;
     uint8_t atyp = rp.atyp;
 
-    log(DEBUG, "[Req read - process] init process for fd: %d", key->fd);
+    logf(LOG_DEBUG, "requestProcess: Init process for fd: %d", key->fd);
 
     if (atyp == REQ_ATYP_IPV4) {
-        log(DEBUG, "[Req read - process] REQ_ATYP_IPV4 port: %d for fd: %d", data->client.reqParser.port, key->fd);
         struct sockaddr_in* sockaddr = malloc(sizeof(struct sockaddr_in));
         data->originResolution = calloc(1, sizeof(struct addrinfo));
         if (sockaddr == NULL) {
-            log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
+            logf(LOG_DEBUG, "requestProcess: malloc error for fd: %d", key->fd);
             goto finally;
         } else if (data->originResolution == NULL) {
             free(sockaddr);
-            log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
+            logf(LOG_DEBUG, "requestProcess: malloc error for fd: %d", key->fd);
             goto finally;
         }
         *sockaddr = (struct sockaddr_in){
@@ -90,19 +88,19 @@ static unsigned requestProcess(TSelectorKey* key) {
             .ai_addrlen = sizeof(*sockaddr),
         };
 
+        logf(LOG_INFO, "Client %d requested to connect to IPv4 address %s", key->fd, printSocketAddress((struct sockaddr*)sockaddr));
         return startConnection(key);
     }
 
     if (atyp == REQ_ATYP_IPV6) {
-        log(DEBUG, "[Req read - process] REQ_ATYP_IPV6 port: %d for fd: %d", data->client.reqParser.port, key->fd);
         struct sockaddr_in6* sockaddr = malloc(sizeof(struct sockaddr_in6));
         data->originResolution = calloc(1, sizeof(struct addrinfo));
         if (sockaddr == NULL) {
-            log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
+            logf(LOG_DEBUG, "requestProcess: malloc error for fd: %d", key->fd);
             goto finally;
         } else if (data->originResolution == NULL) {
             free(sockaddr);
-            log(DEBUG, "[Req read - process] malloc error for fd: %d", key->fd);
+            logf(LOG_DEBUG, "requestProcess: malloc error for fd: %d", key->fd);
             goto finally;
         }
         *sockaddr = (struct sockaddr_in6){
@@ -116,21 +114,24 @@ static unsigned requestProcess(TSelectorKey* key) {
             .ai_addrlen = sizeof(*sockaddr),
         };
 
+        logf(LOG_INFO, "Client %d requested to connect to IPv6 address %s", key->fd, printSocketAddress((struct sockaddr*)sockaddr));
         return startConnection(key);
     }
 
     if (atyp == REQ_ATYP_DOMAINNAME) {
-        log(DEBUG, "[Req read - process] REQ_ATYP_DOMAINNAME port: %d for fd: %d", data->client.reqParser.port, key->fd);
+        logf(LOG_INFO, "Client %d requested to connect to domain name %s", key->fd, data->client.reqParser.address.domainname);
+
         pthread_t tid;
         TSelectorKey* key2 = malloc(sizeof(*key));
         memcpy(key2, key, sizeof(*key2));
         if (pthread_create(&tid, NULL, requestNameResolution, key2) == -1) {
-            log(DEBUG, "[Req read - process] thread error fd: %d", key->fd);
+            logf(LOG_DEBUG, "requestProcess: thread error fd: %d", key->fd);
             goto finally;
         }
         if (selector_set_interest_key(key, OP_NOOP) != SELECTOR_SUCCESS) {
             return ERROR;
         }
+
         return REQUEST_RESOLV;
     }
 
@@ -140,6 +141,8 @@ finally:
 }
 
 static void* requestNameResolution(void* data) {
+    // WARNING: This function is run on a separate thread. Functions such as logging
+    // will break if used from here. Modify with caution.
     TSelectorKey* key = (TSelectorKey*)data;
     TClientData* c = ATTACHMENT(key);
 
@@ -159,7 +162,6 @@ static void* requestNameResolution(void* data) {
 
     int err = getaddrinfo((char*)c->client.reqParser.address.domainname, service, &hints, &(c->originResolution));
     if (err != 0) {
-        log(LOG_ERROR, "[getaddrinfo error] for fd: %d", key->fd);
         c->originResolution = NULL;
     }
     selector_notify_block(key->s, key->fd);
@@ -169,23 +171,21 @@ static void* requestNameResolution(void* data) {
 
 unsigned requestResolveDone(TSelectorKey* key) {
     TClientData* data = ATTACHMENT(key);
-    log(DEBUG, "[requestResolveDone] for fd: %d", key->fd);
+    logf(LOG_DEBUG, "requestResolveDone: for fd: %d, result:", key->fd);
     struct addrinfo *ailist, *aip;
 
     ailist = data->originResolution;
     for (aip = ailist; aip != NULL; aip = aip->ai_next) {
-        printFlags(aip->ai_flags);
-        printf(" family: %s ", printFamily(aip->ai_family));
-        printf(" type: %s ", printType(aip->ai_socktype));
-        printf(" protocol %s ", printProtocol(aip->ai_protocol));
-        printf("\n\thost %s", aip->ai_canonname ? aip->ai_canonname : "-");
-        printf("address: %s", printAddressPort(aip->ai_family, aip->ai_addr));
-        putchar('\n');
+        logf(LOG_DEBUG, "--> family=%s, type=%s, protocol=%s, host=%s, address=%s flags=\"%s\"", printFamily(aip->ai_family),
+        printType(aip->ai_socktype), printProtocol(aip->ai_protocol), aip->ai_canonname ? aip->ai_canonname : "-", 
+        printAddressPort(aip->ai_family, aip->ai_addr),printFlags(aip->ai_flags));
     }
 
     if (ailist == NULL) {
+        logf(LOG_DEBUG, "Resolve of domain name requested by %d returned no results", key->fd);
         return fillRequestAnswerWitheErrorState(key, REQ_ERROR_HOST_UNREACHABLE);
     }
+
     return startConnection(key);
 }
 
@@ -202,7 +202,7 @@ unsigned fillRequestAnswerWitheErrorState(TSelectorKey* key, int status) {
 
 unsigned requestWrite(TSelectorKey* key) {
     TClientData* data = ATTACHMENT(key);
-    log(DEBUG, "rw p.state = %d ", data->client.reqParser.state);
+    logf(LOG_DEBUG, "requestWrite: rw p.state = %d", data->client.reqParser.state);
     size_t writeLimit;    // how many bytes we want to send
     ssize_t writeCount;   // how many bytes where written
     uint8_t* writeBuffer; // buffer that stores the data to be sended
@@ -211,14 +211,14 @@ unsigned requestWrite(TSelectorKey* key) {
     writeCount = send(data->clientFd, writeBuffer, writeLimit, MSG_NOSIGNAL);
 
     if (writeCount < 0) {
-        log(LOG_ERROR, "send() at fd %d", key->fd);
+        logf(LOG_ERROR, "requestWrite: send() at fd %d", key->fd);
         return ERROR;
     }
     if (writeCount == 0) {
-        log(LOG_ERROR, "Failed to send(), client closed connection unexpectedly at fd %d", key->fd);
+        logf(LOG_ERROR, "requestWrite: Failed to send(), client closed connection unexpectedly at fd %d", key->fd);
         return ERROR;
     }
-    log(DEBUG, "[Req write: INF]  %ld bytes to client %d ", writeCount, key->fd);
+    logf(LOG_DEBUG, "requestWrite: %ld bytes to client %d ", writeCount, key->fd);
     buffer_read_adv(&data->originBuffer, writeCount);
 
     if (buffer_can_read(&data->originBuffer)) {
@@ -226,15 +226,15 @@ unsigned requestWrite(TSelectorKey* key) {
     }
 
     if (hasRequestErrors(&data->client.reqParser) || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
-        log(DEBUG, "requestWrite error %d ", key->fd);
+        logf(LOG_DEBUG, "requestWrite: error %d ", key->fd);
         return ERROR;
     }
-    log(DEBUG, "requestWrite to copy %d ", key->fd);
+    logf(LOG_DEBUG, "requestWrite: to copy %d ", key->fd);
     return COPY;
 }
 
 void requestConectingInit(const unsigned state, TSelectorKey* key) {
-    log(DEBUG, "[Req con: init] ended for fd: %d", key->fd);
+    logf(LOG_DEBUG, "requestConectingInit: ended for fd: %d", key->fd);
 }
 
 unsigned requestConecting(TSelectorKey* key) {
@@ -274,16 +274,16 @@ static unsigned startConnection(TSelectorKey * key) {
         return ERROR;
     }
     selector_fd_set_nio(d->originFd);
-    char address_buf[1024];
-    sockaddr_to_human(address_buf, 1024, d->originResolution->ai_addr);
-    printf("Connecting to %s\n", address_buf);
+
+    logf(LOG_INFO, "Attempting to connect to %s as requested by client %d", printSocketAddress(d->originResolution->ai_addr), key->fd);
+
     if (connect(d->originFd, d->originResolution->ai_addr, d->originResolution->ai_addrlen) == 0 || errno == EINPROGRESS) {
         if (selector_register(key->s, d->originFd, getStateHandler(), OP_WRITE, d) != SELECTOR_SUCCESS || SELECTOR_SUCCESS != selector_set_interest(key->s, key->fd, OP_NOOP)) {
             return ERROR;
         }
         return REQUEST_CONNECTING;
     }
-    log(DEBUG, "connection error in fd %d", key->fd);
+    logf(LOG_INFO, "Connect attempt to %s failed (requested by client %d)", printSocketAddress(d->originResolution->ai_addr), key->fd);
 
     //Could not connect to the first address, try with the next one, if exists
     if(d->originResolution->ai_next != NULL){
@@ -294,7 +294,9 @@ static unsigned startConnection(TSelectorKey * key) {
         d->originResolution = next;
         return startConnection(key);
     }
+    
     //Return a connection error after trying to connect to all the addresses
+    logf(LOG_INFO, "Failed to fulfill connection request from client %d", key->fd);
     return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(errno));
 }
 

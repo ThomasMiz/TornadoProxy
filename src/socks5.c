@@ -4,7 +4,9 @@
 #include "request/request.h"
 #include "selector.h"
 #include "stm.h"
-#include "logger.h"
+#include "logging/logger.h"
+#include "logging/metrics.h"
+#include "logging/util.h"
 #include <netdb.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -16,10 +18,10 @@
 void closeConnection(TSelectorKey * key);
 
 void doneArrival(const unsigned state, TSelectorKey* key) {
-    printf("Done state \n");
+    log(LOG_DEBUG, "Socks5: Done state");
 }
 void errorArrival(const unsigned state, TSelectorKey* key) {
-    printf("Error state \n");
+    log(LOG_DEBUG, "Socks5: Error state");
 }
 
 static const struct state_definition clientActions[] = {
@@ -125,6 +127,7 @@ void closeConnection(TSelectorKey * key) {
     if (data->closed)
         return;
     data->closed = true;
+    metricsRegisterClientDisconnected();
 
     int clientSocket = data->clientFd;
     int serverSocket = data->originFd;
@@ -154,20 +157,22 @@ void socksv5PassivAccept(TSelectorKey* key) {
     struct sockaddr_storage clientAddress;
     socklen_t clientAddressLen = sizeof(clientAddress);
     int newClientSocket = accept(key->fd, (struct sockaddr*)&clientAddress, &clientAddressLen);
-    log(DEBUG,"New client accepted at socket fd %d", newClientSocket);
 
-    if(newClientSocket < 0){
+    if(newClientSocket < 0) {
+        logf(LOG_WARNING, "Socksv5 socket: accept() returned negative value: %d", newClientSocket);
         return;
     }
+
     if(newClientSocket > 1023){
         close(newClientSocket);
+        logf(LOG_WARNING, "Socksv5 new client from %s with fd %d rejected because fd was too high", printSocketAddress((struct sockaddr*)&clientAddress), newClientSocket);
         return;
     }
 
     // Consider using a function to initialize the TClientData structure.
     TClientData* clientData = calloc(1, sizeof(TClientData));
     if (clientData == NULL) {
-        log(LOG_ERROR, "Failed to alloc clientData for new client t socket fd %d", newClientSocket);
+        logf(LOG_ERROR, "Socksv5 new client from %s with fd %d rejected because alloc failed for clientData", printSocketAddress((struct sockaddr*)&clientAddress), newClientSocket);
         close(newClientSocket);
         return;
     }
@@ -187,9 +192,12 @@ void socksv5PassivAccept(TSelectorKey* key) {
     TSelectorStatus status = selector_register(key->s, newClientSocket, getStateHandler(), OP_READ, clientData);
 
     if (status != SELECTOR_SUCCESS) {
-        log(LOG_ERROR, "Failed to register new client into selector: %s", selector_error(status));
+        logf(LOG_ERROR, "Socksv5 new client from %s with fd %d rejected because registering into selector failed: %s", printSocketAddress((struct sockaddr*)&clientAddress), newClientSocket, selector_error(status));
+        close(newClientSocket);
         free(clientData);
         return;
     }
-    log(INFO, "New client registered successfully t socket fd %d", newClientSocket);
+    
+    metricsRegisterNewClient();
+    logf(LOG_INFO, "Socksv5 new client from %s assigned id %d", printSocketAddress((struct sockaddr*)&clientAddress), newClientSocket);
 }

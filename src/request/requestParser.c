@@ -1,4 +1,5 @@
 #include "requestParser.h"
+#include "../logging/logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -63,13 +64,13 @@ TReqRet fillRequestAnswer(TReqParser* p, struct buffer* buffer) {
 
 /*Should not happen*/
 static TReqState reqParseEnd(TReqParser* p, uint8_t c) {
-    fprintf(stderr, "[Req parser: BUG] Trying to call negotiation parser in SUCCED/ERROR state ");
+    log(LOG_ERROR, "reqParseEnd: Trying to call negotiation parser in SUCCED/ERROR state");
     return p->state;
 }
 
 static TReqState reqParseVersion(TReqParser* p, uint8_t c) {
     if (c != 5) {
-        fprintf(stderr, "[Req parser: ERR] Client specified invalid version: 0x%d\n", c);
+        logf(LOG_ERROR, "reqParseVersion: Client specified invalid version: 0x%x", c);
         p->status = REQ_ERROR_GENERAL_FAILURE;
         return REQ_ERROR;
     }
@@ -80,14 +81,14 @@ static TReqState reqParseCmd(TReqParser* p, uint8_t c) {
     if (c == REQ_CMD_CONNECT) {
         return REQ_RSV;
     }
-    fprintf(stderr, "[Req parser: ERR] Client specified invalid CMD: 0x%d\n", c);
+    logf(LOG_ERROR, "reqParseCmd: Client specified invalid CMD: 0x%x", c);
     p->status = REQ_ERROR_COMMAND_NOT_SUPPORTED;
     return REQ_ERROR;
 }
 static TReqState reqParseRsv(TReqParser* p, uint8_t c) {
     if (c == 0x00)
         return REQ_ATYP;
-    fprintf(stderr, "[Req parser: ERR] Client specified invalid number in rsv: 0x%d\n", c);
+    logf(LOG_ERROR, "reqParseRsv: Client specified invalid number in rsv: 0x%x", c);
     p->status = REQ_ERROR_GENERAL_FAILURE;
     return REQ_ERROR;
 }
@@ -102,7 +103,7 @@ static TReqState reqParseAtyp(TReqParser* p, uint8_t c) {
     } else if (c == REQ_ATYP_DOMAINNAME) {
         return REQ_DN_LENGHT;
     }
-    fprintf(stderr, "[Req parser: ERR] Client specified an invalid ATYP: 0x%d\n", c);
+    logf(LOG_ERROR, "reqParseAtyp: Client specified an invalid ATYP: 0x%x", c);
     p->status = REQ_ERROR_ADDRESS_TYPE_NOT_SUPPORTED;
     return REQ_ERROR;
 }

@@ -1,5 +1,5 @@
 #include "negotiationParser.h"
-#include "../logger.h"
+#include "../logging/logger.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +55,7 @@ TNegRet fillNegotiationAnswer(TNegParser* p, struct buffer* buffer) {
 
 static TNegState parseVersion(TNegParser* p, uint8_t c) {
     if (c != VERSION_5) {
-        log(INFO, "Client specified invalid version: %d\n", c);
+        logf(LOG_DEBUG, "parseVersion: Client specified invalid version: %d", c);
         return NEG_ERROR;
     }
     return NEG_METHOD_COUNT;
@@ -66,13 +66,13 @@ static TNegState parseMethodCount(TNegParser* p, uint8_t c) {
     if (c == 0) {
         return NEG_END;
     }
-    log(INFO, "Client specified %d auth methods: ", c);
+    logf(LOG_DEBUG, "parseMethodCount: Client specified %d auth methods: ", c);
     return NEG_METHODS;
 }
 
 static TNegState parseMethods(TNegParser* p, uint8_t c) {
     p->pendingMethods -= 1;
-    log(INFO, "%x%s", c, p->pendingMethods == 0 ? " " : ", ");
+    logf(LOG_DEBUG, "parseMethods: %x%s", c, p->pendingMethods == 0 ? " " : ", ");
     if (c == requiredAuthMethod) {
         p->authMethod = requiredAuthMethod;
     }
@@ -81,7 +81,7 @@ static TNegState parseMethods(TNegParser* p, uint8_t c) {
 
 /*Should not happen*/
 static TNegState parseEnd(TNegParser* p, uint8_t c) {
-    log(LOG_ERROR, "Trying to call negotiation parser in END/ERROR state with char: %c", c);
+    logf(LOG_ERROR, "parseEnd: Trying to call negotiation parser in END/ERROR state with char: %c", c);
     return p->state;
 }
 
