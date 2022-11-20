@@ -301,22 +301,6 @@ void logClientAuthenticated(int clientId, const char* username, int successful) 
     }
 }
 
-void logClientConnectionRequestAddress(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
-    if (username == NULL) {
-        logf(LOG_INFO, "Client %d (not authenticated) requested to connect to address %s", clientId, printSocketAddress(remote));
-    } else {
-        logf(LOG_INFO, "Client %d (authenticated as %s) requested to connect to address %s", clientId, username, printSocketAddress(remote));
-    }
-}
-
-void logClientConnectionRequestDomainname(int clientId, const char* username, const char* domainname) {
-    if (username == NULL) {
-        logf(LOG_INFO, "Client %d (not authenticated) requested to connect to domainname %s", clientId, domainname);
-    } else {
-        logf(LOG_INFO, "Client %d (authenticated as %s) requested to connect to domainname %s", clientId, username, domainname);
-    }
-}
-
 void logClientConnectionRequestAttempt(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
     if (username == NULL) {
         logf(LOG_INFO, "Attempting to connect to %s as requested by client %d (not authenticated)", printSocketAddress(remote), clientId);

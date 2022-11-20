@@ -107,23 +107,6 @@ void logClientDisconnected(int clientId, const char* username, const char* reaso
 void logClientAuthenticated(int clientId, const char* username, int successful);
 
 /**
- * @brief Log that a client requested to connect to a remote IP address.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param username The client's username, or null if not logged in.
- * @param remote The address the client requested to connec to.
- * @param remoteLength The length of the address specified in remote.
- */
-void logClientConnectionRequestAddress(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
-
-/**
- * @brief Log that a client requested to connect to a remote domain name.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param username The client's username, or null if not logged in.
- * @param domainname The domain name the client requested to connect to.
- */
-void logClientConnectionRequestDomainname(int clientId, const char* username, const char* domainname);
-
-/**
  * @brief Log that the server is attempting to establish a connection requested by a
  * client.
  * @param clientId The client's ID (it's socket's file descriptor).

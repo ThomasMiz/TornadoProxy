@@ -10,6 +10,7 @@
 #include <string.h> // memset
 
 #include "selector.h"
+#include "logging/logger.h"
 #include <fcntl.h>
 #include <stdint.h> // SIZE_MAX
 #include <sys/select.h>
@@ -567,7 +568,7 @@ TSelectorStatus selector_select(TSelector s) {
                 for (int i = 0; i <= s->max_fd; i++) {
                     if (FD_ISSET(i, &s->master_r) || FD_ISSET(i, &s->master_w)) {
                         if (-1 == fcntl(i, F_GETFD, 0)) {
-                            fprintf(stderr, "Bad descriptor detected: %d\n", i);
+                            logf(LOG_ERROR, "Selected detected bad file descriptor: %d", i);
                         }
                     }
                 }

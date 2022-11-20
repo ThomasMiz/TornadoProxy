@@ -5,6 +5,7 @@
 #include <string.h>
 
 #define ADDRSTR_BUFLEN 64
+#define FLAGSTR_BUFLEN 64
 
 const char* printFamily(int family) {
     switch (family) {
@@ -51,24 +52,28 @@ const char* printProtocol(int protocol) {
     return "unknown";
 }
 
-void printFlags(int flags) {
-    printf("flags");
+const char* printFlags(int flags) {
+    static char flagsBuf[FLAGSTR_BUFLEN];
+
+    strcpy(flagsBuf, "flags");
     if (flags == 0) {
-        printf(" 0");
+        strcat(flagsBuf, " 0");
     } else {
         if (flags & AI_PASSIVE)
-            printf(" passive");
+            strcat(flagsBuf, " passive");
         if (flags & AI_CANONNAME)
-            printf(" canon");
+            strcat(flagsBuf, " canon");
         if (flags & AI_NUMERICHOST)
-            printf(" numhost");
+            strcat(flagsBuf, " numhost");
         if (flags & AI_NUMERICSERV)
-            printf(" numserv");
+            strcat(flagsBuf, " numserv");
         if (flags & AI_V4MAPPED)
-            printf(" v4mapped");
+            strcat(flagsBuf, " v4mapped");
         if (flags & AI_ALL)
-            printf(" all");
+            strcat(flagsBuf, " all");
     }
+
+    return flagsBuf;
 }
 
 const char* printAddressPort(int family, struct sockaddr* address) {
