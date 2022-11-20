@@ -30,9 +30,6 @@
 #define LOG_FOLDER_PERMISSION_BITS 666
 #define LOG_FILE_OPEN_FLAGS (O_WRONLY | O_APPEND | O_CREAT | O_NONBLOCK)
 
-#define LOG_LINE_START "[%02d/%02d/%04d %02d:%02d:%02d] "
-#define LOG_PRINTF_START_PARAMS tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec
-
 /**
  * The current metrics values for this server.
  */
