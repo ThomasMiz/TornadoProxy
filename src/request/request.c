@@ -1,7 +1,7 @@
 #include "request.h"
 #include "../logger.h"
 #include "../socks5.h"
-#include "../util.h"
+#include "../logging/util.h"
 #include <netdb.h>
 #include <pthread.h>
 #include <stdlib.h>
@@ -175,12 +175,12 @@ unsigned requestResolveDone(TSelectorKey* key) {
     ailist = data->originResolution;
     char addr[64];
     for (aip = ailist; aip != NULL; aip = aip->ai_next) {
-        printFlags(aip);
-        printf(" family: %s ", printFamily(aip));
-        printf(" type: %s ", printType(aip));
-        printf(" protocol %s ", printProtocol(aip));
+        printFlags(aip->ai_flags);
+        printf(" family: %s ", printFamily(aip->ai_family));
+        printf(" type: %s ", printType(aip->ai_socktype));
+        printf(" protocol %s ", printProtocol(aip->ai_protocol));
         printf("\n\thost %s", aip->ai_canonname ? aip->ai_canonname : "-");
-        printf("address: %s", printAddressPort(aip, addr));
+        printf("address: %s", printAddressPort(aip->ai_family, aip->ai_addr, addr));
         putchar('\n');
     }
 

@@ -1,6 +1,6 @@
 include ./Makefile.inc
 
-SOURCES=$(wildcard src/*.c src/negotiation/*.c src/auth/*.c src/request/*.c src/mgmt/*.c)
+SOURCES=$(wildcard src/*.c src/negotiation/*.c src/auth/*.c src/request/*.c src/mgmt/*.c src/logging/*.c)
 CLIENT_SOURCES=$(wildcard src/client/*.c)
 
 

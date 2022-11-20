@@ -6,7 +6,6 @@
 #include "negotiation/negotiation.h"
 #include "request/requestParser.h"
 #include "selector.h"
-#include "socks5.h"
 #include "copy.h"
 #include "stm.h"
 #include "passwordDissector.h"
