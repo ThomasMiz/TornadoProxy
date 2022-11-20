@@ -35,9 +35,8 @@
  */
 static TMetricsSnapshot metrics;
 
-int getMetricsSnapshot(TMetricsSnapshot* snapshot) {
+void getMetricsSnapshot(TMetricsSnapshot* snapshot) {
     memcpy(snapshot, &metrics, sizeof(TMetricsSnapshot));
-    return 0;
 }
 
 #ifndef DISABLE_LOGGER

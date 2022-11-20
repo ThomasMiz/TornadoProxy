@@ -38,6 +38,6 @@ typedef struct {
  * @brief Gets a snapshot of the server's current metrics.
  * @param snapshot A pointer to the struct to where the metrics snapshot will be written.
  */
-int getMetricsSnapshot(TMetricsSnapshot* snapshot);
+void getMetricsSnapshot(TMetricsSnapshot* snapshot);
 
 #endif

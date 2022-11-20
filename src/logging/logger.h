@@ -70,10 +70,10 @@ int loggerPostPrint(int written, size_t maxlen);
         size_t loginternal_maxlen;                                                                                                        \
         char* loginternal_bufstart;                                                                                                       \
         loggerGetBufstartAndMaxlength(&loginternal_bufstart, &loginternal_maxlen);                                                        \
-        int loginternal_written = snprintf(loginternal_bufstart, loginternal_maxlen, "[%s] [%02d/%02d/%04d %02d:%02d:%02d] " format "\n", \
-                                           loggerGetLevelString(level), loginternal_tm.tm_mday, loginternal_tm.tm_mon + 1,                \
-                                           loginternal_tm.tm_year + 1900, loginternal_tm.tm_hour, loginternal_tm.tm_min,                  \
-                                           loginternal_tm.tm_sec, ##__VA_ARGS__);                                                         \
+        int loginternal_written = snprintf(loginternal_bufstart, loginternal_maxlen, "[%02d/%02d/%04d %02d:%02d:%02d] [%s] " format "\n", \
+                                           loginternal_tm.tm_mday, loginternal_tm.tm_mon + 1, loginternal_tm.tm_year + 1900,              \
+                                           loginternal_tm.tm_hour, loginternal_tm.tm_min, loginternal_tm.tm_sec,                          \
+                                           loggerGetLevelString(level), ##__VA_ARGS__);                                                   \
         loggerPostPrint(loginternal_written, loginternal_maxlen);                                                                         \
     }
 #endif

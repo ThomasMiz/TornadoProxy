@@ -110,6 +110,4 @@ TUserStatus usersDelete(const char* username);
  */
 TUserStatus usersFinalize();
 
-void usersPrintAllDebug(); // TODO: Remove
-
 #endif
