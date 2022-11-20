@@ -47,6 +47,7 @@ static size_t bufferStart = 0, bufferLength = 0, bufferCapacity = 0;
 /** The file descriptor for writing logs to disk, or -1 if we're not doing that. */
 static int logFileFd = -1;
 static TSelector selector = NULL;
+static TLogLevel logLevel = MIN_LOG_LEVEL;
 
 /** The stream for writing logs to, or NULL if we're not doing that. */
 static FILE* logStream = NULL;
@@ -172,6 +173,7 @@ int loggerInit(TSelector selectorParam, const char* logFile, FILE* logStreamPara
     selector = selectorParam;
     logFileFd = selectorParam == NULL ? -1 : tryOpenLogfile(logFile, tm);
     logStream = logStreamParam;
+    logLevel = MIN_LOG_LEVEL;
 
     // If we opened a file for writing logs, register it in the selector.
     if (logFileFd >= 0)
@@ -215,8 +217,29 @@ int loggerFinalize() {
     return 0;
 }
 
-int loggerIsEnabled() {
-    return logFileFd > 0 || logStream != NULL;
+void loggerSetLevel(TLogLevel level) {
+    logLevel = level;
+}
+
+const char* loggerGetLevelString(TLogLevel level) {
+    switch (level) {
+        case LOG_DEBUG:
+            return "DEBUG";
+        case LOG_INFO:
+            return "INFO";
+        case LOG_WARNING:
+            return "WARNING";
+        case LOG_ERROR:
+            return "ERROR";
+        case LOG_FATAL:
+            return "FATAL";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+int loggerIsEnabledFor(TLogLevel level) {
+    return logLevel >= level && (logFileFd > 0 || logStream != NULL);
 }
 
 void loggerPrePrint() {
@@ -256,11 +279,7 @@ int loggerPostPrint(int written, size_t maxlen) {
 }
 
 void logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen) {
-    logf("Listening for TCP connections at %s", printSocketAddress(listenAddress));
-}
-
-void logServerError(const char* err_msg, const char* info) {
-    logf("Error: %s%s%s", err_msg, info == NULL ? "" : ", ", info == NULL ? "" : info);
+    logf(LOG_INFO, "Listening for TCP connections at %s", printSocketAddress(listenAddress));
 }
 
 void logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLength) {
@@ -269,56 +288,56 @@ void logNewClient(int clientId, const struct sockaddr* origin, socklen_t originL
     if (metrics.currentConnectionCount > metrics.maxConcurrentConnections)
         metrics.maxConcurrentConnections = metrics.currentConnectionCount;
 
-    logf("New client connection from %s assigned id %d", printSocketAddress(origin), clientId);
+    logf(LOG_INFO, "New client connection from %s assigned id %d", printSocketAddress(origin), clientId);
 }
 
 void logClientDisconnected(int clientId, const char* username, const char* reason) {
     metrics.currentConnectionCount--;
 
     if (username == NULL) {
-        logf("Client %d (not authenticated) disconnected%s%s", clientId, reason == NULL ? "" : ": ", reason == NULL ? "" : reason);
+        logf(LOG_INFO, "Client %d (not authenticated) disconnected%s%s", clientId, reason == NULL ? "" : ": ", reason == NULL ? "" : reason);
     } else {
-        logf("Client %d (authenticated as %s) disconnected%s%s", clientId, username, reason == NULL ? "" : ": ", reason == NULL ? "" : reason);
+        logf(LOG_INFO, "Client %d (authenticated as %s) disconnected%s%s", clientId, username, reason == NULL ? "" : ": ", reason == NULL ? "" : reason);
     }
 }
 
 void logClientAuthenticated(int clientId, const char* username, int successful) {
     if (username == NULL) {
-        logf("Client %d %ssuccessfully authenticated with no authentication method%s", clientId, successful ? "" : "un", successful ? "" : "... what?");
+        logf(LOG_INFO, "Client %d %ssuccessfully authenticated with no authentication method%s", clientId, successful ? "" : "un", successful ? "" : "... what?");
     } else {
-        logf("Client %d %ssuccessfully authenticated as \"%s\"", clientId, successful ? "" : "un", username);
+        logf(LOG_INFO, "Client %d %ssuccessfully authenticated as \"%s\"", clientId, successful ? "" : "un", username);
     }
 }
 
 void logClientConnectionRequestAddress(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
     if (username == NULL) {
-        logf("Client %d (not authenticated) requested to connect to address %s", clientId, printSocketAddress(remote));
+        logf(LOG_INFO, "Client %d (not authenticated) requested to connect to address %s", clientId, printSocketAddress(remote));
     } else {
-        logf("Client %d (authenticated as %s) requested to connect to address %s", clientId, username, printSocketAddress(remote));
+        logf(LOG_INFO, "Client %d (authenticated as %s) requested to connect to address %s", clientId, username, printSocketAddress(remote));
     }
 }
 
 void logClientConnectionRequestDomainname(int clientId, const char* username, const char* domainname) {
     if (username == NULL) {
-        logf("Client %d (not authenticated) requested to connect to domainname %s", clientId, domainname);
+        logf(LOG_INFO, "Client %d (not authenticated) requested to connect to domainname %s", clientId, domainname);
     } else {
-        logf("Client %d (authenticated as %s) requested to connect to domainname %s", clientId, username, domainname);
+        logf(LOG_INFO, "Client %d (authenticated as %s) requested to connect to domainname %s", clientId, username, domainname);
     }
 }
 
 void logClientConnectionRequestAttempt(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
     if (username == NULL) {
-        logf("Attempting to connect to %s as requested by client %d (not authenticated)", printSocketAddress(remote), clientId);
+        logf(LOG_INFO, "Attempting to connect to %s as requested by client %d (not authenticated)", printSocketAddress(remote), clientId);
     } else {
-        logf("Attempting to connect to %s as requested by client %d (authenticated as %s)", printSocketAddress(remote), clientId, username);
+        logf(LOG_INFO, "Attempting to connect to %s as requested by client %d (authenticated as %s)", printSocketAddress(remote), clientId, username);
     }
 }
 
 void logClientConnectionRequestSuccess(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
     if (username == NULL) {
-        logf("Successfully connected to %s as requested by client %d (not authenticated)", printSocketAddress(remote), clientId);
+        logf(LOG_INFO, "Successfully connected to %s as requested by client %d (not authenticated)", printSocketAddress(remote), clientId);
     } else {
-        logf("Successfully connected to %s as requested by client %d (authenticated as %s)", printSocketAddress(remote), clientId, username);
+        logf(LOG_INFO, "Successfully connected to %s as requested by client %d (authenticated as %s)", printSocketAddress(remote), clientId, username);
     }
 }
 

@@ -4,6 +4,9 @@
 // The logger makes copies of any data it needs from pointer parameters in the functions
 // described in this file. aka "Don't worry about the memory lifecycle of pointer parameters".
 
+// Define this to fully disable all loggin on compilation. Metrics will still work.
+//#define DISABLE_LOGGING
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -11,6 +14,17 @@
 #include <time.h>
 
 #include "../selector.h"
+
+typedef enum {
+    LOG_DEBUG = 0,
+    LOG_INFO = 1,
+    LOG_WARNING = 2,
+    LOG_ERROR = 3,
+    LOG_FATAL = 4
+} TLogLevel;
+
+#define MIN_LOG_LEVEL LOG_DEBUG
+#define MAX_LOG_LEVEL LOG_FATAL
 
 /**
  * @brief Initializes the logging system. Not calling this function will result is the
@@ -33,7 +47,11 @@ int loggerInit(TSelector selector, const char* logFile, FILE* logStream);
  */
 int loggerFinalize();
 
-int loggerIsEnabled();
+void loggerSetLevel(TLogLevel level);
+
+const char* loggerGetLevelString(TLogLevel level);
+
+int loggerIsEnabledFor(TLogLevel level);
 
 void loggerPrePrint();
 
@@ -41,30 +59,27 @@ void loggerGetBufstartAndMaxlength(char** bufstartVar, size_t* maxlenVar);
 
 int loggerPostPrint(int written, size_t maxlen);
 
-/**
- * @brief Log a raw string.
- * @param s The string to log. If this string is a string, then it will be kept as a
- * string. If it is null-terminated, it will stay null-terminated. If Hawaii ceases to
- * exist, the calling of this function has no effect whatsover on such unfathomable
- * facts. Our existance is meaningless against the power of the Almighty Twelve-Tounged
- * God. Mike Wazowski is blue and you can't convince me otherwise.
- */
-
-#define logf(format, ...)                                                                                                            \
-    if (loggerIsEnabled()) {                                                                                                         \
-        loggerPrePrint();                                                                                                            \
-        time_t loginternal_time = time(NULL);                                                                                        \
-        struct tm loginternal_tm = *localtime(&loginternal_time);                                                                    \
-        size_t loginternal_maxlen;                                                                                                   \
-        char* loginternal_bufstart;                                                                                                  \
-        loggerGetBufstartAndMaxlength(&loginternal_bufstart, &loginternal_maxlen);                                                   \
-        int loginternal_written = snprintf(loginternal_bufstart, loginternal_maxlen, "[%02d/%02d/%04d %02d:%02d:%02d] " format "\n", \
-                                           loginternal_tm.tm_mday, loginternal_tm.tm_mon + 1, loginternal_tm.tm_year + 1900,         \
-                                           loginternal_tm.tm_hour, loginternal_tm.tm_min, loginternal_tm.tm_sec, ##__VA_ARGS__);     \
-        loggerPostPrint(loginternal_written, loginternal_maxlen);                                                                    \
+#ifdef DISABLE_LOGGING
+#define logf(level, format, ...)
+#else
+#define logf(level, format, ...)                                                                                                          \
+    if (loggerIsEnabledFor(level)) {                                                                                                      \
+        loggerPrePrint();                                                                                                                 \
+        time_t loginternal_time = time(NULL);                                                                                             \
+        struct tm loginternal_tm = *localtime(&loginternal_time);                                                                         \
+        size_t loginternal_maxlen;                                                                                                        \
+        char* loginternal_bufstart;                                                                                                       \
+        loggerGetBufstartAndMaxlength(&loginternal_bufstart, &loginternal_maxlen);                                                        \
+        int loginternal_written = snprintf(loginternal_bufstart, loginternal_maxlen, "[%s] [%02d/%02d/%04d %02d:%02d:%02d] " format "\n", \
+                                           loggerGetLevelString(level), loginternal_tm.tm_mday, loginternal_tm.tm_mon + 1,                \
+                                           loginternal_tm.tm_year + 1900, loginternal_tm.tm_hour, loginternal_tm.tm_min,                  \
+                                           loginternal_tm.tm_sec, ##__VA_ARGS__);                                                         \
+        loggerPostPrint(loginternal_written, loginternal_maxlen);                                                                         \
     }
 
-#define log(s) logf("%s", s)
+#endif
+
+#define log(level, s) logf(level, "%s", s)
 
 /**
  * @brief Log that the server has opened a socket listening at the specified socekt.
@@ -72,11 +87,6 @@ int loggerPostPrint(int written, size_t maxlen);
  * @param listenSocketLen The length of the socket address specified in listenSocket.
  */
 void logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen);
-
-/**
- * @brief Log that a server error ocurred.
- */
-void logServerError(const char* err_msg, const char* info);
 
 /**
  * @brief Log that a new client connection has been established. This should be called
