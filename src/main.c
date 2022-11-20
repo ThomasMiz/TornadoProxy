@@ -21,7 +21,7 @@ static bool terminationRequested = false;
 
 
 static void sigterm_handler(const int signal) {
-    logf("Signal %s, cleaning up and exiting", strerror(signal));
+    logf("Signal %d, cleaning up and exiting", signal);
     terminationRequested = true;
 }
 
@@ -88,6 +88,7 @@ int main(const int argc, char** argv) {
     selector = selector_new(1024);
     if (selector == NULL) {
         fprintf(stderr, "Failed to create selector. Server closing.");
+        selector_close();
         exit(1);
         //err_msg = "unable to create selector";
         //goto finally;

@@ -66,8 +66,6 @@ int loggerPostPrint(int written, size_t maxlen);
 
 #define log(s) logf("%s", s)
 
-void logString(const char* s);
-
 /**
  * @brief Log that the server has opened a socket listening at the specified socekt.
  * @param listenSocket The address the server socket is bound to, or NULL if unknown.

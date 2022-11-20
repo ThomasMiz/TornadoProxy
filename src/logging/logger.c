@@ -33,8 +33,6 @@
 #define LOG_LINE_START "[%02d/%02d/%04d %02d:%02d:%02d] "
 #define LOG_PRINTF_START_PARAMS tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec
 
-#define ADDRSTR_BUFLEN 64
-
 /**
  * The current metrics values for this server.
  */
@@ -260,16 +258,8 @@ int loggerPostPrint(int written, size_t maxlen) {
     return 0;
 }
 
-void logString(const char* s) {
-    logf("%s", s);
-}
-
 void logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen) {
-    char addrBuffer[ADDRSTR_BUFLEN];
-    if (listenAddress != NULL)
-        printSocketAddress(listenAddress, addrBuffer);
-
-    logf("Listening for TCP connections at %s", listenAddress == NULL ? "unknown address" : addrBuffer);
+    logf("Listening for TCP connections at %s", printSocketAddress(listenAddress));
 }
 
 void logServerError(const char* err_msg, const char* info) {
@@ -282,9 +272,7 @@ void logNewClient(int clientId, const struct sockaddr* origin, socklen_t originL
     if (metrics.currentConnectionCount > metrics.maxConcurrentConnections)
         metrics.maxConcurrentConnections = metrics.currentConnectionCount;
 
-    char addrBuffer[ADDRSTR_BUFLEN];
-    printSocketAddress(origin, addrBuffer);
-    logf("New client connection from %s assigned id %d", addrBuffer, clientId);
+    logf("New client connection from %s assigned id %d", printSocketAddress(origin), clientId);
 }
 
 void logClientDisconnected(int clientId, const char* username, const char* reason) {
@@ -306,12 +294,10 @@ void logClientAuthenticated(int clientId, const char* username, int successful) 
 }
 
 void logClientConnectionRequestAddress(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
-    char addrBuffer[ADDRSTR_BUFLEN];
-    printSocketAddress(remote, addrBuffer);
     if (username == NULL) {
-        logf("Client %d (not authenticated) requested to connect to address %s", clientId, addrBuffer);
+        logf("Client %d (not authenticated) requested to connect to address %s", clientId, printSocketAddress(remote));
     } else {
-        logf("Client %d (authenticated as %s) requested to connect to address %s", clientId, username, addrBuffer);
+        logf("Client %d (authenticated as %s) requested to connect to address %s", clientId, username, printSocketAddress(remote));
     }
 }
 
@@ -324,22 +310,18 @@ void logClientConnectionRequestDomainname(int clientId, const char* username, co
 }
 
 void logClientConnectionRequestAttempt(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
-    char addrBuffer[ADDRSTR_BUFLEN];
-    printSocketAddress(remote, addrBuffer);
     if (username == NULL) {
-        logf("Attempting to connect to %s as requested by client %d (not authenticated)", addrBuffer, clientId);
+        logf("Attempting to connect to %s as requested by client %d (not authenticated)", printSocketAddress(remote), clientId);
     } else {
-        logf("Attempting to connect to %s as requested by client %d (authenticated as %s)", addrBuffer, clientId, username);
+        logf("Attempting to connect to %s as requested by client %d (authenticated as %s)", printSocketAddress(remote), clientId, username);
     }
 }
 
 void logClientConnectionRequestSuccess(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
-    char addrBuffer[ADDRSTR_BUFLEN];
-    printSocketAddress(remote, addrBuffer);
     if (username == NULL) {
-        logf("Successfully connected to %s as requested by client %d (not authenticated)", addrBuffer, clientId);
+        logf("Successfully connected to %s as requested by client %d (not authenticated)", printSocketAddress(remote), clientId);
     } else {
-        logf("Successfully connected to %s as requested by client %d (authenticated as %s)", addrBuffer, clientId, username);
+        logf("Successfully connected to %s as requested by client %d (authenticated as %s)", printSocketAddress(remote), clientId, username);
     }
 }
 
