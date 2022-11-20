@@ -239,12 +239,12 @@ int usersInit(const char* usersFileParam) {
 
     // Compile the regexes that are use for username and password validation.
     if (regcomp(&usernameValidationRegex, USERS_USERNAME_REGEX, 0) != 0) {
-        logf(LOG_ERROR, "Failed to compile username validation regex. This should not happen.");
+        log(LOG_ERROR, "Failed to compile username validation regex. This should not happen.");
         return -1;
     }
 
     if (regcomp(&passwordValidationRegex, USERS_PASSWORD_REGEX, 0) != 0) {
-        logf(LOG_ERROR, "Failed to compile password validation regex. This should not happen.");
+        log(LOG_ERROR, "Failed to compile password validation regex. This should not happen.");
         regfree(&usernameValidationRegex);
         return -1;
     }
@@ -252,7 +252,7 @@ int usersInit(const char* usersFileParam) {
     // Malloc an initial array for the users.
     users = malloc(USERS_ARRAY_MIN_SIZE * sizeof(TUserData));
     if (users == NULL) {
-        logf(LOG_ERROR, "Failed to malloc initial array for users");
+        log(LOG_ERROR, "Failed to malloc initial array for users");
         regfree(&usernameValidationRegex);
         regfree(&passwordValidationRegex);
         return -1;
@@ -266,7 +266,7 @@ int usersInit(const char* usersFileParam) {
     // If no users are present on the system, create the default user.
     if (usersLength == 0) {
         usersCreate(USERS_DEFAULT_USERNAME, USERS_DEFAULT_PASSWORD, 0, UPRIV_ADMIN, 0);
-        logf(LOG_WARNING, "No users detected. Created default user: \"" USERS_DEFAULT_USERNAME "\" \"" USERS_DEFAULT_PASSWORD "\"");
+        log(LOG_WARNING, "No users detected. Created default user: \"" USERS_DEFAULT_USERNAME "\" \"" USERS_DEFAULT_PASSWORD "\"");
     }
 
     return 0;
@@ -277,7 +277,7 @@ TUserStatus usersLogin(const char* username, const char* password, TUserPrivileg
         password = "";
 
     if (usersLength == 0) {
-        logf(LOG_WARNING, "Login failed because there are no users in the system");
+        log(LOG_WARNING, "Login failed because there are no users in the system");
         return EUSER_WRONGUSERNAME;
     }
 
@@ -331,7 +331,7 @@ TUserStatus usersCreate(const char* username, const char* password, int updatePa
     // The user doesn't exist. Let's create it.
     // First we check that we haven't reached the system's limit.
     if (usersLength >= USERS_MAX_COUNT) {
-        logf(LOG_ERROR, "Attempted to create new user, but the limit of users on the system has been reached");
+        log(LOG_ERROR, "Attempted to create new user, but the limit of users on the system has been reached");
         return EUSER_LIMITREACHED;
     }
 

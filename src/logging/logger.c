@@ -11,7 +11,6 @@
 #include "../selector.h"
 #include "util.h"
 #include "logger.h"
-#include "metrics.h"
 
 #define DEFAULT_LOG_FOLDER "./log"
 #define DEFAULT_LOG_FILE (DEFAULT_LOG_FOLDER "/%02d-%02d-%04d.log")
@@ -29,15 +28,6 @@
 #define LOG_FILE_PERMISSION_BITS 666
 #define LOG_FOLDER_PERMISSION_BITS 666
 #define LOG_FILE_OPEN_FLAGS (O_WRONLY | O_APPEND | O_CREAT | O_NONBLOCK)
-
-/**
- * The current metrics values for this server.
- */
-static TMetricsSnapshot metrics;
-
-void getMetricsSnapshot(TMetricsSnapshot* snapshot) {
-    memcpy(snapshot, &metrics, sizeof(TMetricsSnapshot));
-}
 
 #ifndef DISABLE_LOGGER
 
@@ -166,9 +156,6 @@ static int tryOpenLogfile(const char* logFile, struct tm tm) {
 #endif // end #ifndef DISABLE_LOGGER
 
 int loggerInit(TSelector selectorParam, const char* logFile, FILE* logStreamParam) {
-    // Initialize all the metric values to zero.
-    memset(&metrics, 0, sizeof(metrics));
-
 #ifndef DISABLE_LOGGER
     // Get the local time (to log when the server started)
     time_t timeNow = time(NULL);
@@ -298,16 +285,11 @@ void logServerListening(const struct sockaddr* listenAddress, socklen_t listenAd
 }
 
 void logNewClient(int clientId, const struct sockaddr* origin, socklen_t originLength) {
-    metrics.currentConnectionCount++;
-    metrics.totalConnectionCount++;
-    if (metrics.currentConnectionCount > metrics.maxConcurrentConnections)
-        metrics.maxConcurrentConnections = metrics.currentConnectionCount;
 
     logf(LOG_INFO, "New client connection from %s assigned id %d", printSocketAddress(origin), clientId);
 }
 
 void logClientDisconnected(int clientId, const char* username, const char* reason) {
-    metrics.currentConnectionCount--;
 
     if (username == NULL) {
         logf(LOG_INFO, "Client %d (not authenticated) disconnected%s%s", clientId, reason == NULL ? "" : ": ", reason == NULL ? "" : reason);
@@ -354,9 +336,4 @@ void logClientConnectionRequestSuccess(int clientId, const char* username, const
     } else {
         logf(LOG_INFO, "Successfully connected to %s as requested by client %d (authenticated as %s)", printSocketAddress(remote), clientId, username);
     }
-}
-
-void logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived) {
-    metrics.totalBytesSent += bytesSent;
-    metrics.totalBytesReceived += bytesReceived;
 }

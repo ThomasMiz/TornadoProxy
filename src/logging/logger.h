@@ -4,7 +4,7 @@
 // The logger makes copies of any data it needs from pointer parameters in the functions
 // described in this file. aka "Don't worry about the memory lifecycle of pointer parameters".
 
-// Define this to fully disable all loggin on compilation. Metrics will still work.
+// Define this to fully disable all loggin on compilation.
 //#define DISABLE_LOGGER
 
 #include <stdlib.h>
@@ -28,7 +28,7 @@ typedef enum {
 
 /**
  * @brief Initializes the logging system. Not calling this function will result is the
- * server running with logging disabled (but metrics will still work).
+ * server running with logging disabled.
  * @param selector The selector to use. This is requried as logging is typically buffered,
  * and to make writes non-blocking writing can only occur when the file descriptor is
  * available.
@@ -152,15 +152,5 @@ void logClientConnectionRequestAttempt(int clientId, const char* username, const
  * @param remoteLength The length of the address specified in remote.
  */
 void logClientConnectionRequestSuccess(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
-
-/**
- * @brief Log that a client sent or received a specified amount of bytes to the remote
- * server it's connected to.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param username The client's username, or null if not logged in.
- * @param bytesSent The amount of bytes sent by the client to the remote server.
- * @param bytesReceived The amount of bytes sent by the remote server to the client.
- */
-void logClientBytesTransfered(int clientId, const char* username, size_t bytesSent, size_t bytesReceived);
 
 #endif
