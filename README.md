@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # socks5v
 
 Implementación de un proxy SOCKS5.
@@ -42,3 +43,40 @@ Luego, para ejecutar el cliente, se debe correr el comando:
 ```./bin/client <command> [ARGS]```
 
 Se pueden consultar los posibles comandos y sus argumentos corriendo `./bin/client -h`
+||||||| parent of ef028f6 (Update README.md)
+# TornadoProxy
+=======
+# Socks5 Server
+
+The developed application is a proxy server that implements the SOCKSv5 protocol [[RFC1928]](https://www.rfc-editor.org/rfc/rfc1928 "[RFC1928]") and its associated functionalities with an additional protocol that allows managing and obtaining relevant information from the server. The proxy supports a series of requirements dictated by the chair of [72.07] - Communication Protocols @ITBA, along with a client application that allows the use of the additional protocol.
+
+# Build the binary files
+```sh
+user@user:/socks5-server$ make all
+```
+The binaries will be available inside the `bin` folder.
+
+# Run the server and client
+
+## Server
+
+Run the server:
+```sh
+user@user:/socks5-server$ ./bin/socks5
+```
+> Note: `-h` flag shows some execution information
+
+## Client:
+
+First, it is essential to configure the environment variable `TOKEN` with a username and password to authenticate. Some available users are shown in `users.txt`.
+Run the client:
+```sh
+user@user:/socks5-server$ export TOKEN="username:password"
+```
+
+After that, run the server:
+```sh
+user@user:/socks5-server$ ./bin/client
+```
+> Note: `-h` flag shows some execution information
+>>>>>>> ef028f6 (Update README.md)
