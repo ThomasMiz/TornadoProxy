@@ -29,6 +29,7 @@ static const struct state_definition client_statb1[] = {
     },
     {
         .state = MGMT_REQUEST_WRITE,
+        .on_arrival = mgmtRequestWriteInit,
         .on_write_ready = mgmtRequestWrite,
     },
     {

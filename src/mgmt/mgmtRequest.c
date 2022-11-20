@@ -2,6 +2,7 @@
 #include "mgmtCmdParser.h"
 #include "../logger.h"
 #include "mgmt.h"
+#include "mgmtCmdParser.h"
 
 
 void mgmtRequestReadInit(const unsigned state, TSelectorKey* key){
@@ -30,9 +31,33 @@ unsigned mgmtRequestRead(TSelectorKey* key){
         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillMgmtCmdAnswer(&data->client.cmdParser, &data->writeBuffer)) {
             return MGMT_ERROR;
         }
+        data->cmd = data->client.cmdParser.cmd;
         return MGMT_REQUEST_WRITE;
     }
     return MGMT_REQUEST_READ;
+}
+
+static void handleUserCmdResponse(buffer * buffer) {
+    size_t size;
+    uint8_t * ptr = buffer_write_ptr(buffer, &size);
+    char * s = "users response\r\n";
+    int len = strlen(s);
+    strcpy((char *)ptr, s);
+    
+    // Esto se tiene que poder escribir si o si porque es un buffer que recien inicializamos
+    buffer_write_adv(buffer, len);
+}
+
+void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
+    TMgmtClient * data = GET_ATTACHMENT(key);
+    buffer_init(&(data->responseBuffer), MGMT_BUFFER_SIZE, data->responseRawBuffer);
+   size_t size;
+    
+    if (data->cmd == MGMT_CMD_USERS) { // ACA habria que llenar el buffer de respuesta con el string que corresponde al comando
+        handleUserCmdResponse(&data->responseBuffer);
+    } else {
+        // los otros comandos
+    }
 }
 
 unsigned mgmtRequestWrite(TSelectorKey* key){
@@ -43,8 +68,16 @@ unsigned mgmtRequestWrite(TSelectorKey* key){
     ssize_t writeCount = 0;   // how many bytes where written
     uint8_t* writeBuffer; // buffer that stores the data to be sended
 
-    writeBuffer = buffer_read_ptr(&data->writeBuffer, &writeLimit);
+ // new
+    writeBuffer = buffer_read_ptr(&data->responseBuffer, &writeLimit);
     writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
+    buffer_read_adv(&data->responseBuffer, writeCount);
+    log(DEBUG, "[Mgmt req write] sent %ld bytes", writeCount);
+
+// ----
+
+    // writeBuffer = buffer_read_ptr(&data->writeBuffer, &writeLimit);
+    // writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
 
     if (writeCount < 0) {
         log(LOG_ERROR, "[Mgmt req write] send() at fd %d", key->fd);
@@ -55,9 +88,9 @@ unsigned mgmtRequestWrite(TSelectorKey* key){
         return MGMT_ERROR;
     }
     log(DEBUG, "[Mgmt req write]  %ld bytes to client %d", writeCount, key->fd);
-    buffer_read_adv(&data->writeBuffer, writeCount);
+    buffer_read_adv(&data->responseBuffer, writeCount);
 
-    if (buffer_can_read(&data->writeBuffer)) {
+    if (buffer_can_read(&data->responseBuffer)) {
         return MGMT_REQUEST_WRITE;
     }
 
