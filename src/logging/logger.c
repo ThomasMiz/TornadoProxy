@@ -280,39 +280,11 @@ int loggerPostPrint(int written, size_t maxlen) {
 }
 #endif
 
-void logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen) {
-    logf(LOG_INFO, "Listening for TCP connections at %s", printSocketAddress(listenAddress));
-}
-
-void logClientDisconnected(int clientId, const char* username, const char* reason) {
-
-    if (username == NULL) {
-        logf(LOG_INFO, "Client %d (not authenticated) disconnected%s%s", clientId, reason == NULL ? "" : ": ", reason == NULL ? "" : reason);
-    } else {
-        logf(LOG_INFO, "Client %d (authenticated as %s) disconnected%s%s", clientId, username, reason == NULL ? "" : ": ", reason == NULL ? "" : reason);
-    }
-}
 
 void logClientAuthenticated(int clientId, const char* username, int successful) {
     if (username == NULL) {
         logf(LOG_INFO, "Client %d %ssuccessfully authenticated with no authentication method%s", clientId, successful ? "" : "un", successful ? "" : "... what?");
     } else {
         logf(LOG_INFO, "Client %d %ssuccessfully authenticated as \"%s\"", clientId, successful ? "" : "un", username);
-    }
-}
-
-void logClientConnectionRequestAttempt(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
-    if (username == NULL) {
-        logf(LOG_INFO, "Attempting to connect to %s as requested by client %d (not authenticated)", printSocketAddress(remote), clientId);
-    } else {
-        logf(LOG_INFO, "Attempting to connect to %s as requested by client %d (authenticated as %s)", printSocketAddress(remote), clientId, username);
-    }
-}
-
-void logClientConnectionRequestSuccess(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength) {
-    if (username == NULL) {
-        logf(LOG_INFO, "Successfully connected to %s as requested by client %d (not authenticated)", printSocketAddress(remote), clientId);
-    } else {
-        logf(LOG_INFO, "Successfully connected to %s as requested by client %d (authenticated as %s)", printSocketAddress(remote), clientId, username);
     }
 }

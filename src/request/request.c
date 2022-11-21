@@ -244,12 +244,14 @@ unsigned requestConecting(TSelectorKey* key) {
 
     int error = 0;
     if (getsockopt(d->originFd, SOL_SOCKET, SO_ERROR, &error, &(socklen_t){sizeof(int)})) {
+        logf(LOG_ERROR, "Failed to getsockopt for connection request from client %d", d->clientFd);
         return fillRequestAnswerWitheErrorState(key, REQ_ERROR_GENERAL_FAILURE);
     }
 
     if (error) {
         //Could not connect to the first address, try with the next one, if exists
         if(d->originResolution->ai_next == NULL){
+            logf(LOG_INFO, "Failed to fulfill connection request from client %d", d->clientFd);
             return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(error));
         } else {
             selector_unregister_fd_noclose(key->s, d->originFd);
@@ -266,6 +268,7 @@ unsigned requestConecting(TSelectorKey* key) {
         return ERROR;
     }
 
+    logf(LOG_INFO, "Successfully connected to %s as requested by client %d", printSocketAddress(d->originResolution->ai_addr), d->clientFd);
     return REQUEST_WRITE;
 }
 
@@ -277,6 +280,7 @@ static unsigned startConnection(TSelectorKey * key) {
         d->originFd = socket(d->originResolution->ai_family, SOCK_STREAM, d->originResolution->ai_protocol);
     }
     if (d->originFd < 0) {
+        logf(LOG_ERROR, "Failed to open socket for connection request from client %d", d->clientFd);
         return ERROR;
     }
     selector_fd_set_nio(d->originFd);

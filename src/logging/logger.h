@@ -81,23 +81,6 @@ int loggerPostPrint(int written, size_t maxlen);
 #define log(level, s) logf(level, "%s", s)
 
 /**
- * @brief Log that the server has opened a socket listening at the specified socekt.
- * @param listenSocket The address the server socket is bound to, or NULL if unknown.
- * @param listenSocketLen The length of the socket address specified in listenSocket.
- */
-void logServerListening(const struct sockaddr* listenAddress, socklen_t listenAddressLen);
-
-/**
- * @brief Log that a client connection has disconnected. This should be called as soon
- * as the TCP connection is closed.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param username The client's username, or null if not logged in.
- * @param reason A human-readable string indicating why the client was disconnected.
- * For example, "connection closed by client", "no valid auth method", "solar storm"
- */
-void logClientDisconnected(int clientId, const char* username, const char* reason);
-
-/**
  * @brief Log that a client attempted to authenticate, whether successfull or not.
  * This should be called after the user chose an authentication method and attempted it.
  * @param clientId The client's ID (it's socket's file descriptor).
@@ -105,25 +88,5 @@ void logClientDisconnected(int clientId, const char* username, const char* reaso
  * @param successful Whether the authentication was successful.
  */
 void logClientAuthenticated(int clientId, const char* username, int successful);
-
-/**
- * @brief Log that the server is attempting to establish a connection requested by a
- * client.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param username The client's username, or null if not logged in.
- * @param remote The address the server is attempting to connect to.
- * @param remoteLength The length of the address specified in remote.
- */
-void logClientConnectionRequestAttempt(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
-
-/**
- * @brief Log that the server has successfully established a connection requested by
- * a client.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param username The client's username, or null if not logged in.
- * @param remote The address the server has to connect to.
- * @param remoteLength The length of the address specified in remote.
- */
-void logClientConnectionRequestSuccess(int clientId, const char* username, const struct sockaddr* remote, socklen_t remoteLength);
 
 #endif

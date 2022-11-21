@@ -15,6 +15,7 @@
 #include "args.h"
 #include "users.h"
 #include "logging/logger.h"
+#include "logging/util.h"
 #include "mgmt/mgmt.h"
 
 static bool terminationRequested = false;
@@ -107,23 +108,17 @@ int main(const int argc, char** argv) {
 
     // Listening on just IPv6 allow us to handle both IPv6 and IPv4 connections!
     // https://stackoverflow.com/questions/50208540/cant-listen-on-ipv4-and-ipv6-together-address-already-in-use
-
    
-    // log(DEBUG, "hola %d %d", sizeof(struct sockaddr_in), sizeof(struct sockaddr_in6)); // TODO: Remove
     struct sockaddr_in6 aux;
     memset(&aux, 0, sizeof(aux));
     void * p = (void *)&aux;
     socklen_t size = setupSockAddr(args.socksAddr, args.socksPort,p);
-    // log(DEBUG, "hola %s", "a"); // TODO: Remove
     int ipv6 = strchr(args.socksAddr, ':') != NULL; 
     const int server = socket(ipv6? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (server < 0) {
         err_msg = "unable to create socket";
         goto finally;
     }
-
-    //fprintf(stdout, "Listening on TCP port %d\n", args.socksPort); // TODO: Remove
-    logf(LOG_INFO, "Listening on TCP port %d", args.socksPort);
 
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));
@@ -139,10 +134,17 @@ int main(const int argc, char** argv) {
         goto finally;
     }
 
-        if (selector_fd_set_nio(server) == -1) {
+    if (selector_fd_set_nio(server) == -1) {
         err_msg = "getting server socket flags";
         goto finally;
     }
+
+    struct sockaddr_storage boundAddress;
+    socklen_t boundAddressLen = sizeof(boundAddress);
+    if (getsockname(server, (struct sockaddr*)&boundAddress, &boundAddressLen) >= 0) {
+        logf(LOG_INFO, "Listening for socks5 connections on TCP address %s", printSocketAddress((struct sockaddr*)&boundAddress));
+    } else
+        logf(LOG_INFO, "Listening for socks5 connections on TCP port %d", args.socksPort);
 
 
     // MANAGEMENT
@@ -155,9 +157,6 @@ int main(const int argc, char** argv) {
         err_msg = "unable to create socket";
         goto finally;
     }
-
-    //fprintf(stdout, "Listening on TCP port %d (socks5) and %d (management)\n", args.socksPort, args.mngPort); // TODO: Remove
-    logf(LOG_INFO, "Listening on TCP port %d (socks5) and %d (management)", args.socksPort, args.mngPort);
 
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(mgmtServer, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int));
@@ -177,6 +176,12 @@ int main(const int argc, char** argv) {
         err_msg = "getting server socket flags";
         goto finally;
     }
+
+    boundAddressLen = sizeof(boundAddress);
+    if (getsockname(server, (struct sockaddr*)&boundAddress, &boundAddressLen) >= 0) {
+        logf(LOG_INFO, "Listening for management connections on TCP address %s", printSocketAddress((struct sockaddr*)&boundAddress));
+    } else
+        logf(LOG_INFO, "Listening for management connections on TCP port %d", args.socksPort);
 
     // registrar sigterm es útil para terminar el programa normalmente.
     // esto ayuda mucho en herramientas como valgrind.

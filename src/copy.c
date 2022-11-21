@@ -1,8 +1,10 @@
 #include "copy.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include "logging/logger.h"
+#include "logging/metrics.h"
 #include "socks5.h"
 
 #define CLIENT_NAME "client"
@@ -69,7 +71,7 @@ static unsigned copyReadHandler(TClientData* clientData, TCopy * copy) {
     return COPY;
 }
 
-static unsigned copyWriteHandler(TCopy * copy) {
+static unsigned copyWriteHandler(TCopy * copy, bool isClientCopy) {
     int targetFd = *copy->targetFd;
     TSelector s = copy->s;
     buffer * targetBuffer = copy->targetBUffer;
@@ -94,6 +96,11 @@ static unsigned copyWriteHandler(TCopy * copy) {
         }
     } else {
         buffer_read_adv(targetBuffer, sent);
+
+        if (isClientCopy)
+            metricsRegisterBytesTransfered(0, sent);
+        else
+            metricsRegisterBytesTransfered(sent, 0);
     }
 
     logf(LOG_DEBUG, "copyWriteHandler: send() %ld bytes to %s %d [%lu remaining]", sent, name, targetFd, capacity - sent);
@@ -155,12 +162,15 @@ unsigned socksv5HandleWrite(TSelectorKey* key) {
     TClientData* clientData = key->data;
     TConnection* connections = &(clientData->connections);
     TCopy * copy;
+    bool isClientCopy;
     if (clientData->clientFd == key->fd) {
         copy = &(connections->clientCopy);
+        isClientCopy = true;
     } else { // fd == origin_fd
         copy = &(connections->originCopy);
+        isClientCopy = false;
     }
-    return copyWriteHandler(copy);
+    return copyWriteHandler(copy, isClientCopy);
 }
 
 void socksv5HandleClose(const unsigned int state, TSelectorKey* key) {

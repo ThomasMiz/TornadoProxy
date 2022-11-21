@@ -128,6 +128,7 @@ void closeConnection(TSelectorKey * key) {
         return;
     data->closed = true;
     metricsRegisterClientDisconnected();
+    logf(LOG_INFO, "Client %d disconnected", key->fd);
 
     int clientSocket = data->clientFd;
     int serverSocket = data->originFd;
