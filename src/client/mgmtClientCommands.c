@@ -79,6 +79,27 @@ int cmdDeleteUser(int sock, int cmdValue, char * username) {
     return 0;
 }
 
+int cmdChangeRole(int sock, int cmdValue, char * username, char * role){
+
+    if (sendByte(sock, cmdValue)) {
+        printf("error sending command\n");
+        return -1;
+    }
+
+    if (sendString(sock, username)) {
+        printf("error sending username string\n");
+        return -1;
+    }
+
+    int roleToInt = (*role) - '0';
+    if (sendByte(sock, roleToInt)) {
+        printf("error sending role string\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 int cmdGetDissectorStatus(int sock, int cmdValue) {
     if (sendByte(sock, cmdValue)) {
         printf("error sending get dissector status\n");

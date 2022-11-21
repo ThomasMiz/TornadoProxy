@@ -414,3 +414,7 @@ const char* usersPrivilegeToString(TUserPrivilegeLevel privilege) {
             return "unknown";
     }
 }
+
+bool userExists(const char * username) {
+    return usersGetIndexOf(username) >= 0;
+}

@@ -34,13 +34,13 @@ static TCmd commands[] = {
         },
         {
                 .id = MGMT_CMD_CHANGE_PASSWORD,
-                .argc = 1,
-                .argt = {STRING, EMPTY, EMPTY},
+                .argc = 2,
+                .argt = {STRING, STRING, EMPTY},
         },
         {
-                .id = MGMT_CHANGE_ROLE,
-                .argc = 1,
-                .argt = {STRING, EMPTY, EMPTY},
+                .id = MGMT_CMD_CHANGE_ROLE,
+                .argc = 2,
+                .argt = {STRING, BYTE, EMPTY},
         },
         {       .id = MGMT_CMD_GET_DISSECTOR,
                 .argc = 0,

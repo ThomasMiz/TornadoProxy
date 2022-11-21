@@ -116,4 +116,9 @@ TUserStatus usersFinalize();
 */
 const char* usersPrivilegeToString(TUserPrivilegeLevel privilege);
 
+/**
+ * @brief Returns true if a user already exists
+ */
+bool userExists(const char * username);
+
 #endif
