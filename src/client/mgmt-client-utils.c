@@ -138,7 +138,9 @@ bool argsQuantityOk(int command, int argc){
             return (argc >= 3)? true : false; // Usage: SET-DISSECTOR-STATUS <STATUS>
         case CMD_GET_AUTHENTICATION_STATUS:   
             return true;                      // Usage: GET-AUTHENTICATION-STATUS
-        case CMD_STATS: 
+        case CMD_SET_AUTHENTICATION_STATUS:
+            return (argc >= 3)? true : false; // Usage: SET-AUTHENTICATION-STATUS <STATUS>
+        case CMD_STATS:
             return true;                      // Usage: STATISTICS
         default:
             return false;

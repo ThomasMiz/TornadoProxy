@@ -17,14 +17,15 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,
             "Usage: %s [OPTION]...\n"
             "\n"
-            "   -h                                 Imprime la ayuda y termina.\n" 
-            "   USERS                              Envía un pedido para obtener los usuarios registrados.\n" 
-            "   ADD-USER <username> <password>     Envía un pedido para agregar un usuario al registro del servidor.\n"
-            "   DELETE-USER <username>             Envía un pedido para borrar un usuario del registro del servidor.\n"
-            "   GET-DISSECTOR-STATUS               Envía un pedido para obtener el estado del disector de contraseñas.\n"
-            "   GET-AUTHENTICATION-STATUS          Envía un pedido para obtener el estado de el nivel de autenticación de socks.\n"
-            "   SET-DISSECTOR-STATUS [ON/OFF]      Envía un pedido para setear el estado del disector de contraseñas.\n"
-            "   STATISTICS                         Envía un pedido de las estadísticas del servidor.\n"
+            "   -h                                  Imprime la ayuda y termina.\n" 
+            "   USERS                               Envía un pedido para obtener los usuarios registrados.\n" 
+            "   ADD-USER <username> <password>      Envía un pedido para agregar un usuario al registro del servidor.\n"
+            "   DELETE-USER <username>              Envía un pedido para borrar un usuario del registro del servidor.\n"
+            "   GET-DISSECTOR-STATUS                Envía un pedido para obtener el estado del disector de contraseñas.\n"
+            "   SET-DISSECTOR-STATUS [ON/OFF]       Envía un pedido para setear el estado del disector de contraseñas.\n"
+            "   GET-AUTHENTICATION-STATUS           Envía un pedido para obtener el estado de el nivel de autenticación de socks.\n"
+            "   SET-AUTHENTICATION-STATUS [ON/OFF]  Envía un pedido para setear el estado de el nivel de autenticación de socks.\n"
+            "   STATISTICS                          Envía un pedido de las estadísticas del servidor.\n"
             "\n","client");
             return 0;
     }
@@ -111,6 +112,9 @@ int main(int argc, char *argv[]) {
             break;
         case CMD_GET_AUTHENTICATION_STATUS:
             status = cmdGetAuthenticationStatus(sock, commandReference);
+            break;
+        case CMD_SET_AUTHENTICATION_STATUS:
+            status = cmdSetAuthenticationStatus(sock, commandReference, argv[2]);
             break;
         case CMD_STATS:
             status = cmdStats(sock, commandReference);

@@ -135,8 +135,8 @@ static void handleDeleteUserCmdResponse(buffer * buffer, TMgmtParser* p){
 static void handleGetDissectorStatusCmdResponse(buffer * buffer) {
     size_t size;
     uint8_t * ptr = buffer_write_ptr(buffer, &size);
-    static char * on = "+OK. Password dissector is: on\n";
-    static char * off = "+OK. Password dissector is: off\n";
+    static char * on = "+OK. Dissector status: on\n";
+    static char * off = "+OK. Dissector status: off\n";
     int len;
     if(isPDissectorOn()){
         len = strlen(on);
@@ -150,7 +150,7 @@ static void handleGetDissectorStatusCmdResponse(buffer * buffer) {
 
 static void handleSetDissectorStatusCmdResponse(buffer * buffer, TMgmtParser* p){
     size_t size;
-    uint8_t turnOn = p->args[0].byte;                              // OFF = 0 : ON = 1
+    uint8_t turnOn = p->args[0].byte;                              // OFF = 0 : ON != 0
 
     uint8_t * ptr = buffer_write_ptr(buffer, &size);
     static char * on = "+OK. Dissector status: on\n";
@@ -221,7 +221,7 @@ static int copyMetric(int idx, uint8_t * buff, char * metricString, size_t metri
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
 
     static char* noAuthMethod = "+OK authentication method: No Authentication";
-    static char* passwordMethod = "+OK authentication method: sername/password required";
+    static char* passwordMethod = "+OK authentication method: username/password required";
     static char* unkownErrorMessage = "-ERR can't fetch authentication method, try again later\n";
     static char* toReturn;
     uint8_t status = getAuthMethod();
@@ -241,6 +241,26 @@ static int copyMetric(int idx, uint8_t * buff, char * metricString, size_t metri
     buffer_write_adv(buffer, strlen(toReturn));
  }
 
+ static void handleSetAuthenticationStatusCmdResponse(buffer * buffer, TMgmtParser* p){
+    size_t size;
+    uint8_t turnOn = p->args[0].byte;                              // OFF = 0 : ON != 0
+
+    uint8_t * ptr = buffer_write_ptr(buffer, &size);
+    static char* noAuthMethod = "+OK authentication method: No Authentication";
+    static char* passwordMethod = "+OK authentication method: username/password required";
+    int len;
+    if(turnOn){
+        changeAuthMethod(NEG_METHOD_PASS);
+        len = strlen(passwordMethod);
+        strcpy((char *)ptr, passwordMethod);
+    } else {
+        changeAuthMethod(NEG_METHOD_NO_AUTH);
+        len = strlen(noAuthMethod);
+        strcpy((char *)ptr, noAuthMethod);
+    }
+    buffer_write_adv(buffer,len);
+}
+
 
 
 void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
@@ -259,10 +279,13 @@ void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
         handleSetDissectorStatusCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if (data->cmd == MGMT_CMD_GET_AUTHENTICATION_STATUS){
         handleGetAuthenticationStatusCmdResponse(&data->responseBuffer);
+    }  else if (data->cmd == MGMT_CMD_SET_AUTHENTICATION_STATUS) {
+        handleSetAuthenticationStatusCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if(data->cmd == MGMT_CMD_STATISTICS){
         handleStatisticsCmdResponse(&data->responseBuffer);
     } else {
         // TO DO
+
     }
 }
 

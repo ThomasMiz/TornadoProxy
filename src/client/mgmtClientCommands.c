@@ -120,3 +120,27 @@ int cmdGetAuthenticationStatus(int sock, int cmdValue){
     return 0;
 }
 
+int cmdSetAuthenticationStatus(int sock, int cmdValue, char * status){
+    if (sendByte(sock, cmdValue)) {
+        printf("error sending command\n");
+        return -1;
+    }
+
+    if (strcasecmp(ON, status) == 0) {
+        if (sendByte(sock, ON_CODE)) {
+            printf("error sending ON status\n");
+            return -1;
+        }
+    } else if (strcasecmp(OFF, status) == 0) {
+        if (sendByte(sock, OFF_CODE)) {
+            printf("error sending OFF status\n");
+            return -1;
+        }
+    } else {
+            printf("invalid status value %s\n", status);
+            return -1;
+    }
+
+    return 0;
+}
+
