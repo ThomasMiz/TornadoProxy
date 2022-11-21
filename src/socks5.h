@@ -14,7 +14,7 @@
 
 // obtiene el struct socks5* desde la key
 #define ATTACHMENT(key) ((TClientData*)(key)->data)
-#define BUFFER_SIZE 8192
+#define BUFFER_SIZE 32768
 #define N(x) (sizeof(x) / sizeof((x)[0]))
 
 typedef struct TClientData {
