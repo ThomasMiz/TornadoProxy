@@ -42,6 +42,9 @@ const char* selector_error(const TSelectorStatus status) {
         case SELECTOR_IO:
             msg = "I/O error";
             break;
+        case SELECTOR_FDINUSE:
+            msg = "FD in use";
+            break;
         default:
             msg = ERROR_DEFAULT_MSG;
     }

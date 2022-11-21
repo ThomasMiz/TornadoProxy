@@ -88,7 +88,7 @@ static unsigned requestProcess(TSelectorKey* key) {
             .ai_addrlen = sizeof(*sockaddr),
         };
 
-        logf(LOG_INFO, "Client %d requested to connect to IPv4 address %s", key->fd, printSocketAddress((struct sockaddr*)sockaddr));
+        logf(LOG_INFO, "Client %d requested to connect to IPv4 address %s", data->clientFd, printSocketAddress((struct sockaddr*)sockaddr));
         return startConnection(key);
     }
 
@@ -114,12 +114,12 @@ static unsigned requestProcess(TSelectorKey* key) {
             .ai_addrlen = sizeof(*sockaddr),
         };
 
-        logf(LOG_INFO, "Client %d requested to connect to IPv6 address %s", key->fd, printSocketAddress((struct sockaddr*)sockaddr));
+        logf(LOG_INFO, "Client %d requested to connect to IPv6 address %s", data->clientFd, printSocketAddress((struct sockaddr*)sockaddr));
         return startConnection(key);
     }
 
     if (atyp == REQ_ATYP_DOMAINNAME) {
-        logf(LOG_INFO, "Client %d requested to connect to domain name %s", key->fd, data->client.reqParser.address.domainname);
+        logf(LOG_INFO, "Client %d requested to connect to domain name %s", data->clientFd, data->client.reqParser.address.domainname);
 
         pthread_t tid;
         TSelectorKey* key2 = malloc(sizeof(*key));
@@ -248,10 +248,12 @@ unsigned requestConecting(TSelectorKey* key) {
 
     int error = 0;
     if (getsockopt(d->originFd, SOL_SOCKET, SO_ERROR, &error, &(socklen_t){sizeof(int)})) {
+        logf(LOG_DEBUG, "requestConecting: getsockopt() failed: %s", strerror(errno));
         return fillRequestAnswerWitheErrorState(key, REQ_ERROR_GENERAL_FAILURE);
     }
 
     if (error) {
+        logf(LOG_DEBUG, "requestConecting: getsockopt() returned error %d", error);
         return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(error));
     }
 
@@ -260,6 +262,7 @@ unsigned requestConecting(TSelectorKey* key) {
     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&d->client.reqParser, &d->originBuffer)) {
         return ERROR;
     }
+
     return REQUEST_WRITE;
 }
 
@@ -275,15 +278,18 @@ static unsigned startConnection(TSelectorKey * key) {
     }
     selector_fd_set_nio(d->originFd);
 
-    logf(LOG_INFO, "Attempting to connect to %s as requested by client %d", printSocketAddress(d->originResolution->ai_addr), key->fd);
+    logf(LOG_INFO, "Attempting to connect to %s as requested by client %d", printSocketAddress(d->originResolution->ai_addr), d->clientFd);
 
     if (connect(d->originFd, d->originResolution->ai_addr, d->originResolution->ai_addrlen) == 0 || errno == EINPROGRESS) {
         if (selector_register(key->s, d->originFd, getStateHandler(), OP_WRITE, d) != SELECTOR_SUCCESS || SELECTOR_SUCCESS != selector_set_interest(key->s, key->fd, OP_NOOP)) {
+            logf(LOG_DEBUG, "startConnection: Failed to register and set interests for request by client fd %d", d->clientFd);
             return ERROR;
         }
+        logf(LOG_DEBUG, "startConnection: Connect attempt in progress for request by client fd %d", d->clientFd);
         return REQUEST_CONNECTING;
     }
-    logf(LOG_INFO, "Connect attempt to %s failed (requested by client %d)", printSocketAddress(d->originResolution->ai_addr), key->fd);
+
+    logf(LOG_DEBUG, "startConnection: Connect attempt to %s failed (requested by client %d)", printSocketAddress(d->originResolution->ai_addr), d->clientFd);
 
     //Could not connect to the first address, try with the next one, if exists
     if(d->originResolution->ai_next != NULL){
@@ -296,7 +302,7 @@ static unsigned startConnection(TSelectorKey * key) {
     }
     
     //Return a connection error after trying to connect to all the addresses
-    logf(LOG_INFO, "Failed to fulfill connection request from client %d", key->fd);
+    logf(LOG_INFO, "Failed to fulfill connection request from client %d", d->clientFd);
     return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(errno));
 }
 
