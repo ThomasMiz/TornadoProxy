@@ -100,7 +100,7 @@ static TAuthState parseEnd(TAuthParser* p, uint8_t c) {
 TUserStatus validateUserAndPassword(TAuthParser* p) {
     TUserPrivilegeLevel upl;
     TUserStatus userStatus = usersLogin(p->uname, p->passwd, &upl);
-    if (userStatus == EUSER_OK) {
+    if (userStatus == EUSER_OK && upl == UPRIV_ADMIN) {
         p->verification = AUTH_SUCCESSFUL;
     }
     return userStatus;
