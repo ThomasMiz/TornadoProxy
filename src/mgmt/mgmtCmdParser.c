@@ -42,11 +42,11 @@ static TCmd commands[] = {
                 .argc = 2,
                 .argt = {STRING, BYTE, EMPTY},
         },
-        {       .id = MGMT_CMD_GET_DISSECTOR,
+        {       .id = MGMT_CMD_GET_DISSECTOR_STATUS,
                 .argc = 0,
         },
         {
-                .id = MGMT_CMD_SET_DISSECTOR,
+                .id = MGMT_CMD_SET_DISSECTOR_STATUS,
                 .argc = 1,
                 .argt = {BYTE,EMPTY, EMPTY},
         },

@@ -15,8 +15,6 @@
 #define MGMT_BUFFER_SIZE 4096
 
 typedef struct {
-    TFdHandler handler;
-
     struct state_machine stm;
 
     union {

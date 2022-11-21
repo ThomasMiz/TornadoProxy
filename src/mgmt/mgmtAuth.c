@@ -1,5 +1,6 @@
 #include "mgmtAuth.h"
 #include "../logging/logger.h"
+#include "../logging/util.h"
 #include "../users.h"
 #include "mgmt.h"
 
@@ -28,12 +29,29 @@ unsigned mgmtAuthRead(TSelectorKey* key) {
     buffer_write_adv(&data->readBuffer, readCount);
     authParse(&data->client.authParser, &data->readBuffer);
     if (hasAuthReadEnded(&data->client.authParser)) {
+        TAuthParser* authpdata = &data->client.authParser;
         TUserPrivilegeLevel upl;
-        TUserStatus userStatus = validateUserAndPassword(&data->client.authParser, &upl);
+        TUserStatus userStatus = validateUserAndPassword(authpdata, &upl);
+
+        switch (userStatus) {
+            case EUSER_OK:
+                logf(LOG_INFO, "Manager %d successfully authenticated as %s (%s)", key->fd, authpdata->uname, usersPrivilegeToString(upl));
+                break;
+            case EUSER_WRONGUSERNAME:
+                logf(LOG_INFO, "Manager %d attempted to authenticate as %s but there's no such username", key->fd, authpdata->uname);
+                break;
+            case EUSER_WRONGPASSWORD:
+                logf(LOG_INFO, "Manager %d attempted to authenticate as %s but had the wrong password", key->fd, authpdata->uname);
+                break;
+            default:
+                logf(LOG_ERROR, "Manager %d attempted to authenticate as %s but an unknown error ocurred", key->fd, authpdata->uname);
+                break;
+        }
+
          if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillAuthAnswer(&data->client.authParser, &data->writeBuffer)) {
              return MGMT_ERROR;
          }
-        return MGMT_AUTH_WRITE;
+         return MGMT_AUTH_WRITE;
     }
     return MGMT_AUTH_READ;
 }

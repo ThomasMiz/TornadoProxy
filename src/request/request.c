@@ -119,7 +119,7 @@ static unsigned requestProcess(TSelectorKey* key) {
     }
 
     if (atyp == REQ_ATYP_DOMAINNAME) {
-        logf(LOG_INFO, "Client %d requested to connect to domain name %s", data->clientFd, data->client.reqParser.address.domainname);
+        logf(LOG_INFO, "Client %d requested to connect to domain name %s:%d", data->clientFd, data->client.reqParser.address.domainname, data->client.reqParser.port);
 
         pthread_t tid;
         TSelectorKey* key2 = malloc(sizeof(*key));

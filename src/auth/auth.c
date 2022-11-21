@@ -42,7 +42,7 @@ unsigned authRead(TSelectorKey* key) {
                 logf(LOG_INFO, "Client %d attempted to authenticate as %s but had the wrong password", key->fd, authpdata->uname);
                 break;
             default:
-
+                logf(LOG_ERROR, "Client %d attempted to authenticate as %s but an unknown error ocurred", key->fd, authpdata->uname);
                 break;
         }
 

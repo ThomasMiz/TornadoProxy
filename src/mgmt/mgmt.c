@@ -1,5 +1,6 @@
 #include "mgmt.h"
 #include "../logging/logger.h"
+#include "../logging/util.h"
 #include "mgmtAuth.h"
 #include "mgmtRequest.h"
 
@@ -86,9 +87,9 @@ void mgmtPassiveAccept(TSelectorKey* key) {
     struct sockaddr_storage clientAddress;
     socklen_t clientAddressLen = sizeof(clientAddress);
     int newClientSocket = accept(key->fd, (struct sockaddr*)&clientAddress, &clientAddressLen);
-    logf(LOG_DEBUG, "mgmtPassiveAccept: New mgmt client accepted at socket fd %d", newClientSocket);
-
+    
     if(newClientSocket < 0){
+        logf(LOG_WARNING, "Management socket: accept() returned negative value: %d", newClientSocket);
         return;
     }
     if(newClientSocket > 1023){
@@ -99,16 +100,10 @@ void mgmtPassiveAccept(TSelectorKey* key) {
     // Consider using a function to initialize the TClientData structure.
     TMgmtClient * clientData = calloc(1, sizeof(TMgmtClient));
     if (clientData == NULL) {
-        logf(LOG_ERROR, "mgmtPassiveAccept: Failed to alloc clientData for new client t socket fd %d", newClientSocket);
         close(newClientSocket);
+        logf(LOG_WARNING, "Management new client from %s with fd %d rejected because fd was too high", printSocketAddress((struct sockaddr*)&clientAddress), newClientSocket);
         return;
     }
-
-    TFdHandler* handler = &clientData->handler;
-    handler->handle_read = mgmt_read;
-    handler->handle_write = mgmt_write;
-    handler->handle_close = mgmt_close;
-    handler->handle_block = mgmt_block;
     
     clientData->stm.initial = MGMT_AUTH_READ;
     clientData->stm.max_state = MGMT_ERROR;
@@ -122,14 +117,15 @@ void mgmtPassiveAccept(TSelectorKey* key) {
 
     stm_init(&clientData->stm);
 
-    TSelectorStatus status = selector_register(key->s, newClientSocket, handler, OP_READ, clientData);
+    TSelectorStatus status = selector_register(key->s, newClientSocket, &handler, OP_READ, clientData);
 
     if (status != SELECTOR_SUCCESS) {
-        logf(LOG_ERROR, "mgmtPassiveAccept: Failed to register new mgmt client into selector: %s", selector_error(status));
+        logf(LOG_ERROR, "Management new client from %s with fd %d rejected because registering into selector failed: %s", printSocketAddress((struct sockaddr*)&clientAddress), newClientSocket, selector_error(status));
         free(clientData);
         return;
     }
-    logf(LOG_DEBUG, "mgmtPassiveAccept: New mgmt client registered successfully t socket fd %d", newClientSocket);
+
+    logf(LOG_INFO, "Management new client from %s assigned id %d", printSocketAddress((struct sockaddr*)&clientAddress), newClientSocket);
 }
 
 static void mgmtClose_connection(TSelectorKey * key) {
@@ -137,6 +133,7 @@ static void mgmtClose_connection(TSelectorKey * key) {
     if (data->closed)
         return;
     data->closed = true;
+    logf(LOG_INFO, "Management client %d disconnected", key->fd);
 
     int clientSocket = data->clientFd;
     // int serverSocket = data->originFd;
