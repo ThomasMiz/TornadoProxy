@@ -116,6 +116,6 @@ bool hasAuthReadErrors(TAuthParser* p);
 TAuthRet fillAuthAnswer(TAuthParser* p, struct buffer* buffer);
 
 
-TUserStatus validateUserAndPassword(TAuthParser* p);
+TUserStatus validateUserAndPassword(TAuthParser* p, TUserPrivilegeLevel* upl);
 
 #endif // NEGOTIATION_PARSER_H

@@ -1,4 +1,5 @@
 #include "auth.h"
+#include "../users.h"
 #include "../logging/logger.h"
 #include "../socks5.h"
 
@@ -26,7 +27,25 @@ unsigned authRead(TSelectorKey* key) {
     buffer_write_adv(&data->clientBuffer, readCount);
     authParse(&data->client.authParser, &data->clientBuffer);
     if (hasAuthReadEnded(&data->client.authParser)) {
-        validateUserAndPassword(&data->client.authParser);
+        TAuthParser* authpdata = &data->client.authParser;
+        TUserPrivilegeLevel upl;
+        TUserStatus userStatus = validateUserAndPassword(authpdata, &upl);
+
+        switch (userStatus) {
+            case EUSER_OK:
+                logf(LOG_INFO, "Client %d successfully authenticated as %s (%s)", key->fd, authpdata->uname, usersPrivilegeToString(upl));
+                break;
+            case EUSER_WRONGUSERNAME:
+                logf(LOG_INFO, "Client %d attempted to authenticate as %s but there's no such username", key->fd, authpdata->uname);
+                break;
+            case EUSER_WRONGPASSWORD:
+                logf(LOG_INFO, "Client %d attempted to authenticate as %s but had the wrong password", key->fd, authpdata->uname);
+                break;
+            default:
+
+                break;
+        }
+
         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillAuthAnswer(&data->client.authParser, &data->originBuffer)) {
             return ERROR;
         }
@@ -61,9 +80,10 @@ unsigned authWrite(TSelectorKey* key) {
         return AUTH_WRITE;
     }
 
-    if (hasAuthReadErrors(&data->client.authParser)|| data->client.authParser.verification == AUTH_ACCESS_DENIED || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
+    if (hasAuthReadErrors(&data->client.authParser) || data->client.authParser.verification == AUTH_ACCESS_DENIED || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
         return ERROR;
     }
 
+    logf(LOG_INFO, "Client %d has selected authentication method: NONE", key->fd);
     return REQUEST_READ;
 }

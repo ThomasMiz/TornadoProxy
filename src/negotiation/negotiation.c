@@ -67,7 +67,10 @@ unsigned negotiationWrite(TSelectorKey* key) {
     }
 
     if (NEG_METHOD_PASS == data->client.negParser.authMethod) {
+        logf(LOG_INFO, "Client %d has selected authentication method: USER", key->fd);
         return AUTH_READ;
     }
+
+    logf(LOG_INFO, "Client %d has selected authentication method: NONE", key->fd);
     return REQUEST_READ;
 }
