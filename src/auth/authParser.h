@@ -118,6 +118,12 @@ bool hasAuthReadErrors(TAuthParser* p);
  */
 TAuthRet fillAuthAnswer(TAuthParser* p, struct buffer* buffer);
 
+/**
+ * @brief Validates that the username and password match with an entry in the registry
+ * @param p The verification field will be retrived from this parser.
+ * @param upl The privelege status will be returned in this parameter.
+ * @returns The status of the validation. Either OK, WRONGUSERNAME or WRONGPASSWORD
+ */
 TUserStatus validateUserAndPassword(TAuthParser* p, TUserPrivilegeLevel* upl);
 
 #endif // NEGOTIATION_PARSER_H

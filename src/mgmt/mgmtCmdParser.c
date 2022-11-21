@@ -92,12 +92,15 @@ TMgmtState mgmtCmdParse(TMgmtParser* p, struct buffer* buffer) {
     }
     return p->state;
 }
+
 bool hasMgmtCmdReadEnded(TMgmtParser* p) {
     return p->state == MGMTP_END || p->state == MGMTP_ERROR;
 }
+
 bool hasMgmtCmdErrors(TMgmtParser* p) {
     return p->state == MGMTP_ERROR;
 }
+
 uint8_t fillMgmtCmdAnswer(TMgmtParser* p, struct buffer* buffer) {
     buffer_write(buffer, p->cmd + '0');
     return 0;

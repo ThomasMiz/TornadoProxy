@@ -65,6 +65,10 @@ enum mgmt_state {
 
 };
 
+/**
+ * @brief Handler to accept connections for server monitoring
+ * @param key Selector key that holds information regarding the ready fd
+ */
 void mgmtPassiveAccept(TSelectorKey* key);
 
 #endif
