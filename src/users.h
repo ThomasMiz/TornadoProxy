@@ -121,4 +121,11 @@ const char* usersPrivilegeToString(TUserPrivilegeLevel privilege);
  */
 bool userExists(const char * username);
 
+/**
+ * @brief Fill the array with the names of the currently registered users.
+ * @param toFill The array to be filled.
+ * @returns The length of the array i.e the number of currently registered users.
+ */
+unsigned int fillCurrentUsers(char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT]);
+
 #endif

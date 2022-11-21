@@ -93,7 +93,7 @@ bool authenticate(char *username, char *password, int socket) {
     }
 
     if(status == ERROR_STATUS){
-        printf("Username/password is wrong\n");
+        printf("Username/password does not correspond to a registered admin user\n");
         return false;
     }
 

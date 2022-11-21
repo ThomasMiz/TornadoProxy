@@ -7,7 +7,7 @@
 void mgmtAuthReadInit(const unsigned state, TSelectorKey* key) {
     log(DEBUG, "[Mgmt Auth read] init at socket fd %d", key->fd);
     TMgmtClient* data = GET_ATTACHMENT(key);
-    initAuthParser(&data->client.authParser);
+    initAuthParser(&data->client.authParser, UPRIV_ADMIN);
 }
 
 unsigned mgmtAuthRead(TSelectorKey* key) {
