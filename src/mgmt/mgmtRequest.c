@@ -324,7 +324,7 @@ static void handleGetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
 
-    static const char* noAuthMethod = "+OK authentication method: No Authentication";
+    static const char* noAuthMethod = "+OK authentication method: no authentication";
     static const char* passwordMethod = "+OK authentication method: username/password required";
     static const char* unkownErrorMessage = "-ERR can't fetch authentication method, try again later";
     static const char* toReturn;
@@ -351,7 +351,7 @@ static void handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser
     uint8_t turnOn = p->args[0].byte; // OFF = 0 : ON != 0
 
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
-    static const char* noAuthMethod = "+OK authentication method: No Authentication";
+    static const char* noAuthMethod = "+OK authentication method: no authentication";
     static const char* passwordMethod = "+OK authentication method: username/password required";
     int len;
     if (turnOn) {
