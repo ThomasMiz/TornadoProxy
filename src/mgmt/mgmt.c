@@ -1,13 +1,13 @@
 #include "mgmt.h"
-#include "../logger.h"
+#include "../logging/logger.h"
 #include "mgmtAuth.h"
 #include "mgmtRequest.h"
 
 static void mgmtdoneArrival(const unsigned state, TSelectorKey* key) {
-    printf("Done state \n");
+    log(LOG_DEBUG, "mgmtdoneArrival: Done state");
 }
 static void mgmterrorArrival(const unsigned state, TSelectorKey* key) {
-    printf("Error state \n");
+    log(LOG_DEBUG, "mgmterrorArrival: Error state");
 }
 
 static void mgmtClose_connection(TSelectorKey * key);
@@ -86,7 +86,7 @@ void mgmtPassiveAccept(TSelectorKey* key) {
     struct sockaddr_storage clientAddress;
     socklen_t clientAddressLen = sizeof(clientAddress);
     int newClientSocket = accept(key->fd, (struct sockaddr*)&clientAddress, &clientAddressLen);
-    log(DEBUG,"New mgmt client accepted at socket fd %d", newClientSocket);
+    logf(LOG_DEBUG, "mgmtPassiveAccept: New mgmt client accepted at socket fd %d", newClientSocket);
 
     if(newClientSocket < 0){
         return;
@@ -99,7 +99,7 @@ void mgmtPassiveAccept(TSelectorKey* key) {
     // Consider using a function to initialize the TClientData structure.
     TMgmtClient * clientData = calloc(1, sizeof(TMgmtClient));
     if (clientData == NULL) {
-        log(LOG_ERROR, "Failed to alloc clientData for new client t socket fd %d", newClientSocket);
+        logf(LOG_ERROR, "mgmtPassiveAccept: Failed to alloc clientData for new client t socket fd %d", newClientSocket);
         close(newClientSocket);
         return;
     }
@@ -125,11 +125,11 @@ void mgmtPassiveAccept(TSelectorKey* key) {
     TSelectorStatus status = selector_register(key->s, newClientSocket, handler, OP_READ, clientData);
 
     if (status != SELECTOR_SUCCESS) {
-        log(LOG_ERROR, "Failed to register new mgmt client into selector: %s", selector_error(status));
+        logf(LOG_ERROR, "mgmtPassiveAccept: Failed to register new mgmt client into selector: %s", selector_error(status));
         free(clientData);
         return;
     }
-    log(INFO, "New mgmt client registered successfully t socket fd %d", newClientSocket);
+    logf(LOG_DEBUG, "mgmtPassiveAccept: New mgmt client registered successfully t socket fd %d", newClientSocket);
 }
 
 static void mgmtClose_connection(TSelectorKey * key) {

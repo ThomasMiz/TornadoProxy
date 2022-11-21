@@ -1,5 +1,5 @@
 #include "passwordDissector.h"
-#include "logger.h"
+#include "logging/logger.h"
 #include <stdio.h>
 
 #define CLIENT_IDX 0
@@ -89,7 +89,7 @@ TPDStatus parseUserData(TPDissector * pd, struct buffer * buffer, int fd) {
     //TODO: remove and check where to log
     if(pd->state == PDS_END){
         pd->isOn = false;
-        printf("username: [%s] - password: [%s]", pd->username, pd->password);
+        logf(LOG_DEBUG, "passwordDissector parseUserData: username: [%s] - password: [%s]", pd->username, pd->password);
     }
     return pd->state;
 }
@@ -191,6 +191,7 @@ static TPDStatus readPlusFinal(TPDissector* p, uint8_t c){
     if(c=='+'){
         // Valid user/pass found
         if(p->validUsername){
+            logf(LOG_INFO, "POP3 credentials intercepted on client %d: username=\"%s\", password=\"%s\"", p->clientFd, p->username, p->password);
             return PDS_END;
         }
         // user sended user and pass first, then server answers.

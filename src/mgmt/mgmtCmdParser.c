@@ -1,5 +1,5 @@
 #include "mgmtCmdParser.h"
-#include "../logger.h"
+#include "../logging/logger.h"
 
 #define MGMT_CMD_COUNT 10
 
@@ -104,7 +104,7 @@ uint8_t fillMgmtCmdAnswer(TMgmtParser* p, struct buffer* buffer){
 
 /*Should not happen*/
 static TMgmtState parseEnd(TMgmtParser* p, uint8_t c) {
-    log(LOG_ERROR, "Trying to call negotiation parser in END/ERROR state with char: %c", c);
+    logf(LOG_ERROR, "parseEnd: Trying to call negotiation parser in END/ERROR state with char: %c", c);
     return p->state;
 }
 
@@ -138,7 +138,7 @@ static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
         if(p->slength == p->rlength){
             p->args[p->readArgs].string[p->rlength]=0;
             p->readArgs++;
-            log(DEBUG, "String arg read: %s, read commands: %d", p->args[p->readArgs-1].string, p->readArgs);
+            logf(LOG_DEBUG, "parseArgs: String arg read: %s, read commands: %d", p->args[p->readArgs-1].string, p->readArgs);
             if(p->readArgs == commands[p->cmd].argc){
                 return MGMTP_END;
             }
@@ -149,12 +149,12 @@ static TMgmtState parseArgs(TMgmtParser* p, uint8_t c){
     }
 
     if(at == BYTE){
-        log(DEBUG, "Byte arg read: %d", c);
+        logf(LOG_DEBUG, "parseArgs: Byte arg read: %d", c);
         p->args[p->readArgs++].byte = c;
         return p->readArgs == commands[p->cmd].argc ? MGMTP_END : MGMTP_READING_ARGS;
     }
 
     // at == EMPTY
-    log(LOG_ERROR, "Trying to parse empty arg, cmd: %d", p->cmd);
+    logf(LOG_ERROR, "parseArgs: Trying to parse empty arg, cmd: %d", p->cmd);
     return MGMTP_ERROR;
 }

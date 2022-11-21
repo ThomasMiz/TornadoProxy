@@ -1,17 +1,17 @@
 #include "mgmtAuth.h"
-#include "../logger.h"
+#include "../logging/logger.h"
 #include "../users.h"
 #include "mgmt.h"
 
 
 void mgmtAuthReadInit(const unsigned state, TSelectorKey* key) {
-    log(DEBUG, "[Mgmt Auth read] init at socket fd %d", key->fd);
+    logf(LOG_DEBUG, "mgmtAuthReadInit: init at socket fd %d", key->fd);
     TMgmtClient* data = GET_ATTACHMENT(key);
     initAuthParser(&data->client.authParser, UPRIV_ADMIN);
 }
 
 unsigned mgmtAuthRead(TSelectorKey* key) {
-    log(DEBUG, "[Mgmt Auth read] read at socket fd %d", key->fd);
+    logf(LOG_DEBUG, "mgmtAuthRead: read at socket fd %d", key->fd);
     TMgmtClient* data = GET_ATTACHMENT(key);
 
     size_t readLimit;    // how many bytes can be stored in the buffer
@@ -20,7 +20,7 @@ unsigned mgmtAuthRead(TSelectorKey* key) {
 
     readBuffer = buffer_write_ptr(&data->readBuffer, &readLimit);
     readCount = recv(key->fd, readBuffer, readLimit, 0);
-    log(DEBUG, "[Mgmt Auth read]  %ld bytes from client %d", readCount, key->fd);
+    logf(LOG_DEBUG, "mgmtAuthRead: %ld bytes from client %d", readCount, key->fd);
     if (readCount <= 0) {
         return MGMT_ERROR;
     }
@@ -39,7 +39,7 @@ unsigned mgmtAuthRead(TSelectorKey* key) {
 }
 
 unsigned mgmtAuthWrite(TSelectorKey* key) {
-    log(DEBUG, "[Mgmt Auth write] send at fd %d", key->fd);
+    logf(LOG_DEBUG, "mgmtAuthWrite: send at fd %d", key->fd);
     TMgmtClient* data = GET_ATTACHMENT(key);
 
     size_t writeLimit;    // how many bytes we want to send
@@ -50,14 +50,14 @@ unsigned mgmtAuthWrite(TSelectorKey* key) {
     writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
 
     if (writeCount < 0) {
-        log(LOG_ERROR, "[Mgmt Auth write] send() at fd %d", key->fd);
+        logf(LOG_ERROR, "mgmtAuthWrite: send() at fd %d", key->fd);
         return MGMT_ERROR;
     }
     if (writeCount == 0) {
-        log(LOG_ERROR, "[Mgmt Auth write] Failed to send(), client closed connection unexpectedly at fd %d", key->fd);
+        logf(LOG_ERROR, "mgmtAuthWrite: Failed to send(), client closed connection unexpectedly at fd %d", key->fd);
         return MGMT_ERROR;
     }
-    log(DEBUG, "[Mgmt Auth write]  %ld bytes to client %d", writeCount, key->fd);
+    logf(LOG_DEBUG, "mgmtAuthWrite: %ld bytes to client %d", writeCount, key->fd);
     buffer_read_adv(&data->writeBuffer, writeCount);
 
     if (buffer_can_read(&data->writeBuffer)) {

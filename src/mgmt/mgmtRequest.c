@@ -1,7 +1,7 @@
 #include "mgmtRequest.h"
 #include "../passwordDissector.h"
 #include "mgmtCmdParser.h"
-#include "../logger.h"
+#include "../logging/logger.h"
 #include "../users.h"
 #include "mgmt.h"
 #include "mgmtCmdParser.h"
@@ -9,12 +9,12 @@
 #include "../negotiation/negotiationParser.h"
 
 void mgmtRequestReadInit(const unsigned state, TSelectorKey* key) {
-    log(DEBUG, "[Mgmt req read] init at socket fd %d", key->fd);
+    logf(LOG_DEBUG, "mgmtRequestReadInit: init at socket fd %d", key->fd);
     TMgmtClient* data = GET_ATTACHMENT(key);
     initMgmtCmdParser(&data->client.cmdParser);
 }
 unsigned mgmtRequestRead(TSelectorKey* key) {
-    log(DEBUG, "[Mgmt req read] read at socket fd %d", key->fd);
+    logf(LOG_DEBUG, "mgmtRequestRead: read at socket fd %d", key->fd);
     TMgmtClient* data = GET_ATTACHMENT(key);
 
     size_t readLimit;    // how many bytes can be stored in the buffer
@@ -23,7 +23,7 @@ unsigned mgmtRequestRead(TSelectorKey* key) {
 
     readBuffer = buffer_write_ptr(&data->readBuffer, &readLimit);
     readCount = recv(key->fd, readBuffer, readLimit, 0);
-    log(DEBUG, "[Mgmt req read]  %ld bytes from client %d", readCount, key->fd);
+    logf(LOG_DEBUG, "mgmtRequestRead: %ld bytes from client %d", readCount, key->fd);
     if (readCount <= 0) {
         return MGMT_ERROR;
     }
@@ -158,7 +158,7 @@ static void handleDeleteUserCmdResponse(buffer* buffer, TMgmtParser* p) {
 }
 
 static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p) {
-    printf("handleChangePasswordCmdResponse\n");
+    log(LOG_DEBUG, "handleChangePasswordCmdResponse");
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
     char* username = p->args[0].string;
@@ -278,7 +278,6 @@ static void handleSetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p) 
 }
 
 static int copyMetric(int idx, uint8_t* buff, char* metricString, size_t metricValue) {
-
     char aux[256];
     int len = strlen(metricString);
 
@@ -412,7 +411,7 @@ void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
 }
 
 unsigned mgmtRequestWrite(TSelectorKey* key) {
-    log(DEBUG, "[Mgmt req write] send at fd %d", key->fd);
+    logf(LOG_DEBUG, "mgmtRequestWrite: send at fd %d", key->fd);
     TMgmtClient* data = GET_ATTACHMENT(key);
 
     size_t writeLimit;      // how many bytes we want to send
@@ -422,7 +421,7 @@ unsigned mgmtRequestWrite(TSelectorKey* key) {
     // new
     writeBuffer = buffer_read_ptr(&data->responseBuffer, &writeLimit);
     writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
-    log(DEBUG, "[Mgmt req write] sent %ld bytes", writeCount);
+    logf(LOG_DEBUG, "mgmtRequestWrite: sent %ld bytes", writeCount);
 
     // ----
 
@@ -430,14 +429,14 @@ unsigned mgmtRequestWrite(TSelectorKey* key) {
     // writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
 
     if (writeCount < 0) {
-        log(LOG_ERROR, "[Mgmt req write] send() at fd %d", key->fd);
+        logf(LOG_ERROR, "mgmtRequestWrite: send() at fd %d", key->fd);
         return MGMT_ERROR;
     }
     if (writeCount == 0) {
-        log(LOG_ERROR, "[Mgmt req write] Failed to send(), client closed connection unexpectedly at fd %d", key->fd);
+        logf(LOG_ERROR, "mgmtRequestWrite: Failed to send(), client closed connection unexpectedly at fd %d", key->fd);
         return MGMT_ERROR;
     }
-    log(DEBUG, "[Mgmt req write]  %ld bytes to client %d", writeCount, key->fd);
+    logf(LOG_DEBUG, "mgmtRequestWrite: %ld bytes to client %d", writeCount, key->fd);
     buffer_read_adv(&data->responseBuffer, writeCount);
 
     if (buffer_can_read(&data->responseBuffer)) {
