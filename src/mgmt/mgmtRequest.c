@@ -362,6 +362,18 @@ static void handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser
     buffer_write_adv(buffer, len);
 }
 
+static void handleUnknownCmd(buffer * buffer){
+    size_t size;
+
+    uint8_t* ptr = buffer_write_ptr(buffer, &size);
+    static char* uknCommand = "-ERR unknown command";
+
+    size = strlen(uknCommand);
+    strcpy((char*)ptr, uknCommand);
+
+    buffer_write_adv(buffer, size);
+}
+
 void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     TMgmtClient* data = GET_ATTACHMENT(key);
     buffer_init(&(data->responseBuffer), MGMT_BUFFER_SIZE, data->responseRawBuffer);
@@ -387,7 +399,7 @@ void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     } else if (data->cmd == MGMT_CMD_STATISTICS) {
         handleStatisticsCmdResponse(&data->responseBuffer);
     } else {
-        // TO DO: Handle unkown command.
+        handleUnknownCmd(&data->responseBuffer);
     }
 }
 
