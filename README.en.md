@@ -25,7 +25,7 @@ Run the server:
 ```sh
 user@user:/socks5-server$ ./bin/socks5
 ```
-> Note: `-h` flag shows help information and exits.
+Note: `-h` flag shows help information and exits.
 
 ## Client:
 

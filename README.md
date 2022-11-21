@@ -20,7 +20,7 @@ Desarrollado por:
 
 ```make all```
 
-> Se puede limpiar el proyecto con `make clean`
+Nota: Se puede limpiar el proyecto con `make clean`
 
 Se generarán dos binarios llamados `sock5v` y `client` dentro del directorio `bin` en la raíz. El primero corresponde al servidor proxy SOCKS 5, mientras que el segundo es un cliente que permite la comunicación con el servidor que corre en `sock5v` a través de un protocolo de monitoreo propietario.
 
