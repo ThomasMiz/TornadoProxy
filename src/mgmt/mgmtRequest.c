@@ -191,7 +191,6 @@ static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p) {
 }
 
 static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p) {
-printf("handleChangeRoleCmdResponse\n");
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
     char* username = p->args[0].string;
@@ -236,8 +235,8 @@ printf("handleChangeRoleCmdResponse\n");
 static void handleGetDissectorStatusCmdResponse(buffer* buffer) {
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
-    static char* on = "+OK. Dissector status: on";
-    static char* off = "+OK. Dissector status: off";
+    static char* on = "+OK dissector status: on";
+    static char* off = "+OK dissector status: off";
     int len;
     if (isPDissectorOn()) {
         len = strlen(on);
@@ -254,8 +253,8 @@ static void handleSetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p) 
     uint8_t turnOn = p->args[0].byte; // OFF = 0 : ON != 0
 
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
-    static char* on = "+OK. Dissector status: on";
-    static char* off = "+OK. Dissector status: off";
+    static char* on = "+OK dissector status: on";
+    static char* off = "+OK dissector status: off";
     int len;
     if (!turnOn) {
         turnOffPDissector();
@@ -290,7 +289,7 @@ static void handleStatisticsCmdResponse(buffer* buffer) {
     TMetricsSnapshot* metrics = calloc(1, sizeof(TMetricsSnapshot));
     getMetricsSnapshot(metrics);
 
-    static char* successMessage = "+OK. Showing stats:";
+    static char* successMessage = "+OK showing stats:";
     int sucLength = strlen(successMessage);
 
     static char* connectionCount = "CONC:";
