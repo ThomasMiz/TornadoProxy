@@ -184,4 +184,3 @@ int cmdSetAuthenticationStatus(int sock, int cmdValue, char * status){
 
     return 0;
 }
-
