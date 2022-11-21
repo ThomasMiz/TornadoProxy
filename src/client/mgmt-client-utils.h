@@ -12,6 +12,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+// Commands available for the client
 typedef enum {
     CMD_USERS = 0,
     CMD_ADD_USER,

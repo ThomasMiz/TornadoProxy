@@ -6,28 +6,22 @@
 #define PORT "8080"
 
 int main(int argc, char *argv[]) {
-
-    if (argc <= 1) {
-        printf("Usage: %s <command> <arguments>\n", argv[0]);
-        return -1;
-    }
     
-    if (strcmp("-h", argv[1]) == 0) {
-        printf("ha\n");
+    if (argc <= 1 || strcmp("-h", argv[1]) == 0) {
         fprintf(stderr,
                 "Usage: %s [OPTION]...\n"
                 "\n"
-                "   -h                                        Imprime la ayuda y termina.\n"
-                "   USERS                                     Envía un pedido para obtener los usuarios registrados.\n"
-                "   ADD-USER <username> <password> <role>     Envía un pedido para agregar un usuario al registro del servidor.\n"
-                "   DELETE-USER <username>                    Envía un pedido para borrar un usuario del registro del servidor.\n"
-                "   CHANGE-PASSWORD <username> <password>     Modifica la contraseña del usuario si existe\n"
-                "   CHANGE-ROLE <username> <role>             Modifica el rol del usuario si existe y si no es el último administrador registrado del sistema\n"
-                "   GET-DISSECTOR-STATUS                      Envía un pedido para obtener el estado del disector de contraseñas.\n"
-                "   SET-DISSECTOR-STATUS [ON/OFF]             Envía un pedido para setear el estado del disector de contraseñas.\n"
-                "   GET-AUTHENTICATION-STATUS                 Envía un pedido para obtener el estado de el nivel de autenticación de socks.\n"
-                "   SET-AUTHENTICATION-STATUS [ON/OFF]        Envía un pedido para setear el estado de el nivel de autenticación de socks.\n"
-                "   STATISTICS                                Envía un pedido de las estadísticas del servidor.\n"
+                "   -h                                        Prints help and finish.\n"
+                "   USERS                                     Submits a request to get registered users.\n"
+                "   ADD-USER <username> <password> <role>     Sends a request to add a user to the server.\n"
+                "   DELETE-USER <username>                    Sends a request to delete a user from the server.\n"
+                "   CHANGE-PASSWORD <username> <password>     Sends a request to update the user's password.\n"
+                "   CHANGE-ROLE <username> <role>             Submits a request to update the user's role.\n"
+                "   GET-DISSECTOR-STATUS                      Submits a request to get the status of the password dissector.\n"
+                "   SET-DISSECTOR-STATUS [ON/OFF]             Sends a request to set the state of the password dissector.\n"
+                "   GET-AUTHENTICATION-STATUS                 Sends a request to get the status of the sock's authentication level.\n"
+                "   SET-AUTHENTICATION-STATUS [ON/OFF]        Sends a request to set the state of the sock's authentication level.\n"
+                "   STATISTICS                                Sends a request to get specific metrics from the server.\n"
                 "\n","client");
         return 0;
     }
@@ -48,7 +42,7 @@ int main(int argc, char *argv[]) {
     char *token = getenv("TOKEN");
 
 	if(token == NULL) {
-        printf("No TOKEN provided for connection\n");
+        printf("No token provided for connection\n");
         return -1;
     }
 
@@ -60,13 +54,13 @@ int main(int argc, char *argv[]) {
     char *username = strtok(token, ":");
 
     if (username == NULL) {
-        printf("Invalid token format\n");
+        printf("Invalid username format\n");
         return -1;
     }
     char *password = strtok(NULL, ":");
 
     if (password == NULL) {
-        printf("Invalid token format\n");
+        printf("Invalid password format\n");
         return -1;
     }
     char * role = commandReference == CMD_ADD_USER ? argv[4] : (commandReference == CMD_CHANGE_ROLE ? argv[3] : NULL);
@@ -90,7 +84,7 @@ int main(int argc, char *argv[]) {
     }
 
     if(!authenticate(username, password, sock)) {
-        return closeConnection("Could not authenticate in server", sock);
+        return closeConnection("Error authenticating with the server", sock);
     }
 
     int status;
@@ -130,8 +124,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (status) {
-        printf("error sending command\n");
-        return -1;
+        return closeConnection("Error sending command\n", sock);
     }
 
     uint8_t c;
@@ -139,15 +132,13 @@ int main(int argc, char *argv[]) {
     bool readCarriageReturn = false;
     while ((qty = read(sock, &c, 1)) > 0 && !(readCarriageReturn && c == '\n')) {
         if (qty < 0) {
-            printf("error reading from server\n");
-            return -1;
+            return closeConnection("Error reading from server\n", sock);
         }
         putchar(c);
-
         readCarriageReturn = c == '\r';
     }
 
     putchar('\n');
-
+    close(sock);
     return 0;
 }

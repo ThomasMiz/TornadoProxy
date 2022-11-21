@@ -101,12 +101,16 @@ bool authenticate(char *username, char *password, int socket) {
 }
 
 int closeConnection(const char *errorMessage, const int socket){
-    if(errorMessage != NULL && errno)
+    if(errorMessage != NULL && errno){
         perror(errorMessage);
-    else
-        printf("%s\n",errorMessage);
+    }
+    else {
+        printf("%s\n", errorMessage);
+    }
 
-    if(socket >= 0) close(socket);
+    if(socket >= 0) {
+        close(socket);
+    }
     return -1;
 }
 
