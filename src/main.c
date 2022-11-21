@@ -143,9 +143,9 @@ int main(const int argc, char** argv) {
     socklen_t boundAddressLen = sizeof(boundAddress);
     if (getsockname(server, (struct sockaddr*)&boundAddress, &boundAddressLen) >= 0) {
         logf(LOG_INFO, "Listening for socks5 connections on TCP address %s", printSocketAddress((struct sockaddr*)&boundAddress));
-    } else
+    } else {
         logf(LOG_INFO, "Listening for socks5 connections on TCP port %d", args.socksPort);
-
+    }
 
     // MANAGEMENT
     memset(&aux, 0, sizeof(aux));
@@ -180,8 +180,9 @@ int main(const int argc, char** argv) {
     boundAddressLen = sizeof(boundAddress);
     if (getsockname(server, (struct sockaddr*)&boundAddress, &boundAddressLen) >= 0) {
         logf(LOG_INFO, "Listening for management connections on TCP address %s", printSocketAddress((struct sockaddr*)&boundAddress));
-    } else
+    } else {
         logf(LOG_INFO, "Listening for management connections on TCP port %d", args.socksPort);
+    }
 
     // registrar sigterm es útil para terminar el programa normalmente.
     // esto ayuda mucho en herramientas como valgrind.

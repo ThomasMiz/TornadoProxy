@@ -5,7 +5,7 @@
 // described in this file. aka "Don't worry about the memory lifecycle of pointer parameters".
 
 // Define this to fully disable all loggin on compilation.
-//#define DISABLE_LOGGER
+// #define DISABLE_LOGGER
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,6 +26,17 @@ typedef enum {
 #define MIN_LOG_LEVEL LOG_DEBUG
 #define MAX_LOG_LEVEL LOG_FATAL
 
+const char* loggerGetLevelString(TLogLevel level);
+
+#ifdef DISABLE_LOGGER
+#define loggerInit(selector, logFile, logStream)
+#define loggerFinalize()
+#define loggerSetLevel(level)
+#define loggerIsEnabledFor(level) 0
+#define logf(level, format, ...)
+#define log(level, s)
+#define logClientAuthenticated(clientId, username, successful)
+#else
 /**
  * @brief Initializes the logging system. Not calling this function will result is the
  * server running with logging disabled.
@@ -49,13 +60,8 @@ int loggerFinalize();
 
 void loggerSetLevel(TLogLevel level);
 
-const char* loggerGetLevelString(TLogLevel level);
-
 int loggerIsEnabledFor(TLogLevel level);
 
-#ifdef DISABLE_LOGGER
-#define logf(level, format, ...)
-#else
 void loggerPrePrint();
 
 void loggerGetBufstartAndMaxlength(char** bufstartVar, size_t* maxlenVar);
@@ -76,7 +82,6 @@ int loggerPostPrint(int written, size_t maxlen);
                                            loggerGetLevelString(level), ##__VA_ARGS__);                                                   \
         loggerPostPrint(loginternal_written, loginternal_maxlen);                                                                         \
     }
-#endif
 
 #define log(level, s) logf(level, "%s", s)
 
@@ -89,4 +94,5 @@ int loggerPostPrint(int written, size_t maxlen);
  */
 void logClientAuthenticated(int clientId, const char* username, int successful);
 
+#endif
 #endif

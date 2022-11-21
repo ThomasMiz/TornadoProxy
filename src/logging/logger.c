@@ -29,6 +29,23 @@
 #define LOG_FOLDER_PERMISSION_BITS 666
 #define LOG_FILE_OPEN_FLAGS (O_WRONLY | O_APPEND | O_CREAT | O_NONBLOCK)
 
+const char* loggerGetLevelString(TLogLevel level) {
+    switch (level) {
+        case LOG_DEBUG:
+            return "DEBUG";
+        case LOG_INFO:
+            return "INFO";
+        case LOG_WARNING:
+            return "WARNING";
+        case LOG_ERROR:
+            return "ERROR";
+        case LOG_FATAL:
+            return "FATAL";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 #ifndef DISABLE_LOGGER
 
 /** The buffer where logs are buffered. */
@@ -153,10 +170,7 @@ static int tryOpenLogfile(const char* logFile, struct tm tm) {
     return fd;
 }
 
-#endif // end #ifndef DISABLE_LOGGER
-
 int loggerInit(TSelector selectorParam, const char* logFile, FILE* logStreamParam) {
-#ifndef DISABLE_LOGGER
     // Get the local time (to log when the server started)
     time_t timeNow = time(NULL);
     struct tm tm = *localtime(&timeNow);
@@ -183,13 +197,11 @@ int loggerInit(TSelector selectorParam, const char* logFile, FILE* logStreamPara
             return -1;
         }
     }
-#endif
 
     return 0;
 }
 
 int loggerFinalize() {
-#ifndef DISABLE_LOGGER
     // If a logging file is opened, flush buffers, unregister it, and close it.
     if (logFileFd >= 0) {
         selector_unregister_fd(selector, logFileFd); // This will also call the TFdHandler's close, and close the file.
@@ -207,42 +219,17 @@ int loggerFinalize() {
 
     // The logger does not handle closing the stream. We set it to NULL and forget.
     logStream = NULL;
-#endif
     return 0;
 }
 
 void loggerSetLevel(TLogLevel level) {
-#ifndef DISABLE_LOGGER
     logLevel = level;
-#endif
-}
-
-const char* loggerGetLevelString(TLogLevel level) {
-    switch (level) {
-        case LOG_DEBUG:
-            return "DEBUG";
-        case LOG_INFO:
-            return "INFO";
-        case LOG_WARNING:
-            return "WARNING";
-        case LOG_ERROR:
-            return "ERROR";
-        case LOG_FATAL:
-            return "FATAL";
-        default:
-            return "UNKNOWN";
-    }
 }
 
 int loggerIsEnabledFor(TLogLevel level) {
-#ifndef DISABLE_LOGGER
     return level >= logLevel && (logFileFd > 0 || logStream != NULL);
-#else
-    return 0;
-#endif
 }
 
-#ifndef DISABLE_LOGGER
 void loggerPrePrint() {
     makeBufferSpace(LOG_BUFFER_MAX_PRINT_LENGTH);
 }
@@ -278,8 +265,6 @@ int loggerPostPrint(int written, size_t maxlen) {
     }
     return 0;
 }
-#endif
-
 
 void logClientAuthenticated(int clientId, const char* username, int successful) {
     if (username == NULL) {
@@ -288,3 +273,5 @@ void logClientAuthenticated(int clientId, const char* username, int successful) 
         logf(LOG_INFO, "Client %d %ssuccessfully authenticated as \"%s\"", clientId, successful ? "" : "un", username);
     }
 }
+
+#endif // #ifndef DISABLE_LOGGER
