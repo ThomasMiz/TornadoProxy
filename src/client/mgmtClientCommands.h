@@ -14,7 +14,8 @@ int cmdGetDissectorStatus(int sock, int cmdValue);
 
 int cmdSetDissectorStatus(int sock, int cmdValue, char * status);
 
-int cmdStats(int sock, int cmdValue);
+int cmdGetAuthenticationStatus(int sock, int cmdValue);
 
+int cmdStats(int sock, int cmdValue);
 
 #endif

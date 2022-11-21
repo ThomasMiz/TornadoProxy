@@ -112,3 +112,11 @@ int cmdSetDissectorStatus(int sock, int cmdValue, char * status) {
     return 0;
 }
 
+int cmdGetAuthenticationStatus(int sock, int cmdValue){
+     if (sendByte(sock, cmdValue)) {
+        printf("error sending get authentication status\n");
+        return -1;
+    }
+    return 0;
+}
+

@@ -1,7 +1,7 @@
 #include "mgmtCmdParser.h"
 #include "../logger.h"
 
-#define MGMT_CMD_COUNT 6
+#define MGMT_CMD_COUNT 10
 
 typedef TMgmtState (*parseCharacter)(TMgmtParser* p, uint8_t c);
 
@@ -18,7 +18,7 @@ typedef struct TCmd{
 }TCmd;
 
 static TCmd commands[] = {
-        {   .id = MGMT_CMD_USERS,
+        {       .id = MGMT_CMD_USERS,
                 .argc = 0,
                 // NO ARGS -> NO ARG TYPE
                 },
@@ -32,14 +32,31 @@ static TCmd commands[] = {
                 .argc = 1,
                 .argt = {STRING, EMPTY, EMPTY},
         },
-        {   .id = MGMT_CMD_GET_DISSECTOR,
+        {
+                .id = MGMT_CMD_CHANGE_PASSWORD,
+                .argc = 1,
+                .argt = {STRING, EMPTY, EMPTY},
+        },
+        {
+                .id = MGMT_CHANGE_ROLE,
+                .argc = 1,
+                .argt = {STRING, EMPTY, EMPTY},
+        },
+        {       .id = MGMT_CMD_GET_DISSECTOR,
                 .argc = 0,
-
         },
         {
                 .id = MGMT_CMD_SET_DISSECTOR,
                 .argc = 1,
                 .argt = {BYTE,EMPTY, EMPTY},
+        },
+        {       .id = MGMT_CMD_GET_AUTHENTICATION_STATUS,
+                .argc = 0,
+        },
+        {
+                .id = MGMT_CMD_SET_AUTHENTICATION_STATUS,
+                .argc = 1,
+                .argt = {BYTE, EMPTY, EMPTY},
         },
         {
                 .id = MGMT_CMD_STATISTICS,

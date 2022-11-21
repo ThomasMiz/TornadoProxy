@@ -11,8 +11,12 @@ static const char *commandsFormat[] = {
         "USERS",
         "ADD-USER",
         "DELETE-USER",
+        "CHANGE-PASSWORD",
+        "CHANGE-ROLE",
         "GET-DISSECTOR-STATUS",
         "SET-DISSECTOR-STATUS",
+        "GET-AUTHENTICATION-STATUS",
+        "SET-AUTHENTICATION-STATUS",
         "STATISTICS",
         NULL
 };
@@ -132,9 +136,11 @@ bool argsQuantityOk(int command, int argc){
             return true;                      // Usage: GET-DISSECTOR-STATUS 
         case CMD_SET_DISSECTOR_STATUS:
             return (argc >= 3)? true : false; // Usage: SET-DISSECTOR-STATUS <STATUS>
-        case CMD_STATS:                
+        case CMD_GET_AUTHENTICATION_STATUS:   
+            return true;                      // Usage: GET-AUTHENTICATION-STATUS
+        case CMD_STATS: 
             return true;                      // Usage: STATISTICS
         default:
-            return -1;
+            return false;
     }
 }

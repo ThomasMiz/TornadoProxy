@@ -92,3 +92,7 @@ TNegRet changeAuthMethod(TNegMethod authMethod) {
     }
     return NEGR_INVALIDMETHOD;
 }
+
+uint8_t getAuthMethod() {
+    return requiredAuthMethod;
+}

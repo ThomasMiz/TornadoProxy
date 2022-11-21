@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
             "   ADD-USER <username> <password>     Envía un pedido para agregar un usuario al registro del servidor.\n"
             "   DELETE-USER <username>             Envía un pedido para borrar un usuario del registro del servidor.\n"
             "   GET-DISSECTOR-STATUS               Envía un pedido para obtener el estado del disector de contraseñas.\n"
+            "   GET-AUTHENTICATION-STATUS          Envía un pedido para obtener el estado de el nivel de autenticación de socks.\n"
             "   SET-DISSECTOR-STATUS [ON/OFF]      Envía un pedido para setear el estado del disector de contraseñas.\n"
             "   STATISTICS                         Envía un pedido de las estadísticas del servidor.\n"
             "\n","client");
@@ -94,22 +95,25 @@ int main(int argc, char *argv[]) {
     int status;
     switch (commandReference) {
         case CMD_USERS:
-        status = cmdUsers(sock, commandReference);
+            status = cmdUsers(sock, commandReference);
             break;
         case CMD_ADD_USER: 
-        status = cmdAddUser(sock, commandReference, argv[2], argv[3], argv[4]);
+            status = cmdAddUser(sock, commandReference, argv[2], argv[3], argv[4]);
             break;
         case CMD_DELETE_USER:
-        status = cmdDeleteUser(sock, commandReference, argv[2]);
+            status = cmdDeleteUser(sock, commandReference, argv[2]);
             break;
         case CMD_GET_DISSECTOR_STATUS:
-        status = cmdGetDissectorStatus(sock, commandReference);
+            status = cmdGetDissectorStatus(sock, commandReference);
             break;
         case CMD_SET_DISSECTOR_STATUS:
-        status = cmdSetDissectorStatus(sock, commandReference, argv[2]);
+            status = cmdSetDissectorStatus(sock, commandReference, argv[2]);
+            break;
+        case CMD_GET_AUTHENTICATION_STATUS:
+            status = cmdGetAuthenticationStatus(sock, commandReference);
             break;
         case CMD_STATS:
-        status = cmdStats(sock, commandReference);
+            status = cmdStats(sock, commandReference);
             break;
         default: 
             return -1;

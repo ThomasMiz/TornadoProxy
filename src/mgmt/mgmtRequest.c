@@ -6,6 +6,7 @@
 #include "mgmt.h"
 #include "mgmtCmdParser.h"
 #include "../logging/metrics.h"
+#include "../negotiation/negotiationParser.h"
 
 void mgmtRequestReadInit(const unsigned state, TSelectorKey* key){
     log(DEBUG, "[Mgmt req read] init at socket fd %d", key->fd);
@@ -215,6 +216,33 @@ static int copyMetric(int idx, uint8_t * buff, char * metricString, size_t metri
     free(metrics);
  }
 
+ static void handleGetAuthenticationStatusCmdResponse(buffer * buffer) {
+    size_t size;
+    uint8_t* ptr = buffer_write_ptr(buffer, &size);
+
+    static char* noAuthMethod = "+OK authentication method: No Authentication";
+    static char* passwordMethod = "+OK authentication method: sername/password required";
+    static char* unkownErrorMessage = "-ERR can't fetch authentication method, try again later\n";
+    static char* toReturn;
+    uint8_t status = getAuthMethod();
+
+    switch(status){
+        case NEG_METHOD_NO_AUTH:
+            toReturn = noAuthMethod;
+            break;
+        case NEG_METHOD_PASS:
+            toReturn = passwordMethod;
+            break;
+        default:
+            toReturn = unkownErrorMessage;
+    }
+
+    strcpy((char *)ptr, toReturn);
+    buffer_write_adv(buffer, strlen(toReturn));
+ }
+
+
+
 void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     TMgmtClient * data = GET_ATTACHMENT(key);
     buffer_init(&(data->responseBuffer), MGMT_BUFFER_SIZE, data->responseRawBuffer);
@@ -229,6 +257,8 @@ void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
         handleGetDissectorStatusCmdResponse(&data->responseBuffer);
     } else if(data->cmd == MGMT_CMD_SET_DISSECTOR){
         handleSetDissectorStatusCmdResponse(&data->responseBuffer, &data->client.cmdParser);
+    } else if (data->cmd == MGMT_CMD_GET_AUTHENTICATION_STATUS){
+        handleGetAuthenticationStatusCmdResponse(&data->responseBuffer);
     } else if(data->cmd == MGMT_CMD_STATISTICS){
         handleStatisticsCmdResponse(&data->responseBuffer);
     } else {
