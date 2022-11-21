@@ -266,12 +266,4 @@ int loggerPostPrint(int written, size_t maxlen) {
     return 0;
 }
 
-void logClientAuthenticated(int clientId, const char* username, int successful) {
-    if (username == NULL) {
-        logf(LOG_INFO, "Client %d %ssuccessfully authenticated with no authentication method%s", clientId, successful ? "" : "un", successful ? "" : "... what?");
-    } else {
-        logf(LOG_INFO, "Client %d %ssuccessfully authenticated as \"%s\"", clientId, successful ? "" : "un", username);
-    }
-}
-
 #endif // #ifndef DISABLE_LOGGER

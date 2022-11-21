@@ -34,7 +34,7 @@ static regex_t passwordValidationRegex;
 
 unsigned int fillCurrentUsers(char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT]) {
     unsigned int i;
-    for (i=0 ; i< usersLength; i++) {
+    for (i = 0; i < usersLength; i++) {
         strcpy(toFill[i], users[i].username);
     }
     return i;
@@ -272,9 +272,9 @@ int usersInit(const char* usersFileParam) {
     loadUsersFile();
 
     // If no users are present on the system, create the default user.
-    if (usersLength == 0) {
-        usersCreate(USERS_DEFAULT_USERNAME, USERS_DEFAULT_PASSWORD, 0, UPRIV_ADMIN, 0);
-        log(LOG_WARNING, "No users detected. Created default user: \"" USERS_DEFAULT_USERNAME "\" \"" USERS_DEFAULT_PASSWORD "\"");
+    if (usersLength == 0 || adminUsersCount == 0) {
+        logf(LOG_WARNING, "No %susers detected. Created default user: \"" USERS_DEFAULT_USERNAME "\" \"" USERS_DEFAULT_PASSWORD "\"", usersLength == 0 ? "" : "admin ");
+        usersCreate(USERS_DEFAULT_USERNAME, USERS_DEFAULT_PASSWORD, true, UPRIV_ADMIN, true);
     }
 
     return 0;
@@ -305,6 +305,7 @@ TUserStatus usersLogin(const char* username, const char* password, TUserPrivileg
 TUserStatus usersCreate(const char* username, const char* password, bool updatePassword, TUserPrivilegeLevel privilege, bool updatePrivilege) {
     if (password == NULL)
         password = "";
+    logf(LOG_INFO, "USERSCREATE REQUEST username=%s password=%s updatepw=%d priv=%d, updatepriv=%d", username, password, updatePassword, privilege, updatePrivilege);
 
     // Calculate the index at which the user is, or should be.
     int index = usersGetIndexOf(username);
@@ -315,25 +316,38 @@ TUserStatus usersCreate(const char* username, const char* password, bool updateP
 
         TUserStatus status = EUSER_OK;
         TUserData* user = &users[index];
+        int passwordUpdated = 0, privilegeUpdated = 0;
 
         if (updatePassword) {
             TUserStatus passwordStatus = validatePassword(password);
             if (passwordStatus != EUSER_OK)
                 status = passwordStatus;
-            else
+            else {
                 strcpy(user->password, password);
+                passwordUpdated = 1;
+            }
         }
 
         if (updatePrivilege && user->privilegeLevel != privilege) {
-            if (user->privilegeLevel == UPRIV_ADMIN && adminUsersCount == 1) {
-                status = EUSER_BADOPERATION;
+            if (user->privilegeLevel == UPRIV_ADMIN) {
+                if (adminUsersCount == 1) {
+                    status = EUSER_BADOPERATION;
+                } else {
+                    privilegeUpdated = 1;
+                    adminUsersCount--;
+                    user->privilegeLevel = privilege;
+                }
             } else {
-                adminUsersCount--;
+                privilegeUpdated = 1;
+                if (privilege == UPRIV_ADMIN)
+                    adminUsersCount++;
                 user->privilegeLevel = privilege;
             }
         }
 
-        logf(LOG_INFO, "%s%s%s updated for user %s (%s)", updatePassword ? "password" : "", updatePassword && updatePrivilege ? " and " : "", updatePrivilege ? "privilege" : "", username, usersPrivilegeToString(user->privilegeLevel));
+        if (privilegeUpdated || passwordUpdated) {
+            logf(LOG_INFO, "%s%s%s updated for user %s (%s)", updatePassword ? "password" : "", updatePassword && updatePrivilege ? " and " : "", updatePrivilege ? "privilege" : "", username, usersPrivilegeToString(user->privilegeLevel));
+        }
         return status;
     }
 
@@ -423,6 +437,6 @@ const char* usersPrivilegeToString(TUserPrivilegeLevel privilege) {
     }
 }
 
-bool userExists(const char * username) {
+bool userExists(const char* username) {
     return usersGetIndexOf(username) >= 0;
 }

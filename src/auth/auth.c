@@ -84,6 +84,5 @@ unsigned authWrite(TSelectorKey* key) {
         return ERROR;
     }
 
-    logf(LOG_INFO, "Client %d has selected authentication method: NONE", key->fd);
     return REQUEST_READ;
 }

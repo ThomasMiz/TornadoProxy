@@ -17,6 +17,7 @@ static TPDStatus readU(TPDissector* p, uint8_t c);
 static TPDStatus readS0(TPDissector* p, uint8_t c);
 static TPDStatus readE(TPDissector* p, uint8_t c);
 static TPDStatus readR(TPDissector* p, uint8_t c);
+static TPDStatus readUW(TPDissector* p, uint8_t c);
 
 static TPDStatus readUser(TPDissector* p, uint8_t c);
 
@@ -27,6 +28,7 @@ static TPDStatus readP(TPDissector* p, uint8_t c);
 static TPDStatus readA(TPDissector* p, uint8_t c);
 static TPDStatus readS1(TPDissector* p, uint8_t c);
 static TPDStatus readS2(TPDissector* p, uint8_t c);
+static TPDStatus readPW(TPDissector* p, uint8_t c);
 static TPDStatus readPass(TPDissector* p, uint8_t c);
 
 static TPDStatus readPlusFinal(TPDissector* p, uint8_t c);
@@ -38,12 +40,14 @@ static parseCharacter stateRead[][2] = { /* CLIENT     -   ORIGIN */
         /* PDS_USER_S               */{readS0, doNothing},
         /* PDS_USER_E               */{readE, doNothing},
         /* PDS_USER_R               */{readR, doNothing},
+        /* PDS_USER_R               */{readUW, doNothing},
         /* PDS_READING_USER         */{readUser, doNothing},
 
         /* PDS_PASS_P               */{readP,readPlusVU},
         /* PDS_PASS_A               */{readA,readPlusVU},
         /* PDS_PASS_S               */{readS1,readPlusVU},
         /* PDS_PASS_S2              */{readS2,readPlusVU},
+        /* PDS_PASS_S2              */{readPW,readPlusVU},
         /* PDS_READING_PASS         */{readPass,readPlusVU},
 
         /* PDS_CHECK                */{doNothing, readPlusFinal},
@@ -73,7 +77,7 @@ void initPDissector(TPDissector * pd, in_port_t port, int clientFd, int originFd
     }
     pd->state = PDS_SERVER_PLUS;
     pd->writeIdx = 0;
-    pd->isOn = true;
+    pd->isOn = isDissectorOn;
     pd->validUsername = false;
     pd->clientFd = clientFd;
     pd->originFd = originFd;
@@ -86,7 +90,6 @@ TPDStatus parseUserData(TPDissector * pd, struct buffer * buffer, int fd) {
         pd->state = stateRead[pd->state][idx](pd, buffer->read[i]);
     }
 
-    //TODO: remove and check where to log
     if(pd->state == PDS_END){
         pd->isOn = false;
         logf(LOG_DEBUG, "passwordDissector parseUserData: username: [%s] - password: [%s]", pd->username, pd->password);
@@ -125,7 +128,11 @@ static TPDStatus readE(TPDissector* p, uint8_t c){
 }
 
 static TPDStatus readR(TPDissector* p, uint8_t c){
-    return TO_LOWER(c) == 'r' ? PDS_READING_USER : PDS_USER_U;
+    return TO_LOWER(c) == 'r' ? PDS_USER_W : PDS_USER_U;
+}
+
+static TPDStatus readUW(TPDissector* p, uint8_t c){
+    return c == ' ' ? PDS_READING_USER : PDS_USER_U;
 }
 
 static TPDStatus readUser(TPDissector* p, uint8_t c){
@@ -168,12 +175,16 @@ static TPDStatus readS1(TPDissector* p, uint8_t c){
 }
 
 static TPDStatus readS2(TPDissector* p, uint8_t c){
-    return TO_LOWER(c) == 's' ? PDS_READING_PASS : PDS_USER_U;
+    return TO_LOWER(c) == 's' ? PDS_PASS_W : PDS_USER_U;
+}
+
+static TPDStatus readPW(TPDissector* p, uint8_t c){
+    return c == ' ' ? PDS_READING_PASS : PDS_USER_U;
 }
 
 static TPDStatus readPass(TPDissector* p, uint8_t c){
     if(c=='\n' || p->writeIdx >= PDS_MAX_PASS_LENGTH){
-        p->username[p->writeIdx] = 0;
+        p->password[p->writeIdx] = 0;
         p->writeIdx = 0;
         return PDS_CHECK;
     }

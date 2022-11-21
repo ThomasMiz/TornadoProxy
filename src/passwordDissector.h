@@ -29,6 +29,7 @@ typedef enum TPDStatus{
     PDS_USER_S,         //  waiting for S of USER
     PDS_USER_E,         //  waiting for E of USER
     PDS_USER_R,         //  waiting for R of USER
+    PDS_USER_W,         //  waiting for ' ' of USER
     PDS_READING_USER,   //  reading the username
 
     /* We expect the user to send \r\n at the end of a command, but since some implementations allow the
@@ -44,6 +45,7 @@ typedef enum TPDStatus{
     PDS_PASS_A,         //  waiting for A of PASS
     PDS_PASS_S,         //  waiting for first S of PASS
     PDS_PASS_S2,        //  waiting for second S of PASS
+    PDS_PASS_W,        //  waiting for second ' ' of PASS
     PDS_READING_PASS,   //  reading the password
 
     PDS_CHECK,          //  waiting for the server to send a + to indicate user/pass are valid

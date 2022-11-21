@@ -85,14 +85,5 @@ int loggerPostPrint(int written, size_t maxlen);
 
 #define log(level, s) logf(level, "%s", s)
 
-/**
- * @brief Log that a client attempted to authenticate, whether successfull or not.
- * This should be called after the user chose an authentication method and attempted it.
- * @param clientId The client's ID (it's socket's file descriptor).
- * @param user The username specified, or null if not loggin in with username.
- * @param successful Whether the authentication was successful.
- */
-void logClientAuthenticated(int clientId, const char* username, int successful);
-
 #endif
 #endif

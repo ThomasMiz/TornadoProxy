@@ -81,14 +81,15 @@ static void handleAddUserCmdResponse(buffer* buffer, TMgmtParser* p) {
     char* password = p->args[1].string;
     int role = p->args[2].byte;
 
-    static char* successMessage = "+OK user successfully added";
-    static char* userAlreadyExistMessage = "-ERR user already exists";
-    static char* credentialsTooLong = "-ERR credentials too long";
-    static char* limitReachedMessage = "-ERR users limit reached";
-    static char* noMemoryMessage = "-ERR no memory";
-    static char* badRoleMessage = "-ERR role doesn't exist";
-    static char* unkownErrorMessage = "-ERR can't add user, try again";
-    char* toReturn = NULL;
+    static const char* successMessage = "+OK user successfully added";
+    static const char* userAlreadyExistMessage = "-ERR user already exists";
+    static const char* credentialsTooLong = "-ERR credentials too long";
+    static const char* limitReachedMessage = "-ERR users limit reached";
+    static const char* noMemoryMessage = "-ERR no memory";
+    static const char* badRoleMessage = "-ERR role doesn't exist";
+    static const char* unkownErrorMessage = "-ERR can't add user, try again";
+    
+    const char* toReturn = NULL;
 
     role = roleMatches(role);
 
@@ -96,7 +97,7 @@ static void handleAddUserCmdResponse(buffer* buffer, TMgmtParser* p) {
         toReturn = badRoleMessage;
 
     if (toReturn == NULL) {
-        TUserStatus status = usersCreate(username, password, false, role, false);
+        TUserStatus status = usersCreate(username, password, false, role == 0 ? UPRIV_USER : UPRIV_ADMIN, false);
 
         switch (status) {
             case EUSER_OK:
@@ -128,11 +129,12 @@ static void handleDeleteUserCmdResponse(buffer* buffer, TMgmtParser* p) {
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
     char* username = p->args[0].string;
 
-    static char* wrongUsernameMessage = "-ERR user doesn't exist";
-    static char* badOperationMessage = "-ERR cannot delete user because no other admins exist";
-    static char* successMessage = "+OK user successfully deleted";
-    static char* unkownErrorMessage = "-ERR can't delete user, try again";
-    char* toReturn;
+    static const char* wrongUsernameMessage = "-ERR user doesn't exist";
+    static const char* badOperationMessage = "-ERR cannot delete user because no other admins exist";
+    static const char* successMessage = "+OK user successfully deleted";
+    static const char* unkownErrorMessage = "-ERR can't delete user, try again";
+    
+    const char* toReturn;
 
     int status = usersDelete(username);
 
@@ -161,13 +163,14 @@ static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p) {
     char* username = p->args[0].string;
     char* password = p->args[1].string;
 
-    static char* successMessage = "+OK password succesfully changed";
-    static char* credentialsTooLong = "-ERR credentials too long";
-    static char* badPassword = "-ERR bad password";
-    static char* noMemoryMessage = "-ERR no memory";
-    static char* wrongUsernameMessage = "-ERR user doesn't exist";
-    static char* unkownErrorMessage = "-ERR can't change password, try again";
-    char* toReturn;
+    static const char* successMessage = "+OK password succesfully changed";
+    static const char* credentialsTooLong = "-ERR credentials too long";
+    static const char* badPassword = "-ERR bad password";
+    static const char* noMemoryMessage = "-ERR no memory";
+    static const char* wrongUsernameMessage = "-ERR user doesn't exist";
+    static const char* unkownErrorMessage = "-ERR can't change password, try again";
+    
+    const char* toReturn;
 
     if (!userExists(username)) {
         toReturn = wrongUsernameMessage;
@@ -202,23 +205,22 @@ static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p) {
     char* username = p->args[0].string;
     int role = p->args[1].byte;
 
-    static char* wrongUsernameMessage = "-ERR user doesn't exist";
-    static char* badOperationMessage = "-ERR cannot change role because no other admins exist";
-    static char* successMessage = "+OK user successfully changed role";
-    static char* unkownErrorMessage = "-ERR can't change user role, try again";
-    static char* badRoleMessage = "-ERR role doesn't exist";
-    static char* toReturn = NULL;
+    static const char* wrongUsernameMessage = "-ERR user doesn't exist";
+    static const char* badOperationMessage = "-ERR cannot change role because no other admins exist";
+    static const char* successMessage = "+OK user successfully changed role";
+    static const char* unkownErrorMessage = "-ERR can't change user role, try again";
+    static const char* badRoleMessage = "-ERR role doesn't exist";
+    
+    const char* toReturn = NULL;
 
     role = roleMatches(role);
-    
+
     if (role < 0)
         toReturn = badRoleMessage;
-        
     else if (!userExists(username))
         toReturn = wrongUsernameMessage;
-
     else if (toReturn == NULL) {
-        TUserStatus status = usersCreate(username, NULL, false, UPRIV_ADMIN, true);
+        TUserStatus status = usersCreate(username, NULL, false, role == 1 ? UPRIV_ADMIN : UPRIV_USER, true);
         switch (status) {
             case EUSER_OK:
                 toReturn = successMessage;
@@ -241,8 +243,8 @@ static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p) {
 static void handleGetDissectorStatusCmdResponse(buffer* buffer) {
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
-    static char* on = "+OK dissector status: on";
-    static char* off = "+OK dissector status: off";
+    static const char* on = "+OK dissector status: on";
+    static const char* off = "+OK dissector status: off";
     int len;
     if (isPDissectorOn()) {
         len = strlen(on);
@@ -259,8 +261,8 @@ static void handleSetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p) 
     uint8_t turnOn = p->args[0].byte; // OFF = 0 : ON != 0
 
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
-    static char* on = "+OK dissector status: on";
-    static char* off = "+OK dissector status: off";
+    static const char* on = "+OK dissector status: on";
+    static const char* off = "+OK dissector status: off";
     int len;
     if (!turnOn) {
         turnOffPDissector();
@@ -274,61 +276,53 @@ static void handleSetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p) 
     buffer_write_adv(buffer, len);
 }
 
-static int copyMetric(int idx, uint8_t* buff, char* metricString, size_t metricValue) {
-    char aux[256];
+static void copyMetric(buffer * buffer, const char* metricString, size_t metricValue) {
+    size_t size;
+    char* ptr = (char*)buffer_write_ptr(buffer, &size);
+    
     int len = strlen(metricString);
+    memcpy(ptr, metricString, len);
 
-    memcpy(buff + idx, metricString, len);
-    idx += len;
-    snprintf(aux, sizeof(aux), "%ld", metricValue);
-    memcpy(buff + idx, aux, 1);
-    idx += strlen(aux);
-    memcpy(buff + idx, "\n", 1);
-    idx++;
-
-    return idx;
+    len += snprintf(ptr+len, size - len, "%ld\n", metricValue);
+    buffer_write_adv(buffer, len);
 }
 
 static void handleStatisticsCmdResponse(buffer* buffer) {
 
-    TMetricsSnapshot* metrics = calloc(1, sizeof(TMetricsSnapshot));
-    getMetricsSnapshot(metrics);
+    TMetricsSnapshot metrics;
+    getMetricsSnapshot(&metrics);
 
-    static char* successMessage = "+OK showing stats:";
+    static const char* successMessage = "+OK showing stats:\n";
     int sucLength = strlen(successMessage);
 
-    static char* connectionCount = "CONC:";
-    static char* maxConcurrmetrics = "MCONC:";
-    static char* totalBytesRecv = "TBRECV:";
-    static char* totalBytesSent = "TBSENT";
-    static char* totalConnectionCount = "TCON:";
+    static const char* connectionCount = "CONC:";
+    static const char* maxConcurrmetrics = "MCONC:";
+    static const char* totalBytesRecv = "TBRECV:";
+    static const char* totalBytesSent = "TBSENT:";
+    static const char* totalConnectionCount = "TCON:";
 
-    uint8_t statistics[512];
-    memcpy(statistics, successMessage, sucLength);
-    int idx = sucLength;
-
-    idx = copyMetric(idx, statistics, connectionCount, metrics->currentConnectionCount);
-    idx = copyMetric(idx, statistics, maxConcurrmetrics, metrics->maxConcurrentConnections);
-    idx = copyMetric(idx, statistics, totalBytesRecv, metrics->totalBytesReceived);
-    idx = copyMetric(idx, statistics, totalBytesSent, metrics->totalBytesSent);
-    idx = copyMetric(idx, statistics, totalConnectionCount, metrics->totalConnectionCount);
-    statistics[idx] = 0;
-
+    const char* statsString[] = {connectionCount, maxConcurrmetrics, totalBytesRecv, totalBytesSent, totalConnectionCount};
+    size_t stats[] = {metrics.currentConnectionCount, metrics.maxConcurrentConnections, metrics.totalBytesReceived, metrics.totalBytesSent, metrics.totalConnectionCount};
+    
     size_t size;
+
+    // char statistics[64];
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
-    strcpy((char*)ptr, (char*)statistics);
-    buffer_write_adv(buffer, strlen((char*)statistics));
-    free(metrics);
+    memcpy(ptr, successMessage, sucLength);
+    buffer_write_adv(buffer, sucLength);
+    
+    for (int i = 0; i < (int)(sizeof(statsString) / sizeof(statsString[0])); i++)
+        copyMetric(buffer, statsString[i], stats[i]);
 }
 
 static void handleGetAuthenticationStatusCmdResponse(buffer* buffer) {
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
 
-    static char* noAuthMethod = "+OK authentication method: No Authentication";
-    static char* passwordMethod = "+OK authentication method: username/password required";
-    static char* unkownErrorMessage = "-ERR can't fetch authentication method, try again later";
-    static char* toReturn;
+    static const char* noAuthMethod = "+OK authentication method: No Authentication";
+    static const char* passwordMethod = "+OK authentication method: username/password required";
+    static const char* unkownErrorMessage = "-ERR can't fetch authentication method, try again later";
+    static const char* toReturn;
     uint8_t status = getAuthMethod();
 
     switch (status) {
@@ -351,8 +345,8 @@ static void handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser
     uint8_t turnOn = p->args[0].byte; // OFF = 0 : ON != 0
 
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
-    static char* noAuthMethod = "+OK authentication method: No Authentication";
-    static char* passwordMethod = "+OK authentication method: username/password required";
+    static const char* noAuthMethod = "+OK authentication method: No Authentication";
+    static const char* passwordMethod = "+OK authentication method: username/password required";
     int len;
     if (turnOn) {
         changeAuthMethod(NEG_METHOD_PASS);
@@ -370,7 +364,7 @@ static void handleUnknownCmd(buffer * buffer){
     size_t size;
 
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
-    static char* uknCommand = "-ERR unknown command";
+    static const char* uknCommand = "-ERR unknown command";
 
     size = strlen(uknCommand);
     strcpy((char*)ptr, uknCommand);
