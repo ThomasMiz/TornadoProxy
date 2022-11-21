@@ -294,7 +294,7 @@ TUserStatus usersLogin(const char* username, const char* password, TUserPrivileg
     return EUSER_OK;
 }
 
-TUserStatus usersCreate(const char* username, const char* password, int updatePassword, TUserPrivilegeLevel privilege, int updatePrivilege) {
+TUserStatus usersCreate(const char* username, const char* password, bool updatePassword, TUserPrivilegeLevel privilege, bool updatePrivilege) {
     if (password == NULL)
         password = "";
 

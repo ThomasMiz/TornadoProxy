@@ -4,10 +4,10 @@
 #include "../buffer.h"
 #include <stdbool.h>
 
-#define MGMT_CMD_COUNT 6
+#define MGMT_MAX_ARGS 3
 #define MGMT_MAX_STRING_LENGTH 0xFF
 
-typedef char TString[MGMT_MAX_STRING_LENGTH];
+typedef char TString[MGMT_MAX_STRING_LENGTH + 1];
 
 typedef enum TMgmtCmd {
    MGMT_CMD_USERS = 0,
@@ -45,7 +45,7 @@ typedef struct TMgmtParser {
 
     uint8_t slength;    // Lenght to read from a string arg
     uint8_t rlength;    // Already read bytes form a string
-    TArg args[MGMT_CMD_COUNT+1];
+    TArg args[MGMT_MAX_ARGS];
 } TMgmtParser;
 
 

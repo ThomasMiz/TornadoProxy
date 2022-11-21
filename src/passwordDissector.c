@@ -53,10 +53,10 @@ static parseCharacter stateRead[][2] = { /* CLIENT     -   ORIGIN */
 static bool isDissectorOn = true;
 
 void turnOffPDissector(){
-    isDissectorOn = true;
+    isDissectorOn = false;
 }
 void turnOnPDissector(){
-    isDissectorOn = false;
+    isDissectorOn = true;
 }
 
 bool isPDissectorOn(){

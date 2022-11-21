@@ -125,7 +125,7 @@ bool argsQuantityOk(int command, int argc){
         case CMD_USERS:
             return true;                      // Usage: USERS
         case CMD_ADD_USER: 
-            return (argc >= 4)? true : false; // Usage: ADD-USER <USER> <PASSWORD>
+            return (argc >= 5)? true : false; // Usage: ADD-USER <USER> <PASSWORD> <ROLE>
         case CMD_DELETE_USER:
             return (argc >= 3)? true : false; // Usage: DELETE-USER <USER> 
         case CMD_GET_DISSECTOR_STATUS:

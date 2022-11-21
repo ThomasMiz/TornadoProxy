@@ -1,7 +1,7 @@
 #include "mgmtCmdParser.h"
 #include "../logger.h"
 
-#define MGMT_MAX_ARGS 2
+#define MGMT_CMD_COUNT 6
 
 typedef TMgmtState (*parseCharacter)(TMgmtParser* p, uint8_t c);
 
@@ -24,13 +24,13 @@ static TCmd commands[] = {
                 },
         {
                 .id = MGMT_CMD_ADD_USER,
-                .argc = 2,
-                .argt = {STRING, STRING},
+                .argc = 3,
+                .argt = {STRING, STRING, BYTE},
         },
         {
                 .id = MGMT_CMD_DELETE_USER,
                 .argc = 1,
-                .argt = {STRING, EMPTY},
+                .argt = {STRING, EMPTY, EMPTY},
         },
         {   .id = MGMT_CMD_GET_DISSECTOR,
                 .argc = 0,
@@ -39,7 +39,7 @@ static TCmd commands[] = {
         {
                 .id = MGMT_CMD_SET_DISSECTOR,
                 .argc = 1,
-                .argt = {BYTE,EMPTY},
+                .argt = {BYTE,EMPTY, EMPTY},
         },
         {
                 .id = MGMT_CMD_STATISTICS,

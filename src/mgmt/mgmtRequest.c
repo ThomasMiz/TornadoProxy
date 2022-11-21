@@ -2,9 +2,10 @@
 #include "../passwordDissector.h"
 #include "mgmtCmdParser.h"
 #include "../logger.h"
+#include "../users.h"
 #include "mgmt.h"
 #include "mgmtCmdParser.h"
-
+#include "../logging/metrics.h"
 
 void mgmtRequestReadInit(const unsigned state, TSelectorKey* key){
     log(DEBUG, "[Mgmt req read] init at socket fd %d", key->fd);
@@ -49,11 +50,92 @@ static void handleUserCmdResponse(buffer * buffer) {
     buffer_write_adv(buffer, len);
 }
 
+static void handleAddUserCmdResponse(buffer * buffer, TMgmtParser* p){
+
+    size_t size;
+    uint8_t * ptr = buffer_write_ptr(buffer, &size);    
+    char * username = p->args[0].string;
+    char * password = p->args[1].string;
+    int role = p->args[2].byte;
+
+    static char* successMessage = "+OK user successfully added\n";
+    static char* userAlreadyExistMessage = "-ERR user already exists\n";
+    static char* credentialsTooLong = "-ERR credentials too long\n";
+    static char* limitReachedMessage = "-ERR users limit reached\n";
+    static char* noMemoryMessage = "-ERR no memory\n";
+    static char* badRoleMessage = "-ERR role doesn't exist\n";
+    static char* unkownErrorMessage = "-ERR can't add user, try again\n";
+    char* toReturn = NULL;
+
+    if(role < 0 || role > 1){
+        toReturn = badRoleMessage;
+    }
+
+    if(toReturn == NULL){
+        int status = usersCreate(username, password, false, role, false);
+
+        switch(status){
+            case EUSER_OK:
+                toReturn = successMessage;
+                break;
+            case EUSER_ALREADYEXISTS:
+                toReturn = userAlreadyExistMessage;
+                break;
+            case EUSER_CREDTOOLONG:
+                toReturn = credentialsTooLong;
+                break;
+            case EUSER_LIMITREACHED:
+                toReturn = limitReachedMessage;
+                break;
+            case EUSER_NOMEMORY:
+                toReturn = noMemoryMessage;
+                break;
+            default:
+                toReturn = unkownErrorMessage;
+        }
+    }
+
+    strcpy((char *)ptr, toReturn);
+    buffer_write_adv(buffer, strlen(toReturn));
+}
+
+static void handleDeleteUserCmdResponse(buffer * buffer, TMgmtParser* p){
+    
+    size_t size;
+    uint8_t * ptr = buffer_write_ptr(buffer, &size);    
+    char * username = p->args[0].string;
+
+    static char* wrongUsernameMessage = "-ERR user doesn't exist";
+    static char* badOperationMessage = "-ERR cannot delete user because you are the last sysadmin\n";
+    static char* successMessage = "+OK user successfully deleted";
+    static char* unkownErrorMessage = "-ERR can't delete user, try again";
+    char* toReturn;
+
+    int status = usersDelete(username);
+
+    switch(status){
+        case EUSER_OK:
+            toReturn = successMessage;
+            break;
+        case EUSER_WRONGUSERNAME:
+            toReturn = wrongUsernameMessage;
+            break;
+        case EUSER_BADOPERATION:
+            toReturn = badOperationMessage;
+            break;
+        default:
+            toReturn = unkownErrorMessage;
+    }
+
+    strcpy((char *)ptr, toReturn);
+    buffer_write_adv(buffer, strlen(toReturn));
+}
+
 static void handleGetDissectorStatusCmdResponse(buffer * buffer) {
     size_t size;
     uint8_t * ptr = buffer_write_ptr(buffer, &size);
-    static char * on = "+OK. Password dissector is on\n";
-    static char * off = "+OK. Password dissector is off\n";
+    static char * on = "+OK. Password dissector is: on\n";
+    static char * off = "+OK. Password dissector is: off\n";
     int len;
     if(isPDissectorOn()){
         len = strlen(on);
@@ -65,22 +147,90 @@ static void handleGetDissectorStatusCmdResponse(buffer * buffer) {
     buffer_write_adv(buffer, len);
 }
 
+static void handleSetDissectorStatusCmdResponse(buffer * buffer, TMgmtParser* p){
+    size_t size;
+    uint8_t turnOn = p->args[0].byte;                              // OFF = 0 : ON = 1
+
+    uint8_t * ptr = buffer_write_ptr(buffer, &size);
+    static char * on = "+OK. Dissector status: on\n";
+    static char * off = "+OK. Dissector status: off\n";
+    int len;
+    if(!turnOn){
+        turnOffPDissector();
+        len = strlen(off);
+        strcpy((char *)ptr, off);
+    } else {
+        turnOnPDissector();
+        len = strlen(on);
+        strcpy((char *)ptr, on);
+    }
+    buffer_write_adv(buffer,len);
+}
+
+static int copyMetric(int idx, uint8_t * buff, char * metricString, size_t metricValue){
+
+    char aux[256];
+    int len = strlen(metricString);
+
+    memcpy(buff + idx, metricString, len);
+    idx += len;
+    snprintf(aux, sizeof(aux), "%ld", metricValue);
+    memcpy(buff + idx, aux, 1);
+    idx+= strlen(aux);
+    memcpy(buff + idx, "\n", 1);
+    idx ++;
+
+    return idx;
+ }
+
+ static void handleStatisticsCmdResponse(buffer * buffer){
+
+    TMetricsSnapshot* metrics = calloc(1, sizeof(TMetricsSnapshot));
+    getMetricsSnapshot(metrics);
+
+    static char* successMessage = "+OK. Showing stats:\n";
+    int sucLength = strlen(successMessage);
+
+    static char* connectionCount = "CONC:";
+    static char* maxConcurrmetrics = "MCONC:";
+    static char* totalBytesRecv = "TBRECV:";
+    static char* totalBytesSent = "TBSENT";
+    static char* totalConnectionCount = "TCON:";
+ 
+    uint8_t statistics[512];
+    memcpy(statistics, successMessage, sucLength);
+    int idx = sucLength;
+
+    idx = copyMetric(idx, statistics, connectionCount, metrics->currentConnectionCount);
+    idx = copyMetric(idx, statistics, maxConcurrmetrics, metrics->maxConcurrentConnections);
+    idx = copyMetric(idx, statistics, totalBytesRecv, metrics->totalBytesReceived);
+    idx = copyMetric(idx, statistics, totalBytesSent, metrics->totalBytesSent);
+    idx = copyMetric(idx, statistics, totalConnectionCount, metrics->totalConnectionCount);
+    statistics[idx] = 0;
+
+    size_t size;
+    uint8_t* ptr = buffer_write_ptr(buffer, &size);
+    strcpy((char*)ptr, (char*)statistics);
+    buffer_write_adv(buffer, strlen((char *) statistics));
+    free(metrics);
+ }
+
 void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     TMgmtClient * data = GET_ATTACHMENT(key);
     buffer_init(&(data->responseBuffer), MGMT_BUFFER_SIZE, data->responseRawBuffer);
     
-    if (data->cmd == MGMT_CMD_USERS) { // ACA habria que llenar el buffer de respuesta con el string que corresponde al comando
+    if (data->cmd == MGMT_CMD_USERS) {
         handleUserCmdResponse(&data->responseBuffer);
     } else if(data->cmd == MGMT_CMD_ADD_USER) {
-        // TO DO
+       handleAddUserCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if(data->cmd == MGMT_CMD_DELETE_USER){
-        // TO DO
+        handleDeleteUserCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if(data->cmd == MGMT_CMD_GET_DISSECTOR){
         handleGetDissectorStatusCmdResponse(&data->responseBuffer);
     } else if(data->cmd == MGMT_CMD_SET_DISSECTOR){
-       // TO DO
+        handleSetDissectorStatusCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if(data->cmd == MGMT_CMD_STATISTICS){
-        // TO DO
+        handleStatisticsCmdResponse(&data->responseBuffer);
     } else {
         // TO DO
     }
@@ -97,7 +247,6 @@ unsigned mgmtRequestWrite(TSelectorKey* key){
  // new
     writeBuffer = buffer_read_ptr(&data->responseBuffer, &writeLimit);
     writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
-    buffer_read_adv(&data->responseBuffer, writeCount);
     log(DEBUG, "[Mgmt req write] sent %ld bytes", writeCount);
 
 // ----
