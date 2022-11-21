@@ -1,3 +1,4 @@
+[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/ThomasMiz/socks5-server/blob/main/README.en.md)
 # socks5v
 
 Implementación de un proxy SOCKS5.
