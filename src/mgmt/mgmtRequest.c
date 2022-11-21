@@ -398,12 +398,12 @@ static cmdHandler handlers[] = {
 
 void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     TMgmtClient* data = GET_ATTACHMENT(key);
-    buffer_init(&(data->responseBuffer), MGMT_BUFFER_SIZE, data->responseRawBuffer);
+    buffer_init(&(data->writeBuffer), MGMT_BUFFER_SIZE, data->writeRawBuffer);
     if (isValidCmd(data->cmd)) {
-        handlers[data->cmd](&data->responseBuffer, &data->client.cmdParser, key->fd);
+        handlers[data->cmd](&data->writeBuffer, &data->client.cmdParser, key->fd);
     } else {
         logf(LOG_INFO, "Management client %d requested unknown command", key->fd);
-        handleUnknownCmd(&data->responseBuffer, &data->client.cmdParser);
+        handleUnknownCmd(&data->writeBuffer, &data->client.cmdParser);
     }
 }
 
@@ -416,7 +416,7 @@ unsigned mgmtRequestWrite(TSelectorKey* key) {
     uint8_t* writeBuffer;   // buffer that stores the data to be sended
 
     // new
-    writeBuffer = buffer_read_ptr(&data->responseBuffer, &writeLimit);
+    writeBuffer = buffer_read_ptr(&data->writeBuffer, &writeLimit);
     writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
     logf(LOG_DEBUG, "mgmtRequestWrite: sent %ld bytes", writeCount);
 
@@ -434,9 +434,9 @@ unsigned mgmtRequestWrite(TSelectorKey* key) {
         return MGMT_ERROR;
     }
     logf(LOG_DEBUG, "mgmtRequestWrite: %ld bytes to client %d", writeCount, key->fd);
-    buffer_read_adv(&data->responseBuffer, writeCount);
+    buffer_read_adv(&data->writeBuffer, writeCount);
 
-    if (buffer_can_read(&data->responseBuffer)) {
+    if (buffer_can_read(&data->writeBuffer)) {
         return MGMT_REQUEST_WRITE;
     }
 
