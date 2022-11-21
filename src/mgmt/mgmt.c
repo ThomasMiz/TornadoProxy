@@ -11,7 +11,7 @@ static void mgmterrorArrival(const unsigned state, TSelectorKey* key) {
     log(LOG_DEBUG, "mgmterrorArrival: Error state");
 }
 
-static void mgmtClose_connection(TSelectorKey * key);
+static void mgmtClose_connection(TSelectorKey* key);
 static const struct state_definition client_statb1[] = {
     {
         .state = MGMT_AUTH_READ,
@@ -62,7 +62,7 @@ void mgmt_close(TSelectorKey* key) {
 static void mgmt_read(TSelectorKey* key) {
     struct state_machine* stm = &GET_ATTACHMENT(key)->stm;
     const enum mgmt_state st = stm_handler_read(stm, key);
-    if(st == MGMT_ERROR || st == MGMT_DONE){
+    if (st == MGMT_ERROR || st == MGMT_DONE) {
         mgmtClose_connection(key);
     }
 }
@@ -70,7 +70,7 @@ static void mgmt_read(TSelectorKey* key) {
 static void mgmt_write(TSelectorKey* key) {
     struct state_machine* stm = &GET_ATTACHMENT(key)->stm;
     const enum mgmt_state st = stm_handler_write(stm, key);
-    if(st == MGMT_ERROR || st == MGMT_DONE){
+    if (st == MGMT_ERROR || st == MGMT_DONE) {
         mgmtClose_connection(key);
     }
 }
@@ -78,7 +78,7 @@ static void mgmt_write(TSelectorKey* key) {
 static void mgmt_block(TSelectorKey* key) {
     struct state_machine* stm = &GET_ATTACHMENT(key)->stm;
     const enum mgmt_state st = stm_handler_block(stm, key);
-    if(st == MGMT_ERROR || st == MGMT_DONE){
+    if (st == MGMT_ERROR || st == MGMT_DONE) {
         mgmtClose_connection(key);
     }
 }
@@ -87,33 +87,32 @@ void mgmtPassiveAccept(TSelectorKey* key) {
     struct sockaddr_storage clientAddress;
     socklen_t clientAddressLen = sizeof(clientAddress);
     int newClientSocket = accept(key->fd, (struct sockaddr*)&clientAddress, &clientAddressLen);
-    
-    if(newClientSocket < 0){
+
+    if (newClientSocket < 0) {
         logf(LOG_WARNING, "Management socket: accept() returned negative value: %d", newClientSocket);
         return;
     }
-    if(newClientSocket > 1023){
+    if (newClientSocket > 1023) {
         close(newClientSocket);
         return;
     }
 
     // Consider using a function to initialize the TClientData structure.
-    TMgmtClient * clientData = calloc(1, sizeof(TMgmtClient));
+    TMgmtClient* clientData = calloc(1, sizeof(TMgmtClient));
     if (clientData == NULL) {
         close(newClientSocket);
         logf(LOG_WARNING, "Management new client from %s with fd %d rejected because fd was too high", printSocketAddress((struct sockaddr*)&clientAddress), newClientSocket);
         return;
     }
-    
+
     clientData->stm.initial = MGMT_AUTH_READ;
     clientData->stm.max_state = MGMT_ERROR;
     clientData->closed = false;
     clientData->stm.states = client_statb1;
     clientData->clientFd = newClientSocket;
 
-
-    buffer_init(&(clientData->readBuffer),MGMT_BUFFER_SIZE, clientData->readRawBuffer);
-    buffer_init(&(clientData->writeBuffer),MGMT_BUFFER_SIZE, clientData->writeRawBuffer);
+    buffer_init(&(clientData->readBuffer), MGMT_BUFFER_SIZE, clientData->readRawBuffer);
+    buffer_init(&(clientData->writeBuffer), MGMT_BUFFER_SIZE, clientData->writeRawBuffer);
 
     stm_init(&clientData->stm);
 
@@ -128,8 +127,8 @@ void mgmtPassiveAccept(TSelectorKey* key) {
     logf(LOG_INFO, "Management new client from %s assigned id %d", printSocketAddress((struct sockaddr*)&clientAddress), newClientSocket);
 }
 
-static void mgmtClose_connection(TSelectorKey * key) {
-    TMgmtClient * data = GET_ATTACHMENT(key);
+static void mgmtClose_connection(TSelectorKey* key) {
+    TMgmtClient* data = GET_ATTACHMENT(key);
     if (data->closed)
         return;
     data->closed = true;
@@ -153,4 +152,3 @@ static void mgmtClose_connection(TSelectorKey * key) {
 
     free(data);
 }
-

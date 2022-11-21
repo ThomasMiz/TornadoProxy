@@ -1,11 +1,10 @@
+#include "args.h"
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h> /* LONG_MIN et al */
 #include <stdio.h>  /* for printf */
 #include <stdlib.h> /* for exit */
 #include <string.h> /* memset */
-
-#include "args.h"
 
 static unsigned short
 port(const char* s) {
@@ -45,8 +44,8 @@ usage(const char* progname) {
     fprintf(stderr,
             "Usage: %s [OPTION]...\n"
             "\n"
-            "   -h               Imprime la ayuda y termina.\n" 
-            "   -l <SOCKS addr>  Dirección donde servirá el proxy SOCKS.\n" 
+            "   -h               Imprime la ayuda y termina.\n"
+            "   -l <SOCKS addr>  Dirección donde servirá el proxy SOCKS.\n"
             "   -L <conf  addr>  Dirección donde servirá el servicio de management.\n"
             "   -p <SOCKS port>  Puerto entrante conexiones SOCKS.\n"
             "   -P <conf port>   Puerto entrante conexiones configuracion\n"
@@ -72,7 +71,8 @@ void parse_args(const int argc, char** argv, struct socks5args* args) {
     int c;
     while (true) {
 
-        c = getopt(argc, argv, "hl:L:Np:P:U:u:v");;
+        c = getopt(argc, argv, "hl:L:Np:P:U:u:v");
+        ;
         if (c == -1)
             break;
 
@@ -112,7 +112,6 @@ void parse_args(const int argc, char** argv, struct socks5args* args) {
                 fprintf(stderr, "unknown argument %d.\n", c);
                 exit(1);
         }
-
     }
     if (optind < argc) {
         fprintf(stderr, "argument not accepted: ");

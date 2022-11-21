@@ -3,8 +3,8 @@
  *         del selector.c
  */
 #include "stm.h"
-#include <stdio.h>
 #include "logging/logger.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 #define N(x) (sizeof(x) / sizeof((x)[0]))

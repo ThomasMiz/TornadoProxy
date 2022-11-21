@@ -1,7 +1,7 @@
 #include "auth.h"
-#include "../users.h"
 #include "../logging/logger.h"
 #include "../socks5.h"
+#include "../users.h"
 
 void authReadInit(const unsigned state, TSelectorKey* key) {
     logf(LOG_DEBUG, "authReadInit: init at socket fd %d", key->fd);

@@ -25,7 +25,8 @@ static parseCharacter stateRead[] = {
     /* REQ_DST_ADDR     */ (parseCharacter)reqParseDstAddr,
     /* REQ_DST_PORT     */ (parseCharacter)reqParseDstPort,
     /* REQ_ERROR        */ (parseCharacter)reqParseEnd,
-    /* REQ_END          */ (parseCharacter)reqParseEnd,};
+    /* REQ_END          */ (parseCharacter)reqParseEnd,
+};
 
 void initRequestParser(TReqParser* p) {
     if (p == NULL)
@@ -123,7 +124,7 @@ static TReqState reqParseDstAddr(TReqParser* p, uint8_t c) {
 }
 static TReqState reqParseDstPort(TReqParser* p, uint8_t c) {
     p->port = (p->port << 8) + c;
-    if(++p->readBytes == PORT_BYTE_LENGHT){
+    if (++p->readBytes == PORT_BYTE_LENGHT) {
         p->status = REQ_SUCCEDED;
         return REQ_ENDED;
     }

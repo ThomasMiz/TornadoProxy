@@ -4,7 +4,6 @@
 #include "../users.h"
 #include "mgmt.h"
 
-
 void mgmtAuthReadInit(const unsigned state, TSelectorKey* key) {
     logf(LOG_DEBUG, "mgmtAuthReadInit: init at socket fd %d", key->fd);
     TMgmtClient* data = GET_ATTACHMENT(key);
@@ -48,10 +47,10 @@ unsigned mgmtAuthRead(TSelectorKey* key) {
                 break;
         }
 
-         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillAuthAnswer(&data->client.authParser, &data->writeBuffer)) {
-             return MGMT_ERROR;
-         }
-         return MGMT_AUTH_WRITE;
+        if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillAuthAnswer(&data->client.authParser, &data->writeBuffer)) {
+            return MGMT_ERROR;
+        }
+        return MGMT_AUTH_WRITE;
     }
     return MGMT_AUTH_READ;
 }
@@ -60,9 +59,9 @@ unsigned mgmtAuthWrite(TSelectorKey* key) {
     logf(LOG_DEBUG, "mgmtAuthWrite: send at fd %d", key->fd);
     TMgmtClient* data = GET_ATTACHMENT(key);
 
-    size_t writeLimit;    // how many bytes we want to send
-    ssize_t writeCount = 0;   // how many bytes where written
-    uint8_t* writeBuffer; // buffer that stores the data to be sended
+    size_t writeLimit;      // how many bytes we want to send
+    ssize_t writeCount = 0; // how many bytes where written
+    uint8_t* writeBuffer;   // buffer that stores the data to be sended
 
     writeBuffer = buffer_read_ptr(&data->writeBuffer, &writeLimit);
     writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
@@ -82,7 +81,7 @@ unsigned mgmtAuthWrite(TSelectorKey* key) {
         return MGMT_AUTH_WRITE;
     }
 
-    if (hasAuthReadErrors(&data->client.authParser)|| data->client.authParser.verification == AUTH_ACCESS_DENIED || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
+    if (hasAuthReadErrors(&data->client.authParser) || data->client.authParser.verification == AUTH_ACCESS_DENIED || selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
         return MGMT_ERROR;
     }
 

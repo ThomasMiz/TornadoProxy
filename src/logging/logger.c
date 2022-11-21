@@ -1,16 +1,15 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include "logger.h"
+#include "../selector.h"
+#include "util.h"
 #include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <time.h>
-
-#include "../selector.h"
-#include "util.h"
-#include "logger.h"
+#include <unistd.h>
 
 #define DEFAULT_LOG_FOLDER "./log"
 #define DEFAULT_LOG_FILE (DEFAULT_LOG_FOLDER "/%02d-%02d-%04d.log")

@@ -1,18 +1,17 @@
 /**
  * selector.c - un muliplexor de entrada salida
  */
+#include "selector.h"
+#include "logging/logger.h"
 #include <assert.h> // :)
 #include <errno.h>  // :)
+#include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
+#include <stdint.h> // SIZE_MAX
 #include <stdio.h>  // perror
 #include <stdlib.h> // malloc
 #include <string.h> // memset
-
-#include "selector.h"
-#include "logging/logger.h"
-#include <fcntl.h>
-#include <stdint.h> // SIZE_MAX
 #include <sys/select.h>
 #include <sys/signal.h>
 #include <sys/socket.h>
@@ -217,7 +216,7 @@ static int items_max_fd(TSelector s) {
 }
 
 static void items_update_fdset_for_fd(TSelector s, const struct item* item) {
-    if(item->fd == -1){
+    if (item->fd == -1) {
         return;
     }
     FD_CLR(item->fd, &s->master_r);
@@ -473,8 +472,6 @@ TSelectorStatus selector_get_interests_key(TSelectorKey* key, TFdInterests* i) {
 finally:
     return ret;
 }
-
-
 
 TSelectorStatus selector_set_interest_key(TSelectorKey* key, TFdInterests i) {
     TSelectorStatus ret;

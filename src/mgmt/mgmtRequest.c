@@ -1,12 +1,11 @@
 #include "mgmtRequest.h"
-#include "../passwordDissector.h"
-#include "mgmtCmdParser.h"
 #include "../logging/logger.h"
+#include "../logging/metrics.h"
+#include "../negotiation/negotiationParser.h"
+#include "../passwordDissector.h"
 #include "../users.h"
 #include "mgmt.h"
 #include "mgmtCmdParser.h"
-#include "../logging/metrics.h"
-#include "../negotiation/negotiationParser.h"
 
 void mgmtRequestReadInit(const unsigned state, TSelectorKey* key) {
     logf(LOG_DEBUG, "mgmtRequestReadInit: init at socket fd %d", key->fd);
@@ -46,21 +45,20 @@ static void handleUserCmdResponse(buffer* buffer) {
     uint8_t len = fillCurrentUsers(toFill);
     uint8_t* ptr;
     size_t size;
-    char * s = "+OK listing users:\n";
+    char* s = "+OK listing users:\n";
     int sLen = strlen(s);
     ptr = buffer_write_ptr(buffer, &size);
     memcpy(ptr, s, sLen);
     buffer_write_adv(buffer, sLen);
-    for (uint8_t i=0 ; i<len ; i++) {
+    for (uint8_t i = 0; i < len; i++) {
         ptr = buffer_write_ptr(buffer, &size);
         int nameLength = strlen(toFill[i]);
         memcpy(ptr, toFill[i], nameLength);
-        int last = i == len-1;
+        int last = i == len - 1;
         if (!last)
             ptr[nameLength] = '\n';
         buffer_write_adv(buffer, nameLength + !last);
     }
-    
 }
 
 static int roleMatches(int role) {
@@ -88,7 +86,7 @@ static void handleAddUserCmdResponse(buffer* buffer, TMgmtParser* p) {
     static const char* noMemoryMessage = "-ERR no memory";
     static const char* badRoleMessage = "-ERR role doesn't exist";
     static const char* unkownErrorMessage = "-ERR can't add user, try again";
-    
+
     const char* toReturn = NULL;
 
     role = roleMatches(role);
@@ -133,7 +131,7 @@ static void handleDeleteUserCmdResponse(buffer* buffer, TMgmtParser* p) {
     static const char* badOperationMessage = "-ERR cannot delete user because no other admins exist";
     static const char* successMessage = "+OK user successfully deleted";
     static const char* unkownErrorMessage = "-ERR can't delete user, try again";
-    
+
     const char* toReturn;
 
     int status = usersDelete(username);
@@ -169,7 +167,7 @@ static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p) {
     static const char* noMemoryMessage = "-ERR no memory";
     static const char* wrongUsernameMessage = "-ERR user doesn't exist";
     static const char* unkownErrorMessage = "-ERR can't change password, try again";
-    
+
     const char* toReturn;
 
     if (!userExists(username)) {
@@ -210,7 +208,7 @@ static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p) {
     static const char* successMessage = "+OK user successfully changed role";
     static const char* unkownErrorMessage = "-ERR can't change user role, try again";
     static const char* badRoleMessage = "-ERR role doesn't exist";
-    
+
     const char* toReturn = NULL;
 
     role = roleMatches(role);
@@ -276,14 +274,14 @@ static void handleSetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p) 
     buffer_write_adv(buffer, len);
 }
 
-static void copyMetric(buffer * buffer, const char* metricString, size_t metricValue) {
+static void copyMetric(buffer* buffer, const char* metricString, size_t metricValue) {
     size_t size;
     char* ptr = (char*)buffer_write_ptr(buffer, &size);
-    
+
     int len = strlen(metricString);
     memcpy(ptr, metricString, len);
 
-    len += snprintf(ptr+len, size - len, "%ld\n", metricValue);
+    len += snprintf(ptr + len, size - len, "%ld\n", metricValue);
     buffer_write_adv(buffer, len);
 }
 
@@ -303,14 +301,14 @@ static void handleStatisticsCmdResponse(buffer* buffer) {
 
     const char* statsString[] = {connectionCount, maxConcurrmetrics, totalBytesRecv, totalBytesSent, totalConnectionCount};
     size_t stats[] = {metrics.currentConnectionCount, metrics.maxConcurrentConnections, metrics.totalBytesReceived, metrics.totalBytesSent, metrics.totalConnectionCount};
-    
+
     size_t size;
 
     // char statistics[64];
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
     memcpy(ptr, successMessage, sucLength);
     buffer_write_adv(buffer, sucLength);
-    
+
     for (int i = 0; i < (int)(sizeof(statsString) / sizeof(statsString[0])); i++)
         copyMetric(buffer, statsString[i], stats[i]);
 }
@@ -360,7 +358,7 @@ static void handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser
     buffer_write_adv(buffer, len);
 }
 
-static void handleUnknownCmd(buffer * buffer){
+static void handleUnknownCmd(buffer* buffer) {
     size_t size;
 
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
@@ -375,7 +373,7 @@ static void handleUnknownCmd(buffer * buffer){
 void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     TMgmtClient* data = GET_ATTACHMENT(key);
     buffer_init(&(data->responseBuffer), MGMT_BUFFER_SIZE, data->responseRawBuffer);
-    
+
     if (data->cmd == MGMT_CMD_USERS) {
         logf(LOG_INFO, "Management client %d requested command USERS", key->fd);
         handleUserCmdResponse(&data->responseBuffer);
@@ -385,7 +383,7 @@ void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     } else if (data->cmd == MGMT_CMD_DELETE_USER) {
         logf(LOG_INFO, "Management client %d requested command DELETE-USER", key->fd);
         handleDeleteUserCmdResponse(&data->responseBuffer, &data->client.cmdParser);
-    } else if(data->cmd == MGMT_CMD_CHANGE_PASSWORD){
+    } else if (data->cmd == MGMT_CMD_CHANGE_PASSWORD) {
         logf(LOG_INFO, "Management client %d requested command CHANGE-PASSWORD", key->fd);
         handleChangePasswordCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if (data->cmd == MGMT_CMD_CHANGE_ROLE) {

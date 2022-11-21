@@ -1,6 +1,5 @@
-#include <string.h>
-
 #include "metrics.h"
+#include <string.h>
 
 /**
  * The current metrics values for this server.

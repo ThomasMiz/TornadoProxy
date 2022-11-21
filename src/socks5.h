@@ -3,14 +3,14 @@
 
 #include "auth/authParser.h"
 #include "buffer.h"
+#include "copy.h"
 #include "negotiation/negotiation.h"
+#include "passwordDissector.h"
 #include "request/requestParser.h"
 #include "selector.h"
-#include "copy.h"
 #include "stm.h"
-#include "passwordDissector.h"
-#include <stdbool.h>
 #include <netdb.h>
+#include <stdbool.h>
 
 // obtiene el struct socks5* desde la key
 #define ATTACHMENT(key) ((TClientData*)(key)->data)

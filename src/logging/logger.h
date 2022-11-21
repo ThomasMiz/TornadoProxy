@@ -7,13 +7,12 @@
 // Define this to fully disable all loggin on compilation.
 // #define DISABLE_LOGGER
 
-#include <stdlib.h>
+#include "../selector.h"
 #include <stdio.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <time.h>
-
-#include "../selector.h"
+#include <unistd.h>
 
 typedef enum {
     LOG_DEBUG = 0,

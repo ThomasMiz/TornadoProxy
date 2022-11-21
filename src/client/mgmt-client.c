@@ -1,12 +1,12 @@
 #include "mgmt-client-utils.h"
-#include <stdint.h>
 #include "mgmtClientCommands.h"
+#include <stdint.h>
 
-#define SERVER "localhost" 
+#define SERVER "localhost"
 #define PORT "8080"
 
-int main(int argc, char *argv[]) {
-    
+int main(int argc, char* argv[]) {
+
     if (argc <= 1 || strcmp("-h", argv[1]) == 0) {
         fprintf(stderr,
                 "Usage: %s [OPTION]...\n"
@@ -22,68 +22,69 @@ int main(int argc, char *argv[]) {
                 "   GET-AUTHENTICATION-STATUS                 Sends a request to get the status of the sock's authentication level.\n"
                 "   SET-AUTHENTICATION-STATUS [ON/OFF]        Sends a request to set the state of the sock's authentication level.\n"
                 "   STATISTICS                                Sends a request to get specific metrics from the server.\n"
-                "\n","client");
+                "\n",
+                "client");
         return 0;
     }
 
-    char *command = argv[1];
+    char* command = argv[1];
     int commandReference;
 
-    if(!commandExists(command, &commandReference)){
+    if (!commandExists(command, &commandReference)) {
         printf("%s: is not a valid command\n", command);
         return -1;
     }
 
-    if(!argsQuantityOk(commandReference, argc)){
+    if (!argsQuantityOk(commandReference, argc)) {
         printf("%s: few arguments\n", command);
         return -1;
     }
 
-    char *token = getenv("TOKEN");
+    char* token = getenv("TOKEN");
 
-	if(token == NULL) {
+    if (token == NULL) {
         printf("No token provided for connection\n");
         return -1;
     }
 
-    if(!validToken(token)) {
+    if (!validToken(token)) {
         printf("Token contains non printable characters\n");
         return -1;
     }
-    
-    char *username = strtok(token, ":");
+
+    char* username = strtok(token, ":");
 
     if (username == NULL) {
         printf("Invalid username format\n");
         return -1;
     }
-    char *password = strtok(NULL, ":");
+    char* password = strtok(NULL, ":");
 
     if (password == NULL) {
         printf("Invalid password format\n");
         return -1;
     }
-    char * role = commandReference == CMD_ADD_USER ? argv[4] : (commandReference == CMD_CHANGE_ROLE ? argv[3] : NULL);
-    if(role != NULL){
+    char* role = commandReference == CMD_ADD_USER ? argv[4] : (commandReference == CMD_CHANGE_ROLE ? argv[3] : NULL);
+    if (role != NULL) {
         int len = strlen(role);
         if (len != 1) {
             printf("Invalid role format, must be a digit\n");
             return -1;
         }
 
-        if(!isdigit((*role))){
+        if (!isdigit((*role))) {
             printf("Invalid role format, must be a digit\n");
             return -1;
         }
     }
 
     int sock = tcpClientSocket(SERVER, PORT);
-    if(sock < 0) {
+    if (sock < 0) {
         perror("socket() failed");
         return -1;
     }
 
-    if(!authenticate(username, password, sock)) {
+    if (!authenticate(username, password, sock)) {
         return closeConnection("Error authenticating with the server", sock);
     }
 
@@ -92,7 +93,7 @@ int main(int argc, char *argv[]) {
         case CMD_USERS:
             status = cmdUsers(sock, commandReference);
             break;
-        case CMD_ADD_USER: 
+        case CMD_ADD_USER:
             status = cmdAddUser(sock, commandReference, argv[2], argv[3], argv[4]);
             break;
         case CMD_DELETE_USER:
@@ -119,7 +120,7 @@ int main(int argc, char *argv[]) {
         case CMD_STATS:
             status = cmdStats(sock, commandReference);
             break;
-        default: 
+        default:
             return -1;
     }
 

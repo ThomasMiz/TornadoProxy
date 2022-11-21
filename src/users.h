@@ -1,8 +1,8 @@
 #ifndef _USERS_H_
 #define _USERS_H_
 
-#include <stdbool.h>
 #include "selector.h"
+#include <stdbool.h>
 
 /** The maximum length of a user's username. */
 #define USERS_MAX_USERNAME_LENGTH 31
@@ -113,13 +113,13 @@ TUserStatus usersFinalize();
 
 /**
  * @brief Returns a const string with a human-readable representation of a given user privilige level.
-*/
+ */
 const char* usersPrivilegeToString(TUserPrivilegeLevel privilege);
 
 /**
  * @brief Returns true if a user already exists
  */
-bool userExists(const char * username);
+bool userExists(const char* username);
 
 /**
  * @brief Fill the array with the names of the currently registered users.

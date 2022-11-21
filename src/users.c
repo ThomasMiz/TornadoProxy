@@ -1,15 +1,14 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <regex.h>
-
-#include "selector.h"
-#include "logging/logger.h"
 #include "users.h"
+#include "logging/logger.h"
+#include "selector.h"
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <regex.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #define USERS_ARRAY_MIN_SIZE 8
 #define USERS_ARRAY_SIZE_GRANULARITY 8

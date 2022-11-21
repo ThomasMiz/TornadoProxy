@@ -10,16 +10,16 @@
 typedef char TString[MGMT_MAX_STRING_LENGTH + 1];
 
 typedef enum TMgmtCmd {
-   MGMT_CMD_USERS = 0,
-   MGMT_CMD_ADD_USER,
-   MGMT_CMD_DELETE_USER,
-   MGMT_CMD_CHANGE_PASSWORD,
-   MGMT_CMD_CHANGE_ROLE,
-   MGMT_CMD_GET_DISSECTOR_STATUS,
-   MGMT_CMD_SET_DISSECTOR_STATUS,
-   MGMT_CMD_GET_AUTHENTICATION_STATUS,
-   MGMT_CMD_SET_AUTHENTICATION_STATUS,
-   MGMT_CMD_STATISTICS
+    MGMT_CMD_USERS = 0,
+    MGMT_CMD_ADD_USER,
+    MGMT_CMD_DELETE_USER,
+    MGMT_CMD_CHANGE_PASSWORD,
+    MGMT_CMD_CHANGE_ROLE,
+    MGMT_CMD_GET_DISSECTOR_STATUS,
+    MGMT_CMD_SET_DISSECTOR_STATUS,
+    MGMT_CMD_GET_AUTHENTICATION_STATUS,
+    MGMT_CMD_SET_AUTHENTICATION_STATUS,
+    MGMT_CMD_STATISTICS
 } TMgmtCmd;
 
 typedef enum TMgmtState {
@@ -27,18 +27,18 @@ typedef enum TMgmtState {
     MGMTP_READING_ARGS,
     MGMTP_END,
     MGMTP_ERROR
-}TMgmtState;
+} TMgmtState;
 
 typedef enum TMgmtStatus {
     MGMT_SUCCESS,
     MGMT_INVALID_CMD,
     MGMT_INVALID_STRING_LENGTH
-}TMgmtStatus;
+} TMgmtStatus;
 
-typedef union TArg{
+typedef union TArg {
     uint8_t byte;
     TString string;
-}TArg;
+} TArg;
 
 typedef struct TMgmtParser {
     TMgmtState state;
@@ -47,11 +47,10 @@ typedef struct TMgmtParser {
 
     uint8_t readArgs;
 
-    uint8_t slength;    // Lenght to read from a string arg
-    uint8_t rlength;    // Already read bytes form a string
+    uint8_t slength; // Lenght to read from a string arg
+    uint8_t rlength; // Already read bytes form a string
     TArg args[MGMT_MAX_ARGS];
 } TMgmtParser;
-
 
 void initMgmtCmdParser(TMgmtParser* p);
 TMgmtState mgmtCmdParse(TMgmtParser* p, struct buffer* buffer);

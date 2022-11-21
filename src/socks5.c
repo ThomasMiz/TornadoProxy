@@ -1,12 +1,12 @@
 #include "socks5.h"
 #include "auth/auth.h"
 #include "copy.h"
-#include "request/request.h"
-#include "selector.h"
-#include "stm.h"
 #include "logging/logger.h"
 #include "logging/metrics.h"
 #include "logging/util.h"
+#include "request/request.h"
+#include "selector.h"
+#include "stm.h"
 #include <netdb.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -15,7 +15,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-void closeConnection(TSelectorKey * key);
+void closeConnection(TSelectorKey* key);
 
 void doneArrival(const unsigned state, TSelectorKey* key) {
     log(LOG_DEBUG, "Socks5: Done state");
@@ -101,7 +101,7 @@ void socksv5Close(TSelectorKey* key) {
 static void socksv5Read(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     const enum socks_state st = stm_handler_read(stm, key);
-    if(st == ERROR || st == DONE){
+    if (st == ERROR || st == DONE) {
         closeConnection(key);
     }
 }
@@ -109,7 +109,7 @@ static void socksv5Read(TSelectorKey* key) {
 static void socksv5Write(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     const enum socks_state st = stm_handler_write(stm, key);
-    if(st == ERROR || st == DONE){
+    if (st == ERROR || st == DONE) {
         closeConnection(key);
     }
 }
@@ -117,13 +117,13 @@ static void socksv5Write(TSelectorKey* key) {
 static void socksv5Block(TSelectorKey* key) {
     struct state_machine* stm = &ATTACHMENT(key)->stm;
     const enum socks_state st = stm_handler_block(stm, key);
-    if(st == ERROR || st == DONE){
+    if (st == ERROR || st == DONE) {
         closeConnection(key);
     }
 }
 
-void closeConnection(TSelectorKey * key) {
-    TClientData * data = ATTACHMENT(key);
+void closeConnection(TSelectorKey* key) {
+    TClientData* data = ATTACHMENT(key);
     if (data->closed)
         return;
     data->closed = true;
@@ -143,10 +143,10 @@ void closeConnection(TSelectorKey * key) {
     }
 
     if (data->originResolution != NULL) {
-        if(data->client.reqParser.atyp != REQ_ATYP_DOMAINNAME){
+        if (data->client.reqParser.atyp != REQ_ATYP_DOMAINNAME) {
             free(data->originResolution->ai_addr);
             free(data->originResolution);
-        }else {
+        } else {
             freeaddrinfo(data->originResolution);
         }
     }
@@ -159,12 +159,12 @@ void socksv5PassivAccept(TSelectorKey* key) {
     socklen_t clientAddressLen = sizeof(clientAddress);
     int newClientSocket = accept(key->fd, (struct sockaddr*)&clientAddress, &clientAddressLen);
 
-    if(newClientSocket < 0) {
+    if (newClientSocket < 0) {
         logf(LOG_WARNING, "Socksv5 socket: accept() returned negative value: %d", newClientSocket);
         return;
     }
 
-    if(newClientSocket > 1023){
+    if (newClientSocket > 1023) {
         close(newClientSocket);
         logf(LOG_WARNING, "Socksv5 new client from %s with fd %d rejected because fd was too high", printSocketAddress((struct sockaddr*)&clientAddress), newClientSocket);
         return;
@@ -183,7 +183,7 @@ void socksv5PassivAccept(TSelectorKey* key) {
     clientData->closed = false;
     clientData->stm.states = clientActions;
     clientData->clientFd = newClientSocket;
-    clientData->originFd=-1;
+    clientData->originFd = -1;
 
     buffer_init(&clientData->originBuffer, BUFFER_SIZE, clientData->inOriginBuffer);
     buffer_init(&clientData->clientBuffer, BUFFER_SIZE, clientData->inClientBuffer);
@@ -198,7 +198,7 @@ void socksv5PassivAccept(TSelectorKey* key) {
         free(clientData);
         return;
     }
-    
+
     metricsRegisterNewClient();
     logf(LOG_INFO, "Socksv5 new client from %s assigned id %d", printSocketAddress((struct sockaddr*)&clientAddress), newClientSocket);
 }

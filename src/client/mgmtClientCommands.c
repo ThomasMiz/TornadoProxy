@@ -1,10 +1,10 @@
 
 #include "mgmtClientCommands.h"
-#include <sys/socket.h>
+#include <ctype.h>
+#include <stdio.h>
 #include <string.h>
 #include <strings.h>
-#include <stdio.h>
-#include <ctype.h>
+#include <sys/socket.h>
 
 #define ON "ON"
 #define OFF "OFF"
@@ -19,7 +19,7 @@ static int sendByte(int sock, int cmd) {
     return (send(sock, &cmd, 1, 0) != 1);
 }
 
-static int sendString(int sock, char *s) {
+static int sendString(int sock, char* s) {
     int len = strlen(s);
 
     if (send(sock, &len, 1, 0) < 1) {
@@ -32,7 +32,7 @@ static int sendString(int sock, char *s) {
     return 0;
 }
 
-static int setStatusGenericCmd(int sock, int cmdValue, char * status) {
+static int setStatusGenericCmd(int sock, int cmdValue, char* status) {
     if (sendByte(sock, cmdValue)) {
         printf("error sending command\n");
         return -1;
@@ -56,7 +56,7 @@ static int setStatusGenericCmd(int sock, int cmdValue, char * status) {
     return 0;
 }
 
-static int sendUserInfoCmd(int sock, int cmdValue, char * username, char * password, char * role){
+static int sendUserInfoCmd(int sock, int cmdValue, char* username, char* password, char* role) {
 
     if (sendByte(sock, cmdValue)) {
         printf("error sending command\n");
@@ -73,7 +73,7 @@ static int sendUserInfoCmd(int sock, int cmdValue, char * username, char * passw
         return -1;
     }
 
-    if(role != NULL) {
+    if (role != NULL) {
         int roleToInt = (*role) - '0';
         if (sendByte(sock, roleToInt)) {
             printf("error sending role string\n");
@@ -91,19 +91,19 @@ int cmdStats(int sock, int cmdValue) {
     return sendByte(sock, cmdValue);
 }
 
-int cmdAddUser(int sock, int cmdValue, char * username, char * password, char * role) {
+int cmdAddUser(int sock, int cmdValue, char* username, char* password, char* role) {
     return sendUserInfoCmd(sock, cmdValue, username, password, role);
 }
 
-int cmdDeleteUser(int sock, int cmdValue, char * username) {
+int cmdDeleteUser(int sock, int cmdValue, char* username) {
     return sendUserInfoCmd(sock, cmdValue, username, NULL, NULL);
 }
 
-int cmdChangePassword(int sock, int cmdValue, char * username, char * password){
+int cmdChangePassword(int sock, int cmdValue, char* username, char* password) {
     return sendUserInfoCmd(sock, cmdValue, username, NULL, NULL);
 }
 
-int cmdChangeRole(int sock, int cmdValue, char * username, char * role){
+int cmdChangeRole(int sock, int cmdValue, char* username, char* role) {
     return sendUserInfoCmd(sock, cmdValue, username, NULL, role);
 }
 
@@ -111,14 +111,14 @@ int cmdGetDissectorStatus(int sock, int cmdValue) {
     return sendByte(sock, cmdValue);
 }
 
-int cmdSetDissectorStatus(int sock, int cmdValue, char * status) {
+int cmdSetDissectorStatus(int sock, int cmdValue, char* status) {
     return setStatusGenericCmd(sock, cmdValue, status);
 }
 
-int cmdGetAuthenticationStatus(int sock, int cmdValue){
-     return sendByte(sock, cmdValue);
+int cmdGetAuthenticationStatus(int sock, int cmdValue) {
+    return sendByte(sock, cmdValue);
 }
 
-int cmdSetAuthenticationStatus(int sock, int cmdValue, char * status){
+int cmdSetAuthenticationStatus(int sock, int cmdValue, char* status) {
     return setStatusGenericCmd(sock, cmdValue, status);
 }

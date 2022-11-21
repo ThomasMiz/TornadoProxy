@@ -1,16 +1,16 @@
 #ifndef MGMT_H
 #define MGMT_H
 
+#include "../auth/authParser.h"
+#include "../buffer.h"
+#include "../selector.h"
+#include "../stm.h"
+#include "mgmtCmdParser.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include "../selector.h"
-#include "../buffer.h"
-#include "../stm.h"
-#include "../auth/authParser.h"
-#include "mgmtCmdParser.h"
+#include <sys/types.h>
 
 #define MGMT_BUFFER_SIZE 4096
 
@@ -45,7 +45,7 @@ enum mgmt_state {
     /*
 
     */
-   
+
     MGMT_AUTH_WRITE,
 
     /*
@@ -56,7 +56,7 @@ enum mgmt_state {
     /*
 
     */
-   
+
     MGMT_REQUEST_WRITE,
 
     // estados terminales

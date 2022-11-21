@@ -1,11 +1,10 @@
 #ifndef REQUEST_PARSER_H
 #define REQUEST_PARSER_H
 
-#include <sys/types.h>
-
 #include "../buffer.h"
 #include <netinet/ip.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 /** Parses a client request for SOCKS V5 as described in RFC 1928 (part 4 and 5):
    4.  Requests
@@ -109,8 +108,6 @@
  *
  * */
 
-
-
 enum TReqCmd {
     REQ_CMD_CONNECT = 0x01,
     REQ_CMD_BIND = 0x02,
@@ -127,18 +124,18 @@ enum TReqAtyp {
 #define REQ_MAX_DN_LENGHT 0xFF
 
 typedef enum TReqState {
-    REQ_VERSION = 0,    // The parser is waiting for the client version
-    REQ_CMD,            // The parser is waiting for CMD (CONNECT/BIND/UDP)
-    REQ_RSV,            // The parser is waiting for the reserved space X'00'
-    REQ_ATYP,           // The parser is waiting for the address type
-    REQ_DN_LENGHT,      // If atype is 0x03, read the domainname length
-    REQ_DST_ADDR,       // The parser is reading the desired destination address
-    REQ_DST_PORT,       // The parser is reading the desired destination port in network octet order
+    REQ_VERSION = 0, // The parser is waiting for the client version
+    REQ_CMD,         // The parser is waiting for CMD (CONNECT/BIND/UDP)
+    REQ_RSV,         // The parser is waiting for the reserved space X'00'
+    REQ_ATYP,        // The parser is waiting for the address type
+    REQ_DN_LENGHT,   // If atype is 0x03, read the domainname length
+    REQ_DST_ADDR,    // The parser is reading the desired destination address
+    REQ_DST_PORT,    // The parser is reading the desired destination port in network octet order
     REQ_ERROR,
     REQ_ENDED
 } TReqState;
 
-typedef enum TReqStatus{
+typedef enum TReqStatus {
     REQ_SUCCEDED = 0,
     REQ_ERROR_GENERAL_FAILURE,
     REQ_ERROR_CONNECTION_NOT_ALLOWED,
@@ -148,7 +145,7 @@ typedef enum TReqStatus{
     REQ_ERROR_TTL_EXPIRED,
     REQ_ERROR_COMMAND_NOT_SUPPORTED,
     REQ_ERROR_ADDRESS_TYPE_NOT_SUPPORTED,
-}TReqStatus;
+} TReqStatus;
 
 typedef union TAddress {
     struct in_addr ipv4;
@@ -169,10 +166,10 @@ typedef struct TReqParser {
     in_port_t port;
 } TReqParser;
 
-typedef enum TReqRet{
-    REQR_OK=0,
+typedef enum TReqRet {
+    REQR_OK = 0,
     REQR_FULLBUFFER,
-}TReqRet;
+} TReqRet;
 
 /**
  * @brief Initializes the request parser.

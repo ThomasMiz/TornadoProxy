@@ -2,25 +2,23 @@
 #include "../logging/logger.h"
 #include "../logging/util.h"
 #include "../socks5.h"
+#include <errno.h>
 #include <netdb.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <errno.h>
 #include <unistd.h>
-
 
 #ifndef SOCK_NONBLOCK
 #include <fcntl.h>
 #define SOCK_NONBLOCK O_NONBLOCK
 #endif
 
-
 static unsigned requestProcess(TSelectorKey* key);
 static void* requestNameResolution(void* data);
-static unsigned startConnection(TSelectorKey * key);
+static unsigned startConnection(TSelectorKey* key);
 static TReqStatus connectErrorToRequestStatus(int e);
 
 void requestReadInit(const unsigned state, TSelectorKey* key) {
@@ -177,8 +175,8 @@ unsigned requestResolveDone(TSelectorKey* key) {
     ailist = data->originResolution;
     for (aip = ailist; aip != NULL; aip = aip->ai_next) {
         logf(LOG_DEBUG, "--> family=%s, type=%s, protocol=%s, host=%s, address=%s flags=\"%s\"", printFamily(aip->ai_family),
-        printType(aip->ai_socktype), printProtocol(aip->ai_protocol), aip->ai_canonname ? aip->ai_canonname : "-", 
-        printAddressPort(aip->ai_family, aip->ai_addr),printFlags(aip->ai_flags));
+             printType(aip->ai_socktype), printProtocol(aip->ai_protocol), aip->ai_canonname ? aip->ai_canonname : "-",
+             printAddressPort(aip->ai_family, aip->ai_addr), printFlags(aip->ai_flags));
     }
 
     if (ailist == NULL) {
@@ -190,7 +188,7 @@ unsigned requestResolveDone(TSelectorKey* key) {
 }
 
 unsigned fillRequestAnswerWitheErrorState(TSelectorKey* key, int status) {
-    TReqParser * p = &ATTACHMENT(key)->client.reqParser;
+    TReqParser* p = &ATTACHMENT(key)->client.reqParser;
 
     p->state = REQ_ERROR;
     p->status = status;
@@ -249,14 +247,14 @@ unsigned requestConecting(TSelectorKey* key) {
     }
 
     if (error) {
-        //Could not connect to the first address, try with the next one, if exists
-        if(d->originResolution->ai_next == NULL){
+        // Could not connect to the first address, try with the next one, if exists
+        if (d->originResolution->ai_next == NULL) {
             logf(LOG_INFO, "Failed to fulfill connection request from client %d", d->clientFd);
             return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(error));
         } else {
             selector_unregister_fd_noclose(key->s, d->originFd);
             close(d->originFd);
-            struct addrinfo * next = d->originResolution->ai_next;
+            struct addrinfo* next = d->originResolution->ai_next;
             d->originResolution->ai_next = NULL;
             freeaddrinfo(d->originResolution);
             d->originResolution = next;
@@ -272,7 +270,7 @@ unsigned requestConecting(TSelectorKey* key) {
     return REQUEST_WRITE;
 }
 
-static unsigned startConnection(TSelectorKey * key) {
+static unsigned startConnection(TSelectorKey* key) {
     TClientData* d = ATTACHMENT(key);
 
     d->originFd = socket(d->originResolution->ai_family, SOCK_STREAM | SOCK_NONBLOCK, d->originResolution->ai_protocol);
@@ -298,18 +296,18 @@ static unsigned startConnection(TSelectorKey * key) {
 
     logf(LOG_INFO, "Connect attempt to %s failed (requested by client %d)", printSocketAddress(d->originResolution->ai_addr), d->clientFd);
 
-    //Could not connect to the first address, try with the next one, if exists
-    if(d->originResolution->ai_next != NULL){
+    // Could not connect to the first address, try with the next one, if exists
+    if (d->originResolution->ai_next != NULL) {
         selector_unregister_fd_noclose(key->s, d->originFd);
         close(d->originFd);
-        struct addrinfo * next = d->originResolution->ai_next;
+        struct addrinfo* next = d->originResolution->ai_next;
         d->originResolution->ai_next = NULL;
         freeaddrinfo(d->originResolution);
         d->originResolution = next;
         return startConnection(key);
     }
 
-    //Return a connection error after trying to connect to all the addresses
+    // Return a connection error after trying to connect to all the addresses
     logf(LOG_INFO, "Failed to fulfill connection request from client %d", d->clientFd);
     return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(errno));
 }

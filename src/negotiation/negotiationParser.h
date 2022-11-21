@@ -58,11 +58,11 @@ typedef struct TNegParser {
     uint8_t pendingMethods;
 } TNegParser;
 
-typedef enum TNegRet{
-    NEGR_OK=0,
+typedef enum TNegRet {
+    NEGR_OK = 0,
     NEGR_FULLBUFFER,
     NEGR_INVALIDMETHOD,
-}TNegRet;
+} TNegRet;
 
 /**
  * @brief Initializes the negotiation parser.

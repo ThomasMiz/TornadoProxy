@@ -1,16 +1,16 @@
 #include "copy.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
 #include "logging/logger.h"
 #include "logging/metrics.h"
 #include "socks5.h"
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define CLIENT_NAME "client"
 #define ORIGIN_NAME "origin"
 
-static TFdInterests getInterests(TSelector s, TCopy * copy) {
+static TFdInterests getInterests(TSelector s, TCopy* copy) {
     TFdInterests ret = OP_NOOP;
     if ((copy->duplex & OP_READ) && buffer_can_write(copy->otherBuffer)) {
         ret |= OP_READ;
@@ -25,12 +25,12 @@ static TFdInterests getInterests(TSelector s, TCopy * copy) {
     return ret;
 }
 
-static unsigned copyReadHandler(TClientData* clientData, TCopy * copy) {
+static unsigned copyReadHandler(TClientData* clientData, TCopy* copy) {
     int targetFd = *copy->targetFd;
     int otherFd = *copy->otherFd;
     TSelector s = copy->s;
-    buffer * otherBuffer = copy->otherBuffer;
-    char * name = copy->name;
+    buffer* otherBuffer = copy->otherBuffer;
+    char* name = copy->name;
     logf(LOG_DEBUG, "copyReadHandler: Reading from fd %s %d", name, targetFd);
     size_t capacity;
     size_t remaining;
@@ -48,7 +48,7 @@ static unsigned copyReadHandler(TClientData* clientData, TCopy * copy) {
         buffer_write_ptr(otherBuffer, &(remaining));
         logf(LOG_DEBUG, "copyReadHandler: recv() %ld bytes from %s %d (remaining buffer capacity %lu)", readBytes, name, targetFd, remaining);
 
-        if(clientData->pDissector.isOn){
+        if (clientData->pDissector.isOn) {
             parseUserData(&clientData->pDissector, otherBuffer, targetFd);
         }
     }
@@ -63,19 +63,19 @@ static unsigned copyReadHandler(TClientData* clientData, TCopy * copy) {
         }
     }
 
-    getInterests(s,copy);
-    getInterests(s,copy->otherCopy);
-    if(copy->duplex == OP_NOOP ){
+    getInterests(s, copy);
+    getInterests(s, copy->otherCopy);
+    if (copy->duplex == OP_NOOP) {
         return DONE;
     }
     return COPY;
 }
 
-static unsigned copyWriteHandler(TCopy * copy, bool isClientCopy) {
+static unsigned copyWriteHandler(TCopy* copy, bool isClientCopy) {
     int targetFd = *copy->targetFd;
     TSelector s = copy->s;
-    buffer * targetBuffer = copy->targetBUffer;
-    char * name = copy->name;
+    buffer* targetBuffer = copy->targetBUffer;
+    char* name = copy->name;
 
     logf(LOG_DEBUG, "copyWriteHandler: Writing to fd %s %d", name, targetFd);
 
@@ -104,9 +104,9 @@ static unsigned copyWriteHandler(TCopy * copy, bool isClientCopy) {
     }
 
     logf(LOG_DEBUG, "copyWriteHandler: send() %ld bytes to %s %d [%lu remaining]", sent, name, targetFd, capacity - sent);
-    getInterests(s,copy);
-    getInterests(s,copy->otherCopy);
-    if(copy->duplex == OP_NOOP ){
+    getInterests(s, copy);
+    getInterests(s, copy->otherCopy);
+    if (copy->duplex == OP_NOOP) {
         return DONE;
     }
     return COPY;
@@ -114,9 +114,9 @@ static unsigned copyWriteHandler(TCopy * copy, bool isClientCopy) {
 
 void socksv5HandleInit(const unsigned int st, TSelectorKey* key) {
     TClientData* data = ATTACHMENT(key);
-    TConnection * connections = &(data->connections);
-    int * clientFd = &data->clientFd;
-    int * originFd = &data->originFd;
+    TConnection* connections = &(data->connections);
+    int* clientFd = &data->clientFd;
+    int* originFd = &data->originFd;
     TCopy* clientCopy = &(connections->clientCopy);
     clientCopy->targetFd = clientFd;
     clientCopy->otherFd = originFd;
@@ -148,7 +148,7 @@ unsigned socksv5HandleRead(TSelectorKey* key) {
     logf(LOG_DEBUG, "socksv5HandleRead: Reading from fd %d", key->fd);
     TClientData* clientData = key->data;
     TConnection* connections = &(clientData->connections);
-    TCopy * copy;
+    TCopy* copy;
     if (clientData->clientFd == key->fd) {
         copy = &(connections->clientCopy);
     } else { // fd == origin_fd
@@ -161,7 +161,7 @@ unsigned socksv5HandleWrite(TSelectorKey* key) {
     logf(LOG_DEBUG, "socksv5HandleWrite: Writing to fd %d", key->fd);
     TClientData* clientData = key->data;
     TConnection* connections = &(clientData->connections);
-    TCopy * copy;
+    TCopy* copy;
     bool isClientCopy;
     if (clientData->clientFd == key->fd) {
         copy = &(connections->clientCopy);
@@ -174,5 +174,5 @@ unsigned socksv5HandleWrite(TSelectorKey* key) {
 }
 
 void socksv5HandleClose(const unsigned int state, TSelectorKey* key) {
-    logf(LOG_DEBUG,"socksv5HandleClose: Client closed: %d", key->fd);
+    logf(LOG_DEBUG, "socksv5HandleClose: Client closed: %d", key->fd);
 }
