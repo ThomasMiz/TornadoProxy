@@ -1,6 +1,7 @@
 #ifndef _USERS_H_
 #define _USERS_H_
 
+#include <stdbool.h>
 #include "selector.h"
 
 /** The maximum length of a user's username. */
@@ -95,7 +96,7 @@ TUserStatus usersLogin(const char* username, const char* password, TUserPrivileg
  * BADPASSWORD, LIMITREACHED, NOMEMORY, or BADOPERATION (if downgrading privileges from last
  * admin in the system).
  */
-TUserStatus usersCreate(const char* username, const char* password, int updatePassword, TUserPrivilegeLevel privilege, int updatePrivilege);
+TUserStatus usersCreate(const char* username, const char* password, bool updatePassword, TUserPrivilegeLevel privilege, bool updatePrivilege);
 
 /**
  * @brief Deletes a user from the system.

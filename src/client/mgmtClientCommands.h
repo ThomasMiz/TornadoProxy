@@ -6,7 +6,7 @@
 
 int cmdUsers(int sock, int cmdValue);
 
-int cmdAddUser(int sock, int cmdValue, char * username, char * password);
+int cmdAddUser(int sock, int cmdValue, char* username, char* password, char* role);
 
 int cmdDeleteUser(int sock, int cmdValue, char * username);
 

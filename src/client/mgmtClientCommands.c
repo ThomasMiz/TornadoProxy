@@ -4,6 +4,7 @@
 #include <string.h>
 #include <strings.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #define ON "ON"
 #define OFF "OFF"
@@ -13,7 +14,7 @@ enum DissectorStatus {
     ON_CODE
 };
 
-static int sendCmd(int sock, int cmd) {
+static int sendByte(int sock, int cmd) {
     return (send(sock, &cmd, 1, 0) != 1);
 }
 
@@ -31,15 +32,16 @@ static int sendString(int sock, char *s) {
 }
 
 int cmdUsers(int sock, int cmdValue) {
-    return sendCmd(sock, cmdValue);
+    return sendByte(sock, cmdValue);
 }
 
 int cmdStats(int sock, int cmdValue) {
-    return sendCmd(sock, cmdValue);
+    return sendByte(sock, cmdValue);
 }
 
-int cmdAddUser(int sock, int cmdValue, char * username, char * password) {
-    if (sendCmd(sock, cmdValue)) {
+int cmdAddUser(int sock, int cmdValue, char * username, char * password, char * role) {
+
+    if (sendByte(sock, cmdValue)) {
         printf("error sending command\n");
         return -1;
     }
@@ -54,11 +56,17 @@ int cmdAddUser(int sock, int cmdValue, char * username, char * password) {
         return -1;
     }
 
+    int roleToInt = (*role) - '0';
+    if (sendByte(sock, roleToInt)) {
+        printf("error sending role string\n");
+        return -1;
+    }
+
     return 0;
 }
 
 int cmdDeleteUser(int sock, int cmdValue, char * username) {
-    if (sendCmd(sock, cmdValue)) {
+    if (sendByte(sock, cmdValue)) {
         printf("error sending command\n");
         return -1;
     }
@@ -72,7 +80,7 @@ int cmdDeleteUser(int sock, int cmdValue, char * username) {
 }
 
 int cmdGetDissectorStatus(int sock, int cmdValue) {
-    if (sendCmd(sock, cmdValue)) {
+    if (sendByte(sock, cmdValue)) {
         printf("error sending get dissector status\n");
         return -1;
     }
@@ -81,18 +89,18 @@ int cmdGetDissectorStatus(int sock, int cmdValue) {
 
 int cmdSetDissectorStatus(int sock, int cmdValue, char * status) {
 
-    if (sendCmd(sock, cmdValue)) {
+    if (sendByte(sock, cmdValue)) {
         printf("error sending command\n");
         return -1;
     }
 
     if (strcasecmp(ON, status) == 0) {
-        if (sendCmd(sock, ON_CODE)) {
+        if (sendByte(sock, ON_CODE)) {
             printf("error sending ON status\n");
             return -1;
         }
     } else if (strcasecmp(OFF, status) == 0) {
-        if (sendCmd(sock, OFF_CODE)) {
+        if (sendByte(sock, OFF_CODE)) {
             printf("error sending OFF status\n");
             return -1;
         }

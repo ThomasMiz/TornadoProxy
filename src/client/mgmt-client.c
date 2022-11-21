@@ -66,6 +66,20 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    if(commandReference == CMD_ADD_USER){
+        char * role = argv[4];
+        int len = strlen(role);
+        if (len != 1) {
+            printf("Invalid role format, must be a digit\n");
+            return -1;
+        }
+
+        if(!isdigit((*role))){
+            printf("Invalid role format, must be a digit\n");
+            return -1;
+        }
+    }
+
     int sock = tcpClientSocket(SERVER, PORT);
     if(sock < 0) {
         perror("socket() failed");
@@ -83,7 +97,7 @@ int main(int argc, char *argv[]) {
         status = cmdUsers(sock, commandReference);
             break;
         case CMD_ADD_USER: 
-        status = cmdAddUser(sock, commandReference, argv[2], argv[3]);
+        status = cmdAddUser(sock, commandReference, argv[2], argv[3], argv[4]);
             break;
         case CMD_DELETE_USER:
         status = cmdDeleteUser(sock, commandReference, argv[2]);

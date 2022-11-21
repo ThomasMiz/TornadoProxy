@@ -50,6 +50,55 @@ static void handleUserCmdResponse(buffer * buffer) {
     buffer_write_adv(buffer, len);
 }
 
+static void handleAddUserCmdResponse(buffer * buffer, TMgmtParser* p){
+
+    size_t size;
+    uint8_t * ptr = buffer_write_ptr(buffer, &size);    
+    char * username = p->args[0].string;
+    char * password = p->args[1].string;
+    int role = p->args[2].byte;
+
+    static char* successMessage = "+OK user successfully added\n";
+    static char* userAlreadyExistMessage = "-ERR user already exists\n";
+    static char* credentialsTooLong = "-ERR credentials too long\n";
+    static char* limitReachedMessage = "-ERR users limit reached\n";
+    static char* noMemoryMessage = "-ERR no memory\n";
+    static char* badRoleMessage = "-ERR role doesn't exist\n";
+    static char* unkownErrorMessage = "-ERR can't add user, try again\n";
+    char* toReturn = NULL;
+
+    if(role < 0 || role > 1){
+        toReturn = badRoleMessage;
+    }
+
+    if(toReturn == NULL){
+        int status = usersCreate(username, password, false, role, false);
+
+        switch(status){
+            case EUSER_OK:
+                toReturn = successMessage;
+                break;
+            case EUSER_ALREADYEXISTS:
+                toReturn = userAlreadyExistMessage;
+                break;
+            case EUSER_CREDTOOLONG:
+                toReturn = credentialsTooLong;
+                break;
+            case EUSER_LIMITREACHED:
+                toReturn = limitReachedMessage;
+                break;
+            case EUSER_NOMEMORY:
+                toReturn = noMemoryMessage;
+                break;
+            default:
+                toReturn = unkownErrorMessage;
+        }
+    }
+
+    strcpy((char *)ptr, toReturn);
+    buffer_write_adv(buffer, strlen(toReturn));
+}
+
 static void handleDeleteUserCmdResponse(buffer * buffer, TMgmtParser* p){
     
     size_t size;
@@ -173,7 +222,7 @@ void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     if (data->cmd == MGMT_CMD_USERS) {
         handleUserCmdResponse(&data->responseBuffer);
     } else if(data->cmd == MGMT_CMD_ADD_USER) {
-       // TO DO
+       handleAddUserCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if(data->cmd == MGMT_CMD_DELETE_USER){
         handleDeleteUserCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if(data->cmd == MGMT_CMD_GET_DISSECTOR){
