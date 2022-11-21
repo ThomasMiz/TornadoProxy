@@ -98,10 +98,9 @@ static TAuthState parseEnd(TAuthParser* p, uint8_t c) {
     return p->state;
 }
 
-TUserStatus validateUserAndPassword(TAuthParser* p) {
-    TUserPrivilegeLevel upl;
-    TUserStatus userStatus = usersLogin(p->uname, p->passwd, &upl);
-    if (userStatus == EUSER_OK && upl >= p->minLevel) {
+TUserStatus validateUserAndPassword(TAuthParser* p, TUserPrivilegeLevel* upl) {
+    TUserStatus userStatus = usersLogin(p->uname, p->passwd, upl);
+    if (userStatus == EUSER_OK && *upl >= p->minLevel) {
         p->verification = AUTH_SUCCESSFUL;
     }
     return userStatus;

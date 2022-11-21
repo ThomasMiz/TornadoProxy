@@ -32,9 +32,9 @@ static const char* usersFile;
 static regex_t usernameValidationRegex;
 static regex_t passwordValidationRegex;
 
-uint8_t fillCurrentUsers(char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT]) {
-    uint8_t i;
-    for ( i=0 ; i< usersLength ; i++) {
+unsigned int fillCurrentUsers(char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT]) {
+    unsigned int i;
+    for (i=0 ; i< usersLength; i++) {
         strcpy(toFill[i], users[i].username);
     }
     return i;

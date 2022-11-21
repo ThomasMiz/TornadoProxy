@@ -126,6 +126,6 @@ bool userExists(const char * username);
  * @param toFill The array to be filled.
  * @returns The length of the array i.e the number of currently registered users.
  */
-uint8_t fillCurrentUsers(char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT]);
+unsigned int fillCurrentUsers(char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT]);
 
 #endif

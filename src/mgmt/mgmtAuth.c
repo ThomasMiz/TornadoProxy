@@ -28,7 +28,8 @@ unsigned mgmtAuthRead(TSelectorKey* key) {
     buffer_write_adv(&data->readBuffer, readCount);
     authParse(&data->client.authParser, &data->readBuffer);
     if (hasAuthReadEnded(&data->client.authParser)) {
-        validateUserAndPassword(&data->client.authParser);
+        TUserPrivilegeLevel upl;
+        TUserStatus userStatus = validateUserAndPassword(&data->client.authParser, &upl);
          if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillAuthAnswer(&data->client.authParser, &data->writeBuffer)) {
              return MGMT_ERROR;
          }
