@@ -19,9 +19,10 @@ static parseCharacter stateRead[] = {
     /* AUTH_END             */ (parseCharacter)parseEnd,
     /* AUTH_INVALID_VERSION */ (parseCharacter)parseEnd};
 
-void initAuthParser(TAuthParser* p) {
+void initAuthParser(TAuthParser* p, TUserPrivilegeLevel minLevel) {
     if (p == NULL)
         return;
+    p->minLevel = minLevel;
     p->state = AUTH_VERSION;
     p->readBytes = 0;
     p->verification = AUTH_ACCESS_DENIED;
@@ -100,7 +101,7 @@ static TAuthState parseEnd(TAuthParser* p, uint8_t c) {
 TUserStatus validateUserAndPassword(TAuthParser* p) {
     TUserPrivilegeLevel upl;
     TUserStatus userStatus = usersLogin(p->uname, p->passwd, &upl);
-    if (userStatus == EUSER_OK && upl == UPRIV_ADMIN) {
+    if (userStatus == EUSER_OK && upl >= p->minLevel) {
         p->verification = AUTH_SUCCESSFUL;
     }
     return userStatus;
