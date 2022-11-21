@@ -41,14 +41,27 @@ unsigned mgmtRequestRead(TSelectorKey* key) {
 }
 
 static void handleUserCmdResponse(buffer* buffer) {
-    size_t size;
-    uint8_t* ptr = buffer_write_ptr(buffer, &size);
-    char* s = "users response";
-    int len = strlen(s);
-    strcpy((char*)ptr, s);
+    
+    char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT];
 
-    // Esto se tiene que poder escribir si o si porque es un buffer que recien inicializamos
-    buffer_write_adv(buffer, len);
+    uint8_t len = fillCurrentUsers(toFill);
+    uint8_t* ptr;
+    size_t size;
+    char * s = "+OK listing users:\n";
+    int sLen = strlen(s);
+    ptr = buffer_write_ptr(buffer, &size);
+    memcpy(ptr, s, sLen);
+    buffer_write_adv(buffer, sLen);
+    for (uint8_t i=0 ; i<len ; i++) {
+        ptr = buffer_write_ptr(buffer, &size);
+        int nameLength = strlen(toFill[i]);
+        memcpy(ptr, toFill[i], nameLength);
+        int last = i == len-1;
+        if (!last)
+            ptr[nameLength] = '\n';
+        buffer_write_adv(buffer, nameLength + !last);
+    }
+    
 }
 
 static int roleMatches(int role) {
@@ -119,7 +132,7 @@ static void handleDeleteUserCmdResponse(buffer* buffer, TMgmtParser* p) {
     char* username = p->args[0].string;
 
     static char* wrongUsernameMessage = "-ERR user doesn't exist";
-    static char* badOperationMessage = "-ERR cannot delete user because you are the last sysadmin\n";
+    static char* badOperationMessage = "-ERR cannot delete user because no other admins exist";
     static char* successMessage = "+OK user successfully deleted";
     static char* unkownErrorMessage = "-ERR can't delete user, try again";
     char* toReturn;
@@ -155,7 +168,6 @@ static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p) {
     static char* credentialsTooLong = "-ERR credentials too long";
     static char* badPassword = "-ERR bad password";
     static char* noMemoryMessage = "-ERR no memory";
-    static char* badOperationMessage = "-ERR cannot change password";
     static char* wrongUsernameMessage = "-ERR user doesn't exist";
     static char* unkownErrorMessage = "-ERR can't change password, try again";
     char* toReturn;
@@ -178,9 +190,6 @@ static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p) {
             case EUSER_NOMEMORY:
                 toReturn = noMemoryMessage;
                 break;
-            case EUSER_BADOPERATION:
-                toReturn = badOperationMessage;
-                break;
             default:
                 toReturn = unkownErrorMessage;
         }
@@ -197,9 +206,9 @@ static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p) {
     int role = p->args[1].byte;
 
     static char* wrongUsernameMessage = "-ERR user doesn't exist";
-    static char* badOperationMessage = "-ERR not a valid user role";
+    static char* badOperationMessage = "-ERR cannot change role because no other admins exist";
     static char* successMessage = "+OK user successfully changed role";
-    static char* unkownErrorMessage = "-ERR can't delete user, try again";
+    static char* unkownErrorMessage = "-ERR can't change user role, try again";
     static char* badRoleMessage = "-ERR role doesn't exist";
     static char* toReturn = NULL;
 

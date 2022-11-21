@@ -32,6 +32,14 @@ static const char* usersFile;
 static regex_t usernameValidationRegex;
 static regex_t passwordValidationRegex;
 
+uint8_t fillCurrentUsers(char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT]) {
+    uint8_t i;
+    for ( i=0 ; i< usersLength ; i++) {
+        strcpy(toFill[i], users[i].username);
+    }
+    return i;
+}
+
 static TUserStatus validateUsername(const char* username) {
     if (strlen(username) > USERS_MAX_USERNAME_LENGTH)
         return EUSER_CREDTOOLONG;
