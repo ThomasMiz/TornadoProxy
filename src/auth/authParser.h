@@ -69,6 +69,8 @@ typedef struct TAuthParser {
     char uname[AUTH_UNAME_MAX_LENGTH + 1];
     char passwd[AUTH_PASSWD_MAX_LENGTH + 1];
 
+    TUserPrivilegeLevel minLevel;
+
     // Stores if the client has been successfully authenticated or not.
     TAuthVerification verification;
 } TAuthParser;
@@ -81,8 +83,9 @@ typedef enum TAuthRet {
 /**
  * @brief Initializes the auth parser.
  * @param p A pointer to previously allocated memory for the parser.
+ * @param minLevel The minimum privilege level needed to authenticate.
  */
-void initAuthParser(TAuthParser* p);
+void initAuthParser(TAuthParser* p, TUserPrivilegeLevel minLevel);
 
 /**
  * @brief Parses the characters recived in the buffer.
