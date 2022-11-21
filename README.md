@@ -8,7 +8,7 @@ Desarrollado por:
 - [Catino, Kevin](https://github.com/Khato1319)
 - [Chayer, Iván](https://github.com/ichayer)
 - [Di Toro, Camila](https://github.com/camilaDiToro)
-- [Miz, Thomas](https://github.com/ThomasMiz)
+- [Mizrahi, Thomas](https://github.com/ThomasMiz)
 
 ## Compilacion & requisitos
 

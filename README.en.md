@@ -9,7 +9,7 @@ The developed application is a proxy server that implements the SOCKSv5 protocol
 - [Catino, Kevin](https://github.com/Khato1319)
 - [Chayer, Iván](https://github.com/ichayer)
 - [Di Toro, Camila](https://github.com/camilaDiToro)
-- [Miz, Thomas](https://github.com/ThomasMiz)
+- [Mizrahi, Thomas](https://github.com/ThomasMiz)
 
 # Build the binary files
 ```sh
