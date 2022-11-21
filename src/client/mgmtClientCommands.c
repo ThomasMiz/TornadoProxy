@@ -79,6 +79,26 @@ int cmdDeleteUser(int sock, int cmdValue, char * username) {
     return 0;
 }
 
+int cmdChangePassword(int sock, int cmdValue, char * username, char * password){
+
+     if (sendByte(sock, cmdValue)) {
+        printf("error sending command\n");
+        return -1;
+    }
+
+    if (sendString(sock, username)) {
+        printf("error sending username string\n");
+        return -1;
+    }
+
+    if (sendString(sock, password)) {
+        printf("error sending password string\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 int cmdChangeRole(int sock, int cmdValue, char * username, char * role){
 
     if (sendByte(sock, cmdValue)) {

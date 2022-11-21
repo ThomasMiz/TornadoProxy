@@ -144,7 +144,51 @@ static void handleDeleteUserCmdResponse(buffer* buffer, TMgmtParser* p) {
     buffer_write_adv(buffer, strlen(toReturn));
 }
 
+static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p) {
+    printf("handleChangePasswordCmdResponse\n");
+    size_t size;
+    uint8_t* ptr = buffer_write_ptr(buffer, &size);
+    char* username = p->args[0].string;
+    char* password = p->args[1].string;
 
+    static char* successMessage = "+OK password succesfully changed";
+    static char* credentialsTooLong = "-ERR credentials too long";
+    static char* badPassword = "-ERR bad password";
+    static char* noMemoryMessage = "-ERR no memory";
+    static char* badOperationMessage = "-ERR cannot change password";
+    static char* wrongUsernameMessage = "-ERR user doesn't exist";
+    static char* unkownErrorMessage = "-ERR can't change password, try again";
+    char* toReturn;
+
+    if (!userExists(username)) {
+        toReturn = wrongUsernameMessage;
+    } else {
+        TUserStatus status = usersCreate(username, password, true, 0, false);
+
+        switch (status) {
+            case EUSER_OK:
+                toReturn = successMessage;
+                break;
+            case EUSER_CREDTOOLONG:
+                toReturn = credentialsTooLong;
+                break;
+            case EUSER_BADPASSWORD:
+                toReturn = badPassword;
+                break;
+            case EUSER_NOMEMORY:
+                toReturn = noMemoryMessage;
+                break;
+            case EUSER_BADOPERATION:
+                toReturn = badOperationMessage;
+                break;
+            default:
+                toReturn = unkownErrorMessage;
+        }
+    }
+
+    strcpy((char*)ptr, toReturn);
+    buffer_write_adv(buffer, strlen(toReturn));
+}
 
 static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p) {
 printf("handleChangeRoleCmdResponse\n");
@@ -328,6 +372,8 @@ void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
         handleAddUserCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if (data->cmd == MGMT_CMD_DELETE_USER) {
         handleDeleteUserCmdResponse(&data->responseBuffer, &data->client.cmdParser);
+    } else if(data->cmd == MGMT_CMD_CHANGE_PASSWORD){
+        handleChangePasswordCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if (data->cmd == MGMT_CMD_CHANGE_ROLE) {
         handleChangeRoleCmdResponse(&data->responseBuffer, &data->client.cmdParser);
     } else if (data->cmd == MGMT_CMD_GET_DISSECTOR) {

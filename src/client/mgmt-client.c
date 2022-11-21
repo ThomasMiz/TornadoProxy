@@ -14,21 +14,22 @@ int main(int argc, char *argv[]) {
     
     if (strcmp("-h", argv[1]) == 0) {
         printf("ha\n");
-            fprintf(stderr,
-            "Usage: %s [OPTION]...\n"
-            "\n"
-            "   -h                                        Imprime la ayuda y termina.\n" 
-            "   USERS                                     Envía un pedido para obtener los usuarios registrados.\n" 
-            "   ADD-USER <username> <password> <role>     Envía un pedido para agregar un usuario al registro del servidor.\n"
-            "   DELETE-USER <username>                    Envía un pedido para borrar un usuario del registro del servidor.\n"
-            "   CHANGE-ROLE <username> <role>             Modifica el rol del usuario si existe y si no es el último administrador registrado del sistema\n"
-            "   GET-DISSECTOR-STATUS                      Envía un pedido para obtener el estado del disector de contraseñas.\n"
-            "   SET-DISSECTOR-STATUS [ON/OFF]             Envía un pedido para setear el estado del disector de contraseñas.\n"
-            "   GET-AUTHENTICATION-STATUS                 Envía un pedido para obtener el estado de el nivel de autenticación de socks.\n"
-            "   SET-AUTHENTICATION-STATUS [ON/OFF]        Envía un pedido para setear el estado de el nivel de autenticación de socks.\n"
-            "   STATISTICS                                Envía un pedido de las estadísticas del servidor.\n"
-            "\n","client");
-            return 0;
+        fprintf(stderr,
+                "Usage: %s [OPTION]...\n"
+                "\n"
+                "   -h                                        Imprime la ayuda y termina.\n"
+                "   USERS                                     Envía un pedido para obtener los usuarios registrados.\n"
+                "   ADD-USER <username> <password> <role>     Envía un pedido para agregar un usuario al registro del servidor.\n"
+                "   DELETE-USER <username>                    Envía un pedido para borrar un usuario del registro del servidor.\n"
+                "   CHANGE-PASSWORD <username> <password>     Modifica la contraseña del usuario si existe\n"
+                "   CHANGE-ROLE <username> <role>             Modifica el rol del usuario si existe y si no es el último administrador registrado del sistema\n"
+                "   GET-DISSECTOR-STATUS                      Envía un pedido para obtener el estado del disector de contraseñas.\n"
+                "   SET-DISSECTOR-STATUS [ON/OFF]             Envía un pedido para setear el estado del disector de contraseñas.\n"
+                "   GET-AUTHENTICATION-STATUS                 Envía un pedido para obtener el estado de el nivel de autenticación de socks.\n"
+                "   SET-AUTHENTICATION-STATUS [ON/OFF]        Envía un pedido para setear el estado de el nivel de autenticación de socks.\n"
+                "   STATISTICS                                Envía un pedido de las estadísticas del servidor.\n"
+                "\n","client");
+        return 0;
     }
 
     char *command = argv[1];
@@ -102,6 +103,9 @@ int main(int argc, char *argv[]) {
             break;
         case CMD_DELETE_USER:
             status = cmdDeleteUser(sock, commandReference, argv[2]);
+            break;
+        case CMD_CHANGE_PASSWORD:
+            status = cmdChangePassword(sock, commandReference, argv[2], argv[3]);
             break;
         case CMD_CHANGE_ROLE:
             status = cmdChangeRole(sock, commandReference, argv[2], argv[3]);
