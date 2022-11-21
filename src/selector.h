@@ -150,6 +150,11 @@ TSelectorStatus selector_register(TSelector s, const int fd, const TFdHandler* h
  */
 TSelectorStatus selector_unregister_fd(TSelector s, const int fd);
 
+/**
+ * desregistra un file descriptor del selector sin llamar a su close
+ */
+TSelectorStatus selector_unregister_fd_noclose(TSelector s, const int fd);
+
 /** permite cambiar los intereses para un file descriptor */
 TSelectorStatus selector_set_interest(TSelector s, int fd, TFdInterests i);
 

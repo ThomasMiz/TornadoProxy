@@ -242,23 +242,26 @@ unsigned requestConecting(TSelectorKey* key) {
     TFdInterests curr_interests;
     selector_get_interests_key(key, &curr_interests);
 
-    /*char buf[BUFFER_SIZE];
-    sockaddr_to_human(buf, BUFFER_SIZE, d->originResolution->ai_addr);
-    log(DEBUG, "Checking connection status to %s", buf);*/
-
     int error = 0;
     if (getsockopt(d->originFd, SOL_SOCKET, SO_ERROR, &error, &(socklen_t){sizeof(int)})) {
-        logf(LOG_DEBUG, "requestConecting: getsockopt() failed: %s", strerror(errno));
         return fillRequestAnswerWitheErrorState(key, REQ_ERROR_GENERAL_FAILURE);
     }
 
     if (error) {
-        logf(LOG_DEBUG, "requestConecting: getsockopt() returned error %d", error);
-        return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(error));
+        //Could not connect to the first address, try with the next one, if exists
+        if(d->originResolution->ai_next == NULL){
+            return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(error));
+        } else {
+            selector_unregister_fd_noclose(key->s, d->originFd);
+            close(d->originFd);
+            struct addrinfo * next = d->originResolution->ai_next;
+            d->originResolution->ai_next = NULL;
+            freeaddrinfo(d->originResolution);
+            d->originResolution = next;
+            return startConnection(key);
+        }
     }
 
-    /*selector_set_interest(key->s, d->originFd, OP_WRITE);
-    selector_set_interest(key->s, d->clientFd, OP_WRITE);*/
     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&d->client.reqParser, &d->originBuffer)) {
         return ERROR;
     }
@@ -289,10 +292,11 @@ static unsigned startConnection(TSelectorKey * key) {
         return REQUEST_CONNECTING;
     }
 
-    logf(LOG_DEBUG, "startConnection: Connect attempt to %s failed (requested by client %d)", printSocketAddress(d->originResolution->ai_addr), d->clientFd);
+    logf(LOG_INFO, "Connect attempt to %s failed (requested by client %d)", printSocketAddress(d->originResolution->ai_addr), d->clientFd);
 
     //Could not connect to the first address, try with the next one, if exists
     if(d->originResolution->ai_next != NULL){
+        selector_unregister_fd_noclose(key->s, d->originFd);
         close(d->originFd);
         struct addrinfo * next = d->originResolution->ai_next;
         d->originResolution->ai_next = NULL;
@@ -300,7 +304,7 @@ static unsigned startConnection(TSelectorKey * key) {
         d->originResolution = next;
         return startConnection(key);
     }
-    
+
     //Return a connection error after trying to connect to all the addresses
     logf(LOG_INFO, "Failed to fulfill connection request from client %d", d->clientFd);
     return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(errno));

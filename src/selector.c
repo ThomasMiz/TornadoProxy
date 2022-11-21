@@ -398,6 +398,31 @@ finally:
     return ret;
 }
 
+TSelectorStatus selector_unregister_fd_noclose(TSelector s, const int fd) {
+    TSelectorStatus ret = SELECTOR_SUCCESS;
+
+    if (NULL == s || INVALID_FD(fd)) {
+        ret = SELECTOR_IARGS;
+        goto finally;
+    }
+
+    struct item* item = s->fds + fd;
+    if (!ITEM_USED(item)) {
+        ret = SELECTOR_IARGS;
+        goto finally;
+    }
+
+    item->interest = OP_NOOP;
+    items_update_fdset_for_fd(s, item);
+
+    memset(item, 0x00, sizeof(*item));
+    item_init(item);
+    s->max_fd = items_max_fd(s);
+
+finally:
+    return ret;
+}
+
 TSelectorStatus selector_set_interest(TSelector s, int fd, TFdInterests i) {
     TSelectorStatus ret = SELECTOR_SUCCESS;
 
