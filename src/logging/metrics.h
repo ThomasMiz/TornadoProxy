@@ -24,12 +24,12 @@ typedef struct {
     size_t maxConcurrentConnections;
 
     /**
-     * The total amount of bytes sent by clients to remote servers through this proxy.
+     * The total amount of bytes sent by clients to origin servers through this proxy.
      */
     size_t totalBytesSent;
 
     /**
-     * The total amount of bytes received by clients from remote servers through this proxy.
+     * The total amount of bytes received by clients from origin servers through this proxy.
      */
     size_t totalBytesReceived;
 } TMetricsSnapshot;
@@ -51,9 +51,9 @@ void metricsRegisterClientDisconnected();
 
 /**
  * @brief Register into the metrics that a client sent or received a specified amount of bytes to
- * the remote server it's connected to.
- * @param bytesSent The amount of bytes sent by the client to the remote server.
- * @param bytesReceived The amount of bytes sent by the remote server to the client.
+ * the origin server it's connected to.
+ * @param bytesSent The amount of bytes sent by the client to the origin server.
+ * @param bytesReceived The amount of bytes sent by the origin server to the client.
  */
 void metricsRegisterBytesTransfered(size_t bytesSent, size_t bytesReceived);
 
