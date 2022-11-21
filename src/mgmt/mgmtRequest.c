@@ -39,7 +39,8 @@ unsigned mgmtRequestRead(TSelectorKey* key) {
     return MGMT_REQUEST_READ;
 }
 
-static void handleUserCmdResponse(buffer* buffer) {
+static void handleUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+    logf(LOG_INFO, "Management client %d requested command USERS", fd);
     char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT];
 
     uint8_t len = fillCurrentUsers(toFill);
@@ -72,7 +73,8 @@ static int roleMatches(int role) {
     }
 }
 
-static void handleAddUserCmdResponse(buffer* buffer, TMgmtParser* p) {
+static void handleAddUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+    logf(LOG_INFO, "Management client %d requested command ADD-USER", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
     char* username = p->args[0].string;
@@ -122,7 +124,8 @@ static void handleAddUserCmdResponse(buffer* buffer, TMgmtParser* p) {
     buffer_write_adv(buffer, strlen(toReturn));
 }
 
-static void handleDeleteUserCmdResponse(buffer* buffer, TMgmtParser* p) {
+static void handleDeleteUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+    logf(LOG_INFO, "Management client %d requested command DELETE-USER", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
     char* username = p->args[0].string;
@@ -154,8 +157,8 @@ static void handleDeleteUserCmdResponse(buffer* buffer, TMgmtParser* p) {
     buffer_write_adv(buffer, strlen(toReturn));
 }
 
-static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p) {
-    log(LOG_DEBUG, "handleChangePasswordCmdResponse");
+static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+    logf(LOG_INFO, "Management client %d requested command CHANGE-PASSWORD", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
     char* username = p->args[0].string;
@@ -197,7 +200,8 @@ static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p) {
     buffer_write_adv(buffer, strlen(toReturn));
 }
 
-static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p) {
+static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+    logf(LOG_INFO, "Management client %d requested command CHANGE-ROLE", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
     char* username = p->args[0].string;
@@ -238,7 +242,8 @@ static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p) {
     buffer_write_adv(buffer, strlen(toReturn));
 }
 
-static void handleGetDissectorStatusCmdResponse(buffer* buffer) {
+static void handleGetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+    logf(LOG_INFO, "Management client %d requested command GET-DISSECTOR-STATUS", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
     static const char* on = "+OK dissector status: on";
@@ -254,7 +259,8 @@ static void handleGetDissectorStatusCmdResponse(buffer* buffer) {
     buffer_write_adv(buffer, len);
 }
 
-static void handleSetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p) {
+static void handleSetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+    logf(LOG_INFO, "Management client %d requested command SET-DISSECTOR-STATUS", fd);
     size_t size;
     uint8_t turnOn = p->args[0].byte; // OFF = 0 : ON != 0
 
@@ -285,8 +291,8 @@ static void copyMetric(buffer* buffer, const char* metricString, size_t metricVa
     buffer_write_adv(buffer, len);
 }
 
-static void handleStatisticsCmdResponse(buffer* buffer) {
-
+static void handleStatisticsCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+    logf(LOG_INFO, "Management client %d requested command STATISTICS", fd);
     TMetricsSnapshot metrics;
     getMetricsSnapshot(&metrics);
 
@@ -313,7 +319,8 @@ static void handleStatisticsCmdResponse(buffer* buffer) {
         copyMetric(buffer, statsString[i], stats[i]);
 }
 
-static void handleGetAuthenticationStatusCmdResponse(buffer* buffer) {
+static void handleGetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+    logf(LOG_INFO, "Management client %d requested command GET-AUTHENTICATION-STATUS", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
 
@@ -338,7 +345,8 @@ static void handleGetAuthenticationStatusCmdResponse(buffer* buffer) {
     buffer_write_adv(buffer, strlen(toReturn));
 }
 
-static void handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser* p) {
+static void handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+    logf(LOG_INFO, "Management client %d requested command SET-AUTHENTICATION-STATUS", fd);
     size_t size;
     uint8_t turnOn = p->args[0].byte; // OFF = 0 : ON != 0
 
@@ -358,7 +366,7 @@ static void handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser
     buffer_write_adv(buffer, len);
 }
 
-static void handleUnknownCmd(buffer* buffer) {
+static void handleUnknownCmd(buffer* buffer, TMgmtParser* p) {
     size_t size;
 
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
@@ -370,43 +378,32 @@ static void handleUnknownCmd(buffer* buffer) {
     buffer_write_adv(buffer, size);
 }
 
+typedef void (*cmdHandler)(buffer* buffer, TMgmtParser* p, int fd);
+
+static uint8_t isValidCmd(uint8_t cmd) {
+    return cmd <= MGMT_CMD_STATISTICS;
+}
+
+static cmdHandler handlers[] = {
+    /* MGMT_CMD_USERS                       */ handleUserCmdResponse,
+    /* MGMT_CMD_ADD_USER                    */ handleAddUserCmdResponse,
+    /* MGMT_CMD_DELETE_USER,                */ handleDeleteUserCmdResponse,
+    /* MGMT_CMD_CHANGE_PASSWORD,            */ handleChangePasswordCmdResponse,
+    /* MGMT_CMD_CHANGE_ROLE,                */ handleChangeRoleCmdResponse,
+    /* MGMT_CMD_GET_DISSECTOR_STATUS,       */ handleGetDissectorStatusCmdResponse,
+    /* MGMT_CMD_SET_DISSECTOR_STATUS,       */ handleSetDissectorStatusCmdResponse,
+    /* MGMT_CMD_GET_AUTHENTICATION_STATUS,  */ handleGetAuthenticationStatusCmdResponse,
+    /* MGMT_CMD_SET_AUTHENTICATION_STATUS,  */ handleSetAuthenticationStatusCmdResponse,
+    /* MGMT_CMD_STATISTICS                  */ handleStatisticsCmdResponse};
+
 void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     TMgmtClient* data = GET_ATTACHMENT(key);
     buffer_init(&(data->responseBuffer), MGMT_BUFFER_SIZE, data->responseRawBuffer);
-
-    if (data->cmd == MGMT_CMD_USERS) {
-        logf(LOG_INFO, "Management client %d requested command USERS", key->fd);
-        handleUserCmdResponse(&data->responseBuffer);
-    } else if (data->cmd == MGMT_CMD_ADD_USER) {
-        logf(LOG_INFO, "Management client %d requested command ADD-USER", key->fd);
-        handleAddUserCmdResponse(&data->responseBuffer, &data->client.cmdParser);
-    } else if (data->cmd == MGMT_CMD_DELETE_USER) {
-        logf(LOG_INFO, "Management client %d requested command DELETE-USER", key->fd);
-        handleDeleteUserCmdResponse(&data->responseBuffer, &data->client.cmdParser);
-    } else if (data->cmd == MGMT_CMD_CHANGE_PASSWORD) {
-        logf(LOG_INFO, "Management client %d requested command CHANGE-PASSWORD", key->fd);
-        handleChangePasswordCmdResponse(&data->responseBuffer, &data->client.cmdParser);
-    } else if (data->cmd == MGMT_CMD_CHANGE_ROLE) {
-        logf(LOG_INFO, "Management client %d requested command CHANGE-ROLE", key->fd);
-        handleChangeRoleCmdResponse(&data->responseBuffer, &data->client.cmdParser);
-    } else if (data->cmd == MGMT_CMD_GET_DISSECTOR_STATUS) {
-        logf(LOG_INFO, "Management client %d requested command GET-DISSECTOR-STATUS", key->fd);
-        handleGetDissectorStatusCmdResponse(&data->responseBuffer);
-    } else if (data->cmd == MGMT_CMD_SET_DISSECTOR_STATUS) {
-        logf(LOG_INFO, "Management client %d requested command SET-DISSECTOR-STATUS", key->fd);
-        handleSetDissectorStatusCmdResponse(&data->responseBuffer, &data->client.cmdParser);
-    } else if (data->cmd == MGMT_CMD_GET_AUTHENTICATION_STATUS) {
-        logf(LOG_INFO, "Management client %d requested command GET-AUTHENTICATION-STATUS", key->fd);
-        handleGetAuthenticationStatusCmdResponse(&data->responseBuffer);
-    } else if (data->cmd == MGMT_CMD_SET_AUTHENTICATION_STATUS) {
-        logf(LOG_INFO, "Management client %d requested command SET-AUTHENTICATION-STATUS", key->fd);
-        handleSetAuthenticationStatusCmdResponse(&data->responseBuffer, &data->client.cmdParser);
-    } else if (data->cmd == MGMT_CMD_STATISTICS) {
-        logf(LOG_INFO, "Management client %d requested command STATISTICS", key->fd);
-        handleStatisticsCmdResponse(&data->responseBuffer);
+    if (isValidCmd(data->cmd)) {
+        handlers[data->cmd](&data->responseBuffer, &data->client.cmdParser, key->fd);
     } else {
         logf(LOG_INFO, "Management client %d requested unknown command", key->fd);
-        handleUnknownCmd(&data->responseBuffer);
+        handleUnknownCmd(&data->responseBuffer, &data->client.cmdParser);
     }
 }
 
