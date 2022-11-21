@@ -134,7 +134,16 @@ enum socks_state {
     ERROR,
 };
 
+/**
+ * @brief Handler to accept connections for socks server
+ * @param key Selector key that holds information regarding the ready fd
+ */
 void socksv5PassivAccept(TSelectorKey* key);
+
+/**
+ * @brief Handler to return static function pointers handler for socks server
+ * @returns The selector handler for read, write, block, close
+ */
 const TFdHandler* getStateHandler();
 
 #endif

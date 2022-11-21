@@ -73,11 +73,39 @@ typedef struct TPDissector {
     int originFd;
 } TPDissector;
 
+
+/**
+ * @brief Initializes password dissector
+ * @param pd pointer to structure that holds dissector information
+ * @param port port to listen for potential credentials
+ * @param clientFd client file descriptor
+ * @param originFd origin server file descriptor
+ */
 void initPDissector(TPDissector* pd, in_port_t port, int clientFd, int originFd);
+
+/**
+ * @brief Parses the buffer data to scan for credentials information
+ * @param pd pointer to structure that holds dissector information
+ * @param buffer buffer to scan content
+ * @param fd file descriptor to which the buffer belongs (client or origin)
+ * @returns status that resulted from the parsing
+ */
 TPDStatus parseUserData(TPDissector* pd, struct buffer* buffer, int fd);
 
+/**
+ * @brief Turns off password dissector
+ */
 void turnOffPDissector();
+
+/**
+ * @brief Turns on password dissector
+ */
 void turnOnPDissector();
+
+/**
+ * @brief checks the state of the password dissector
+ * @returns current state of dissector
+ */
 bool isPDissectorOn();
 
 #endif // PASSWORD_DISSECTOR_H_
