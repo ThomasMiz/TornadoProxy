@@ -14,18 +14,22 @@ int main(int argc, char *argv[]) {
     
     if (strcmp("-h", argv[1]) == 0) {
         printf("ha\n");
-            fprintf(stderr,
-            "Usage: %s [OPTION]...\n"
-            "\n"
-            "   -h                                 Imprime la ayuda y termina.\n" 
-            "   USERS                              Envía un pedido para obtener los usuarios registrados.\n" 
-            "   ADD-USER <username> <password>     Envía un pedido para agregar un usuario al registro del servidor.\n"
-            "   DELETE-USER <username>             Envía un pedido para borrar un usuario del registro del servidor.\n"
-            "   GET-DISSECTOR-STATUS               Envía un pedido para obtener el estado del disector de contraseñas.\n"
-            "   SET-DISSECTOR-STATUS [ON/OFF]      Envía un pedido para setear el estado del disector de contraseñas.\n"
-            "   STATISTICS                         Envía un pedido de las estadísticas del servidor.\n"
-            "\n","client");
-            return 0;
+        fprintf(stderr,
+                "Usage: %s [OPTION]...\n"
+                "\n"
+                "   -h                                        Imprime la ayuda y termina.\n"
+                "   USERS                                     Envía un pedido para obtener los usuarios registrados.\n"
+                "   ADD-USER <username> <password> <role>     Envía un pedido para agregar un usuario al registro del servidor.\n"
+                "   DELETE-USER <username>                    Envía un pedido para borrar un usuario del registro del servidor.\n"
+                "   CHANGE-PASSWORD <username> <password>     Modifica la contraseña del usuario si existe\n"
+                "   CHANGE-ROLE <username> <role>             Modifica el rol del usuario si existe y si no es el último administrador registrado del sistema\n"
+                "   GET-DISSECTOR-STATUS                      Envía un pedido para obtener el estado del disector de contraseñas.\n"
+                "   SET-DISSECTOR-STATUS [ON/OFF]             Envía un pedido para setear el estado del disector de contraseñas.\n"
+                "   GET-AUTHENTICATION-STATUS                 Envía un pedido para obtener el estado de el nivel de autenticación de socks.\n"
+                "   SET-AUTHENTICATION-STATUS [ON/OFF]        Envía un pedido para setear el estado de el nivel de autenticación de socks.\n"
+                "   STATISTICS                                Envía un pedido de las estadísticas del servidor.\n"
+                "\n","client");
+        return 0;
     }
 
     char *command = argv[1];
@@ -65,9 +69,8 @@ int main(int argc, char *argv[]) {
         printf("Invalid token format\n");
         return -1;
     }
-
-    if(commandReference == CMD_ADD_USER){
-        char * role = argv[4];
+    char * role = commandReference == CMD_ADD_USER ? argv[4] : (commandReference == CMD_CHANGE_ROLE ? argv[3] : NULL);
+    if(role != NULL){
         int len = strlen(role);
         if (len != 1) {
             printf("Invalid role format, must be a digit\n");
@@ -90,26 +93,37 @@ int main(int argc, char *argv[]) {
         return closeConnection("Could not authenticate in server", sock);
     }
 
-
     int status;
     switch (commandReference) {
         case CMD_USERS:
-        status = cmdUsers(sock, commandReference);
+            status = cmdUsers(sock, commandReference);
             break;
         case CMD_ADD_USER: 
-        status = cmdAddUser(sock, commandReference, argv[2], argv[3], argv[4]);
+            status = cmdAddUser(sock, commandReference, argv[2], argv[3], argv[4]);
             break;
         case CMD_DELETE_USER:
-        status = cmdDeleteUser(sock, commandReference, argv[2]);
+            status = cmdDeleteUser(sock, commandReference, argv[2]);
+            break;
+        case CMD_CHANGE_PASSWORD:
+            status = cmdChangePassword(sock, commandReference, argv[2], argv[3]);
+            break;
+        case CMD_CHANGE_ROLE:
+            status = cmdChangeRole(sock, commandReference, argv[2], argv[3]);
             break;
         case CMD_GET_DISSECTOR_STATUS:
-        status = cmdGetDissectorStatus(sock, commandReference);
+            status = cmdGetDissectorStatus(sock, commandReference);
             break;
         case CMD_SET_DISSECTOR_STATUS:
-        status = cmdSetDissectorStatus(sock, commandReference, argv[2]);
+            status = cmdSetDissectorStatus(sock, commandReference, argv[2]);
+            break;
+        case CMD_GET_AUTHENTICATION_STATUS:
+            status = cmdGetAuthenticationStatus(sock, commandReference);
+            break;
+        case CMD_SET_AUTHENTICATION_STATUS:
+            status = cmdSetAuthenticationStatus(sock, commandReference, argv[2]);
             break;
         case CMD_STATS:
-        status = cmdStats(sock, commandReference);
+            status = cmdStats(sock, commandReference);
             break;
         default: 
             return -1;

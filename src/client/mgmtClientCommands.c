@@ -79,6 +79,47 @@ int cmdDeleteUser(int sock, int cmdValue, char * username) {
     return 0;
 }
 
+int cmdChangePassword(int sock, int cmdValue, char * username, char * password){
+
+     if (sendByte(sock, cmdValue)) {
+        printf("error sending command\n");
+        return -1;
+    }
+
+    if (sendString(sock, username)) {
+        printf("error sending username string\n");
+        return -1;
+    }
+
+    if (sendString(sock, password)) {
+        printf("error sending password string\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+int cmdChangeRole(int sock, int cmdValue, char * username, char * role){
+
+    if (sendByte(sock, cmdValue)) {
+        printf("error sending command\n");
+        return -1;
+    }
+
+    if (sendString(sock, username)) {
+        printf("error sending username string\n");
+        return -1;
+    }
+
+    int roleToInt = (*role) - '0';
+    if (sendByte(sock, roleToInt)) {
+        printf("error sending role string\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 int cmdGetDissectorStatus(int sock, int cmdValue) {
     if (sendByte(sock, cmdValue)) {
         printf("error sending get dissector status\n");
@@ -89,6 +130,38 @@ int cmdGetDissectorStatus(int sock, int cmdValue) {
 
 int cmdSetDissectorStatus(int sock, int cmdValue, char * status) {
 
+    if (sendByte(sock, cmdValue)) {
+        printf("error sending command\n");
+        return -1;
+    }
+
+    if (strcasecmp(ON, status) == 0) {
+        if (sendByte(sock, ON_CODE)) {
+            printf("error sending ON status\n");
+            return -1;
+        }
+    } else if (strcasecmp(OFF, status) == 0) {
+        if (sendByte(sock, OFF_CODE)) {
+            printf("error sending OFF status\n");
+            return -1;
+        }
+    } else {
+            printf("invalid status value %s\n", status);
+            return -1;
+    }
+
+    return 0;
+}
+
+int cmdGetAuthenticationStatus(int sock, int cmdValue){
+     if (sendByte(sock, cmdValue)) {
+        printf("error sending get authentication status\n");
+        return -1;
+    }
+    return 0;
+}
+
+int cmdSetAuthenticationStatus(int sock, int cmdValue, char * status){
     if (sendByte(sock, cmdValue)) {
         printf("error sending command\n");
         return -1;

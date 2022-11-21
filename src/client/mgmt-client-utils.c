@@ -11,8 +11,12 @@ static const char *commandsFormat[] = {
         "USERS",
         "ADD-USER",
         "DELETE-USER",
+        "CHANGE-PASSWORD",
+        "CHANGE-ROLE",
         "GET-DISSECTOR-STATUS",
         "SET-DISSECTOR-STATUS",
+        "GET-AUTHENTICATION-STATUS",
+        "SET-AUTHENTICATION-STATUS",
         "STATISTICS",
         NULL
 };
@@ -125,16 +129,24 @@ bool argsQuantityOk(int command, int argc){
         case CMD_USERS:
             return true;                      // Usage: USERS
         case CMD_ADD_USER: 
-            return (argc >= 5)? true : false; // Usage: ADD-USER <USER> <PASSWORD> <ROLE>
+            return argc >= 5;                 // Usage: ADD-USER <USER> <PASSWORD> <ROLE>
         case CMD_DELETE_USER:
-            return (argc >= 3)? true : false; // Usage: DELETE-USER <USER> 
+            return argc >= 3;                 // Usage: DELETE-USER <USER> 
+        case CMD_CHANGE_PASSWORD:
+            return argc >= 4;                 // Usage: CHANGE-PASSWORD <USER> <PASSWORD>
+        case CMD_CHANGE_ROLE:
+            return argc >= 4;                 // Usage: CHANGE-ROLE <USER> <ROLE>
         case CMD_GET_DISSECTOR_STATUS:
             return true;                      // Usage: GET-DISSECTOR-STATUS 
         case CMD_SET_DISSECTOR_STATUS:
-            return (argc >= 3)? true : false; // Usage: SET-DISSECTOR-STATUS <STATUS>
-        case CMD_STATS:                
+            return argc >= 3;                 // Usage: SET-DISSECTOR-STATUS <STATUS>
+        case CMD_GET_AUTHENTICATION_STATUS:   
+            return true;                      // Usage: GET-AUTHENTICATION-STATUS
+        case CMD_SET_AUTHENTICATION_STATUS:
+            return argc >= 3;                 // Usage: SET-AUTHENTICATION-STATUS <STATUS>
+        case CMD_STATS:
             return true;                      // Usage: STATISTICS
         default:
-            return -1;
+            return false;
     }
 }

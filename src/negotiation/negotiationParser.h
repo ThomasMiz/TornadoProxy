@@ -107,4 +107,10 @@ TNegRet fillNegotiationAnswer(TNegParser* p, struct buffer* buffer);
  */
 TNegRet changeAuthMethod(TNegMethod authMethod);
 
+/**
+ * @brief Gets the auth method required for the negotiation parsers.
+ * @returns required auth method.
+ */
+uint8_t getAuthMethod();
+
 #endif // NEGOTIATION_PARSER_H
