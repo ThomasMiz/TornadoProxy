@@ -4,7 +4,6 @@
 #include "request.h"
 #include "../logging/logger.h"
 #include "../logging/util.h"
-#include "../socks5.h"
 #include <errno.h>
 #include <netdb.h>
 #include <pthread.h>
@@ -23,6 +22,14 @@ static unsigned requestProcess(TSelectorKey* key);
 static void* requestNameResolution(void* data);
 static unsigned startConnection(TSelectorKey* key);
 static TReqStatus connectErrorToRequestStatus(int e);
+
+static void logAccess(const TClientData* data, int socksStatus) {
+    if (data->isAuth) {
+        logf(LOG_OUTPUT, "%s\tA\t%s\t%s\t%d", data->username, printSocketAddressWith((struct sockaddr*)&data->clientAddress, '\t'), reqParserToString(&data->client.reqParser), socksStatus);
+    } else {
+        logf(LOG_OUTPUT, "(fd %d)\tA\t%s\t%s\t%d", data->clientFd, printSocketAddressWith((struct sockaddr*)&data->clientAddress, '\t'), reqParserToString(&data->client.reqParser), socksStatus);
+    }
+}
 
 void requestReadInit(const unsigned state, TSelectorKey* key) {
     logf(LOG_DEBUG, "requestReadInit: Init at socket fd %d", key->fd);
@@ -51,6 +58,7 @@ unsigned requestRead(TSelectorKey* key) {
             return requestProcess(key);
         }
         logf(LOG_ERROR, "requestRead: Error parsing the request at fd %d", key->fd);
+        logAccess(data, data->client.reqParser.status);
         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&data->client.reqParser, &data->originBuffer)) {
             return ERROR;
         }
@@ -137,7 +145,7 @@ static unsigned requestProcess(TSelectorKey* key) {
     }
 
 finally:
-    fillRequestAnswerWitheErrorState(key, REQ_ERROR_GENERAL_FAILURE);
+    fillRequestAnswerWitheErrorState(data, key, REQ_ERROR_GENERAL_FAILURE);
     return REQUEST_WRITE;
 }
 
@@ -184,17 +192,18 @@ unsigned requestResolveDone(TSelectorKey* key) {
 
     if (ailist == NULL) {
         logf(LOG_DEBUG, "Resolve of domain name requested by %d returned no results", key->fd);
-        return fillRequestAnswerWitheErrorState(key, REQ_ERROR_HOST_UNREACHABLE);
+        return fillRequestAnswerWitheErrorState(data, key, REQ_ERROR_HOST_UNREACHABLE);
     }
 
     return startConnection(key);
 }
 
-unsigned fillRequestAnswerWitheErrorState(TSelectorKey* key, int status) {
+unsigned fillRequestAnswerWitheErrorState(const TClientData* data, TSelectorKey* key, int status) {
     TReqParser* p = &ATTACHMENT(key)->client.reqParser;
 
     p->state = REQ_ERROR;
     p->status = status;
+    logAccess(data, status);
     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(p, &ATTACHMENT(key)->originBuffer)) {
         return ERROR;
     }
@@ -246,14 +255,14 @@ unsigned requestConecting(TSelectorKey* key) {
     int error = 0;
     if (getsockopt(d->originFd, SOL_SOCKET, SO_ERROR, &error, &(socklen_t){sizeof(int)})) {
         logf(LOG_ERROR, "Failed to getsockopt for connection request from client %d", d->clientFd);
-        return fillRequestAnswerWitheErrorState(key, REQ_ERROR_GENERAL_FAILURE);
+        return fillRequestAnswerWitheErrorState(d, key, REQ_ERROR_GENERAL_FAILURE);
     }
 
     if (error) {
         // Could not connect to the first address, try with the next one, if exists
         if (d->originResolution->ai_next == NULL) {
             logf(LOG_INFO, "Failed to fulfill connection request from client %d", d->clientFd);
-            return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(error));
+            return fillRequestAnswerWitheErrorState(d, key, connectErrorToRequestStatus(error));
         } else {
             selector_unregister_fd_noclose(key->s, d->originFd);
             close(d->originFd);
@@ -265,6 +274,7 @@ unsigned requestConecting(TSelectorKey* key) {
         }
     }
 
+    logAccess(d, d->client.reqParser.status);
     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillRequestAnswer(&d->client.reqParser, &d->originBuffer)) {
         return ERROR;
     }
@@ -312,7 +322,7 @@ static unsigned startConnection(TSelectorKey* key) {
 
     // Return a connection error after trying to connect to all the addresses
     logf(LOG_INFO, "Failed to fulfill connection request from client %d", d->clientFd);
-    return fillRequestAnswerWitheErrorState(key, connectErrorToRequestStatus(errno));
+    return fillRequestAnswerWitheErrorState(d, key, connectErrorToRequestStatus(errno));
 }
 
 static TReqStatus connectErrorToRequestStatus(int e) {

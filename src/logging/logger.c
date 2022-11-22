@@ -31,17 +31,19 @@
 const char* loggerGetLevelString(TLogLevel level) {
     switch (level) {
         case LOG_DEBUG:
-            return "DEBUG";
+            return " [DEBUG]";
         case LOG_INFO:
-            return "INFO";
+            return " [INFO]";
+        case LOG_OUTPUT:
+            return " [OUTPUT]";
         case LOG_WARNING:
-            return "WARNING";
+            return " [WARNING]";
         case LOG_ERROR:
-            return "ERROR";
+            return " [ERROR]";
         case LOG_FATAL:
-            return "FATAL";
+            return " [FATAL]";
         default:
-            return "UNKNOWN";
+            return " [UNKNOWN]";
     }
 }
 

@@ -171,6 +171,8 @@ typedef enum TReqRet {
     REQR_FULLBUFFER,
 } TReqRet;
 
+const char* reqParserToString(const TReqParser* p);
+
 /**
  * @brief Initializes the request parser.
  * @param p A pointer to previously allocated memory for the parser.

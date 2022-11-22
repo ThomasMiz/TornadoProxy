@@ -92,11 +92,6 @@ TPDStatus parseUserData(TPDissector* pd, struct buffer* buffer, int fd) {
     for (int i = 0; i < end && pd->state != PDS_END; ++i) {
         pd->state = stateRead[pd->state][idx](pd, buffer->read[i]);
     }
-
-    if (pd->state == PDS_END) {
-        pd->isOn = false;
-        logf(LOG_DEBUG, "passwordDissector parseUserData: username: [%s] - password: [%s]", pd->username, pd->password);
-    }
     return pd->state;
 }
 
@@ -105,11 +100,11 @@ static TPDStatus readPlus(TPDissector* p, uint8_t c) {
         return PDS_USER_U;
     }
     p->isOn = false;
-    return PDS_END;
+    return p->state;
 }
 static TPDStatus turnOff(TPDissector* p, uint8_t c) {
     p->isOn = false;
-    return PDS_END;
+    return p->state;
 }
 
 static TPDStatus doNothing(TPDissector* p, uint8_t c) {
@@ -202,7 +197,7 @@ static TPDStatus readPlusFinal(TPDissector* p, uint8_t c) {
     if (c == '+') {
         // Valid user/pass found
         if (p->validUsername) {
-            logf(LOG_INFO, "POP3 credentials intercepted on client %d: username=\"%s\", password=\"%s\"", p->clientFd, p->username, p->password);
+            p->isOn = false;
             return PDS_END;
         }
         // user sended user and pass first, then server answers.

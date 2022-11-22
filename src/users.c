@@ -19,12 +19,6 @@
 #define USERS_FILE_OPEN_READ_MODE "r"
 #define USERS_FILE_OPEN_WRITE_MODE "w"
 
-typedef struct {
-    char username[USERS_MAX_USERNAME_LENGTH + 1];
-    char password[USERS_MAX_PASSWORD_LENGTH + 1];
-    TUserPrivilegeLevel privilegeLevel;
-} TUserData;
-
 static TUserData* users;
 static unsigned int usersLength, usersCapacity;
 static unsigned int adminUsersCount;
@@ -34,12 +28,9 @@ static const char* usersFile;
 static regex_t usernameValidationRegex;
 static regex_t passwordValidationRegex;
 
-unsigned int fillCurrentUsers(char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT]) {
-    unsigned int i;
-    for (i = 0; i < usersLength; i++) {
-        strcpy(toFill[i], users[i].username);
-    }
-    return i;
+const TUserData* getUsersInternalArray(unsigned int* length) {
+    *length = usersLength;
+    return users;
 }
 
 static TUserStatus validateUsername(const char* username) {
