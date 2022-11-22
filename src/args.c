@@ -70,9 +70,8 @@ void parse_args(const int argc, char** argv, struct socks5args* args) {
 
     int c;
     while (true) {
-
         c = getopt(argc, argv, "hl:L:Np:P:U:u:v");
-        ;
+
         if (c == -1)
             break;
 
