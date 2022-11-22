@@ -86,8 +86,6 @@ int main(const int argc, char** argv) {
         // NOTE: Can't do logging without a selector
         fprintf(stderr, "Failed to initialize selector. Server closing.");
         exit(1);
-        // err_msg = "initializing selector";
-        // goto finally;
     }
 
     selector = selector_new(1024);
@@ -95,8 +93,6 @@ int main(const int argc, char** argv) {
         fprintf(stderr, "Failed to create selector. Server closing.");
         selector_close();
         exit(1);
-        // err_msg = "unable to create selector";
-        // goto finally;
     }
 
     metricsInit();

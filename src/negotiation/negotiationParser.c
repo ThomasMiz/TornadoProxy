@@ -16,7 +16,7 @@ static TNegState parseMethodCount(TNegParser* p, uint8_t c);
 static TNegState parseMethods(TNegParser* p, uint8_t c);
 static TNegState parseEnd(TNegParser* p, uint8_t c);
 
-static uint8_t requiredAuthMethod = NEG_METHOD_PASS;
+static uint8_t requiredAuthMethod = NEG_METHOD_NO_AUTH;
 
 static parseCharacter stateRead[] = {
     /* VERSION      */ (parseCharacter)parseVersion,
