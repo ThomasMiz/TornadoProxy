@@ -184,9 +184,11 @@ void socksv5PassivAccept(TSelectorKey* key) {
     clientData->stm.initial = NEGOTIATION_READ;
     clientData->stm.max_state = ERROR;
     clientData->closed = false;
+    clientData->isAuth = false;
     clientData->stm.states = clientActions;
     clientData->clientFd = newClientSocket;
     clientData->originFd = -1;
+    clientData->clientAddress = clientAddress;
 
     buffer_init(&clientData->originBuffer, BUFFER_SIZE, clientData->inOriginBuffer);
     buffer_init(&clientData->clientBuffer, BUFFER_SIZE, clientData->inClientBuffer);

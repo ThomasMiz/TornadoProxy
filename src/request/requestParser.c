@@ -4,6 +4,8 @@
 #include "requestParser.h"
 #include "../logging/logger.h"
 #include <stdio.h>
+#include <string.h>
+#include <arpa/inet.h>
 #include <stdlib.h>
 
 #define length(array) (sizeof(array) / sizeof(*(array)))
@@ -30,6 +32,31 @@ static parseCharacter stateRead[] = {
     /* REQ_ERROR        */ (parseCharacter)reqParseEnd,
     /* REQ_END          */ (parseCharacter)reqParseEnd,
 };
+
+const char* reqParserToString(const TReqParser* p) {
+    // ipv4 --> "1.2.3.4\t4321"
+    // ipv6 --> "::ffff:1.2.3.4\t4321"
+    // domainname --> "www.google.com\t4321"
+
+    static char toReturn[REQ_MAX_DN_LENGHT + 1 + 5 + 1];
+    uint8_t atyp = p->atyp;
+    TAddress aux = p->address;
+
+    if (atyp == REQ_ATYP_IPV4) {
+        if (inet_ntop(AF_INET, &p->address.ipv4, toReturn, REQ_MAX_DN_LENGHT) == NULL)
+            strcpy(toReturn, "unknown4");
+    } else if (atyp == REQ_ATYP_IPV6) {
+        if (inet_ntop(AF_INET6, &p->address.ipv6, toReturn, REQ_MAX_DN_LENGHT) == NULL)
+            strcpy(toReturn, "unknown6");
+    } else if (atyp == REQ_ATYP_DOMAINNAME) {
+        strcpy(toReturn, (char*)p->address.domainname);
+    } else {
+        return "unknown\tunknown";
+    }
+
+    sprintf(toReturn + strlen(toReturn), "\t%u", p->port);
+    return toReturn;
+}
 
 void initRequestParser(TReqParser* p) {
     if (p == NULL)

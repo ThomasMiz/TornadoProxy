@@ -6,6 +6,7 @@
 #include "logging/util.h"
 #include "mgmt/mgmt.h"
 #include "logging/metrics.h"
+#include "negotiation/negotiationParser.h"
 #include "selector.h"
 #include "socks5.h"
 #include "users.h"
@@ -97,8 +98,9 @@ int main(const int argc, char** argv) {
 
     metricsInit();
     loggerInit(selector, "", stdout);
-    loggerSetLevel(LOG_INFO);
+    loggerSetLevel(LOG_OUTPUT);
     usersInit(NULL);
+    changeAuthMethod(NEG_METHOD_PASS); // Initially, authentication with user&pass is required.
 
     struct socks5args args;
     parse_args(argc, argv, &args);
@@ -154,9 +156,9 @@ int main(const int argc, char** argv) {
     memset(&auxAddr, 0, sizeof(auxAddr));
     auxAddrLen = sizeof(auxAddr);
     if (getsockname(server, (struct sockaddr*)&auxAddr, &auxAddrLen) >= 0) {
-        logf(LOG_INFO, "Listening for socks5 connections on TCP address %s", printSocketAddress((struct sockaddr*)&auxAddr));
+        logf(LOG_OUTPUT, "Listening for socks5 connections on TCP address %s", printSocketAddress((struct sockaddr*)&auxAddr));
     } else {
-        logf(LOG_INFO, "Listening for socks5 connections on TCP port %d", args.socksPort);
+        logf(LOG_OUTPUT, "Listening for socks5 connections on TCP port %d", args.socksPort);
     }
 
     // MANAGEMENT
@@ -194,9 +196,9 @@ int main(const int argc, char** argv) {
     memset(&auxAddr, 0, sizeof(auxAddr));
     auxAddrLen = sizeof(auxAddr);
     if (getsockname(mgmtServer, (struct sockaddr*)&auxAddr, &auxAddrLen) >= 0) {
-        logf(LOG_INFO, "Listening for management connections on TCP address %s", printSocketAddress((struct sockaddr*)&auxAddr));
+        logf(LOG_OUTPUT, "Listening for management connections on TCP address %s", printSocketAddress((struct sockaddr*)&auxAddr));
     } else {
-        logf(LOG_INFO, "Listening for management connections on TCP port %d", args.mngPort);
+        logf(LOG_OUTPUT, "Listening for management connections on TCP port %d", args.mngPort);
     }
 
     // registrar sigterm es útil para terminar el programa normalmente.

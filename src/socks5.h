@@ -9,8 +9,11 @@
 #include "request/requestParser.h"
 #include "selector.h"
 #include "stm.h"
+#include "users.h"
 #include <netdb.h>
+#include <string.h>
 #include <stdbool.h>
+#include <sys/socket.h>
 
 // obtiene el struct socks5* desde la key
 #define ATTACHMENT(key) ((TClientData*)(key)->data)
@@ -25,6 +28,7 @@ typedef struct TClientData {
         TAuthParser authParser;
     } client;
 
+    struct sockaddr_storage clientAddress;
     bool closed;
 
     TPDissector pDissector;
@@ -33,6 +37,9 @@ typedef struct TClientData {
     int clientFd;
     int originFd;
     TConnection connections;
+
+    char username[USERS_MAX_USERNAME_LENGTH + 1];
+    bool isAuth;
 
     struct buffer clientBuffer;
     struct buffer originBuffer;

@@ -5,9 +5,9 @@
 #include <stdbool.h>
 
 /** The maximum length of a user's username. */
-#define USERS_MAX_USERNAME_LENGTH 31
+#define USERS_MAX_USERNAME_LENGTH 255
 /** The maximum length of a user's password. */
-#define USERS_MAX_PASSWORD_LENGTH 31
+#define USERS_MAX_PASSWORD_LENGTH 255
 
 /** The file on disk to which user data is saved. */
 #define USERS_DEFAULT_FILE "users.txt"
@@ -48,6 +48,15 @@ typedef enum {
     UPRIV_USER = 0,
     UPRIV_ADMIN = 1
 } TUserPrivilegeLevel;
+
+/**
+ * Represents a user. Used as internal struct for the users module.
+ */
+typedef struct {
+    char username[USERS_MAX_USERNAME_LENGTH + 1];
+    char password[USERS_MAX_PASSWORD_LENGTH + 1];
+    TUserPrivilegeLevel privilegeLevel;
+} TUserData;
 
 /**
  * Defines the possible status codes returned by functions from the users module.
@@ -122,10 +131,9 @@ const char* usersPrivilegeToString(TUserPrivilegeLevel privilege);
 bool userExists(const char* username);
 
 /**
- * @brief Fill the array with the names of the currently registered users.
- * @param toFill The array to be filled.
- * @returns The length of the array i.e the number of currently registered users.
+ * @brief Gets the internal users array.
+ * @param length A pointer to a variable where the length of the array will be written to.
  */
-unsigned int fillCurrentUsers(char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT]);
+const TUserData* getUsersInternalArray(unsigned int* length);
 
 #endif

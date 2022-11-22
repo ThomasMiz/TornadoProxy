@@ -109,7 +109,7 @@ const char* printAddressPort(int family, struct sockaddr* address) {
     return addrBuffer;
 }
 
-const char* printSocketAddress(const struct sockaddr* address) {
+const char* printSocketAddressWith(const struct sockaddr* address, const char separator) {
     if (address == NULL)
         return "unknown address";
 
@@ -128,16 +128,19 @@ const char* printSocketAddress(const struct sockaddr* address) {
             break;
         default:
             strcpy(addrBuffer, "[unknown type]"); // Unhandled type
-            return 0;
+            return addrBuffer;
     }
+
     // Convert binary to printable address
     if (inet_ntop(address->sa_family, numericAddress, addrBuffer, INET6_ADDRSTRLEN) == NULL)
         strcpy(addrBuffer, "[invalid address]");
-    else {
-        if (port != 0)
-            sprintf(addrBuffer + strlen(addrBuffer), ":%u", port);
-    }
+
+    sprintf(addrBuffer + strlen(addrBuffer), "%c%u", separator, port);
     return addrBuffer;
+}
+
+const char* printSocketAddress(const struct sockaddr* address) {
+    return printSocketAddressWith(address, ':');
 }
 
 int sockAddrsEqual(const struct sockaddr* addr1, const struct sockaddr* addr2) {
