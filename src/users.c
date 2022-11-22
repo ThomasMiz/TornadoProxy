@@ -304,7 +304,6 @@ TUserStatus usersLogin(const char* username, const char* password, TUserPrivileg
 TUserStatus usersCreate(const char* username, const char* password, bool updatePassword, TUserPrivilegeLevel privilege, bool updatePrivilege) {
     if (password == NULL)
         password = "";
-    logf(LOG_INFO, "USERSCREATE REQUEST username=%s password=%s updatepw=%d priv=%d, updatepriv=%d", username, password, updatePassword, privilege, updatePrivilege);
 
     // Calculate the index at which the user is, or should be.
     int index = usersGetIndexOf(username);
