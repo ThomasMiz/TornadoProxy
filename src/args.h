@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#define MAX_USERS 10
+#define MAX_ARGS_USERS 10
 
 struct users {
     char* name;
@@ -20,7 +20,7 @@ struct socks5args {
     bool disectorsEnabled;
 
     unsigned short nusers;
-    struct users users[MAX_USERS];
+    struct users users[MAX_ARGS_USERS];
 };
 
 /**

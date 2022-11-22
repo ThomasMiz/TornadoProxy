@@ -12,7 +12,7 @@ port(const char* s) {
     const long sl = strtol(s, &end, 10);
 
     if (end == s || '\0' != *end || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno) || sl < 0 || sl > USHRT_MAX) {
-        fprintf(stderr, "port should in in the range of 1-65536: %s\n", s);
+        fprintf(stderr, "Port should in in the range of 1-65535: %s\n", s);
         exit(1);
         return 1;
     }
@@ -23,7 +23,7 @@ static void
 user(char* s, struct users* user) {
     char* p = strchr(s, ':');
     if (p == NULL) {
-        fprintf(stderr, "password not found\n");
+        fprintf(stderr, "Password not found\n");
         exit(1);
     } else {
         *p = 0;
@@ -35,7 +35,7 @@ user(char* s, struct users* user) {
 
 static void
 version(void) {
-    fprintf(stderr, "socks5v version 0.0\n"
+    fprintf(stderr, "socks5v version 1.0\n"
                     "ITBA Protocolos de Comunicación 2022/2 -- Grupo 10\n");
 }
 
@@ -44,13 +44,13 @@ usage(const char* progname) {
     fprintf(stderr,
             "Usage: %s [OPTION]...\n"
             "\n"
-            "   -h               Imprime la ayuda y termina.\n"
-            "   -l <SOCKS addr>  Dirección donde servirá el proxy SOCKS.\n"
-            "   -L <conf  addr>  Dirección donde servirá el servicio de management.\n"
-            "   -p <SOCKS port>  Puerto entrante conexiones SOCKS.\n"
-            "   -P <conf port>   Puerto entrante conexiones configuracion\n"
-            "   -u <name>:<pass> Usuario y contraseña de usuario que puede usar el proxy. Hasta 10.\n"
-            "   -v               Imprime información sobre la versión versión y termina.\n"
+            "   -h               Prints this help menu and then exits.\n"
+            "   -l <SOCKS addr>  Specifies the source address for the socks5 server. This may be an IPv4 or IPv6 address.\n"
+            "   -L <conf addr>   Specifies the source address for the management server. This may be an IPv4 or IPv6 address.\n"
+            "   -p <SOCKS port>  Specifies the source port for the socks5 server.\n"
+            "   -P <conf port>   Specifies the source port for the management server.\n"
+            "   -u <user>:<pass> Specifies a username and password to register into the system. This param may be specified up to 10 times.\n"
+            "   -v               Display this server's version information and exit.\n"
             "\n",
             progname);
     exit(1);
@@ -96,8 +96,8 @@ void parse_args(const int argc, char** argv, struct socks5args* args) {
                 args->mngPort = port(optarg);
                 break;
             case 'u':
-                if (args->nusers >= MAX_USERS) {
-                    fprintf(stderr, "maximun number of command line users reached: %d.\n", MAX_USERS);
+                if (args->nusers >= MAX_ARGS_USERS) {
+                    fprintf(stderr, "Maximun number of command line users reached: %d.\n", MAX_ARGS_USERS);
                     exit(1);
                 } else {
                     user(optarg, args->users + args->nusers);
@@ -109,12 +109,12 @@ void parse_args(const int argc, char** argv, struct socks5args* args) {
                 exit(0);
                 break;
             default:
-                fprintf(stderr, "unknown argument %d.\n", c);
+                fprintf(stderr, "Unknown argument %d.\n", c);
                 exit(1);
         }
     }
     if (optind < argc) {
-        fprintf(stderr, "argument not accepted: ");
+        fprintf(stderr, "Argument not accepted: ");
         while (optind < argc) {
             fprintf(stderr, "%s ", argv[optind++]);
         }
