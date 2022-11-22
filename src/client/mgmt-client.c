@@ -6,14 +6,14 @@
 #include "mgmtClientCommands.h"
 #include <stdint.h>
 
-#define SERVER "localhost"
-#define PORT "8080"
+#define DEFAULT_HOST "localhost"
+#define DEFAULT_PORT "8080"
 
 int main(int argc, char* argv[]) {
-
-    if (argc <= 1 || strcmp("-h", argv[1]) == 0) {
+    if (argc <= 3 || strcmp("-h", argv[3]) == 0) {
         fprintf(stderr,
-                "Usage: %s [OPTION]...\n"
+                "Usage: %s [HOST] [PORT] [OPTION]...\n"
+                "\n [HOST] and [PORT] may be specified as '-' to use defaults."
                 "\n"
                 "   -h                                        Prints help and finish.\n"
                 "   USERS                                     Submits a request to get registered users.\n"
@@ -27,11 +27,20 @@ int main(int argc, char* argv[]) {
                 "   SET-AUTHENTICATION-STATUS [ON/OFF]        Sends a request to set the state of the sock's authentication level.\n"
                 "   STATISTICS                                Sends a request to get specific metrics from the server.\n"
                 "\n",
-                "client");
+                argv[0]);
         return 0;
     }
 
-    char* command = argv[1];
+    const char* host = argv[1];
+    const char* port = argv[2];
+
+    if (host[0] == '-')
+        host = DEFAULT_HOST;
+    if (port[0] == '-')
+        port = DEFAULT_PORT;
+
+
+    char* command = argv[3];
     int commandReference;
 
     if (!commandExists(command, &commandReference)) {
@@ -68,7 +77,7 @@ int main(int argc, char* argv[]) {
         printf("Invalid password format\n");
         return -1;
     }
-    char* role = commandReference == CMD_ADD_USER ? argv[4] : (commandReference == CMD_CHANGE_ROLE ? argv[3] : NULL);
+    char* role = commandReference == CMD_ADD_USER ? argv[6] : (commandReference == CMD_CHANGE_ROLE ? argv[5] : NULL);
     if (role != NULL) {
         int len = strlen(role);
         if (len != 1) {
@@ -82,7 +91,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    int sock = tcpClientSocket(SERVER, PORT);
+    int sock = tcpClientSocket(host, port);
     if (sock < 0) {
         perror("socket() failed");
         return -1;
@@ -98,28 +107,28 @@ int main(int argc, char* argv[]) {
             status = cmdUsers(sock, commandReference);
             break;
         case CMD_ADD_USER:
-            status = cmdAddUser(sock, commandReference, argv[2], argv[3], argv[4]);
+            status = cmdAddUser(sock, commandReference, argv[4], argv[5], argv[6]);
             break;
         case CMD_DELETE_USER:
-            status = cmdDeleteUser(sock, commandReference, argv[2]);
+            status = cmdDeleteUser(sock, commandReference, argv[4]);
             break;
         case CMD_CHANGE_PASSWORD:
-            status = cmdChangePassword(sock, commandReference, argv[2], argv[3]);
+            status = cmdChangePassword(sock, commandReference, argv[4], argv[5]);
             break;
         case CMD_CHANGE_ROLE:
-            status = cmdChangeRole(sock, commandReference, argv[2], argv[3]);
+            status = cmdChangeRole(sock, commandReference, argv[4], argv[5]);
             break;
         case CMD_GET_DISSECTOR_STATUS:
             status = cmdGetDissectorStatus(sock, commandReference);
             break;
         case CMD_SET_DISSECTOR_STATUS:
-            status = cmdSetDissectorStatus(sock, commandReference, argv[2]);
+            status = cmdSetDissectorStatus(sock, commandReference, argv[4]);
             break;
         case CMD_GET_AUTHENTICATION_STATUS:
             status = cmdGetAuthenticationStatus(sock, commandReference);
             break;
         case CMD_SET_AUTHENTICATION_STATUS:
-            status = cmdSetAuthenticationStatus(sock, commandReference, argv[2]);
+            status = cmdSetAuthenticationStatus(sock, commandReference, argv[4]);
             break;
         case CMD_STATS:
             status = cmdStats(sock, commandReference);
