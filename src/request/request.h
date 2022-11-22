@@ -38,7 +38,7 @@ unsigned requestResolveDone(TSelectorKey* key);
  * @param key Selector key that holds information regarding the ready fd
  * @returns resulting state machine state
  */
-unsigned fillRequestAnswerWitheErrorState(TSelectorKey* key, int state);
+unsigned fillRequestAnswerWitheErrorState(TSelectorKey* key, int status);
 
 /**
  * @brief Waits util the connection is established

@@ -71,9 +71,8 @@ void parse_args(const int argc, char** argv, struct socks5args* args) {
     args->disectorsEnabled = true;
     args->nusers = 0;
 
-    int c;
     while (true) {
-        c = getopt(argc, argv, "hl:L:Np:P:U:u:v");
+        int c = getopt(argc, argv, "hl:L:Np:P:U:u:v");
 
         if (c == -1)
             break;

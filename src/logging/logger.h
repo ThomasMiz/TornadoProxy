@@ -49,7 +49,7 @@ const char* loggerGetLevelString(TLogLevel level);
  * fprintf which may be blocking, halting the server. This stream is not closed by the
  * logging system.
  */
-int loggerInit(TSelector selector, const char* logFile, FILE* logStream);
+int loggerInit(TSelector selectorParam, const char* logFile, FILE* logStreamParam);
 
 /**
  * @brief Closes the logging system, flushing any remaining logs, closing any opened

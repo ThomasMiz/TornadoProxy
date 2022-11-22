@@ -24,12 +24,13 @@ typedef struct {
 
     bool closed;
 
-    struct buffer readBuffer;
-    uint8_t readRawBuffer[MGMT_BUFFER_SIZE];
-    struct buffer writeBuffer;
-    uint8_t writeRawBuffer[MGMT_BUFFER_SIZE];
     TMgmtCmd cmd;
     int clientFd;
+
+    struct buffer readBuffer;
+    struct buffer writeBuffer;
+    uint8_t readRawBuffer[MGMT_BUFFER_SIZE];
+    uint8_t writeRawBuffer[MGMT_BUFFER_SIZE];
 } TMgmtClient;
 
 #define GET_ATTACHMENT(key) ((TMgmtClient*)(key)->data)

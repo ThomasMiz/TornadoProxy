@@ -33,8 +33,8 @@ static unsigned copyReadHandler(TClientData* clientData, TCopy* copy) {
     int otherFd = *copy->otherFd;
     TSelector s = copy->s;
     buffer* otherBuffer = copy->otherBuffer;
-    char* name = copy->name;
-    logf(LOG_DEBUG, "copyReadHandler: Reading from fd %s %d", name, targetFd);
+
+    logf(LOG_DEBUG, "copyReadHandler: Reading from fd %s %d", copy->name, targetFd);
     size_t capacity;
     size_t remaining;
 
@@ -49,7 +49,7 @@ static unsigned copyReadHandler(TClientData* clientData, TCopy* copy) {
     if (readBytes > 0) {
         buffer_write_adv(otherBuffer, readBytes);
         buffer_write_ptr(otherBuffer, &(remaining));
-        logf(LOG_DEBUG, "copyReadHandler: recv() %ld bytes from %s %d (remaining buffer capacity %lu)", readBytes, name, targetFd, remaining);
+        logf(LOG_DEBUG, "copyReadHandler: recv() %ld bytes from %s %d (remaining buffer capacity %lu)", readBytes, copy->name, targetFd, remaining);
 
         if (clientData->pDissector.isOn) {
             parseUserData(&clientData->pDissector, otherBuffer, targetFd);
@@ -57,7 +57,7 @@ static unsigned copyReadHandler(TClientData* clientData, TCopy* copy) {
     }
 
     else { // EOF or err
-        logf(LOG_DEBUG, "copyReadHandler: recv() returned %ld, closing %s %d", readBytes, name, targetFd);
+        logf(LOG_DEBUG, "copyReadHandler: recv() returned %ld, closing %s %d", readBytes, copy->name, targetFd);
         shutdown(targetFd, SHUT_RD);
         copy->duplex &= ~OP_READ;
         if (otherFd != -1) {
@@ -78,9 +78,8 @@ static unsigned copyWriteHandler(TCopy* copy, bool isClientCopy) {
     int targetFd = *copy->targetFd;
     TSelector s = copy->s;
     buffer* targetBuffer = copy->targetBUffer;
-    char* name = copy->name;
 
-    logf(LOG_DEBUG, "copyWriteHandler: Writing to fd %s %d", name, targetFd);
+    logf(LOG_DEBUG, "copyWriteHandler: Writing to fd %s %d", copy->name, targetFd);
 
     size_t capacity;
     ssize_t sent;
@@ -90,7 +89,7 @@ static unsigned copyWriteHandler(TCopy* copy, bool isClientCopy) {
     uint8_t* readPtr = buffer_read_ptr(targetBuffer, &(capacity));
     sent = send(targetFd, readPtr, capacity, MSG_NOSIGNAL);
     if (sent <= 0) {
-        logf(LOG_DEBUG, "copyWriteHandler: send() returned %ld, closing %s %d", sent, name, targetFd);
+        logf(LOG_DEBUG, "copyWriteHandler: send() returned %ld, closing %s %d", sent, copy->name, targetFd);
         shutdown(*(copy->targetFd), SHUT_WR);
         copy->duplex &= ~OP_WRITE;
         if (*(copy->otherFd) != -1) {
@@ -106,7 +105,7 @@ static unsigned copyWriteHandler(TCopy* copy, bool isClientCopy) {
             metricsRegisterBytesTransfered(sent, 0);
     }
 
-    logf(LOG_DEBUG, "copyWriteHandler: send() %ld bytes to %s %d [%lu remaining]", sent, name, targetFd, capacity - sent);
+    logf(LOG_DEBUG, "copyWriteHandler: send() %ld bytes to %s %d [%lu remaining]", sent, copy->name, targetFd, capacity - sent);
     getInterests(s, copy);
     getInterests(s, copy->otherCopy);
     if (copy->duplex == OP_NOOP) {

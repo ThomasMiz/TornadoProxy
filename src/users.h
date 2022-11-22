@@ -71,7 +71,7 @@ typedef enum {
  * @param usersFile The file in disk in which to load and store user data. Set to NULL or an
  * empty string to use the default users file.
  */
-int usersInit(const char* usersFile);
+int usersInit(const char* usersFileParam);
 
 /**
  * @brief Checks whether a given username exists and verifies that it's password matches.

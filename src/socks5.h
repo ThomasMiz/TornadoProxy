@@ -29,19 +29,15 @@ typedef struct TClientData {
 
     TPDissector pDissector;
 
-    // Added this buffer, consider removing the plain buffer from this struct.
-    struct buffer clientBuffer;
-    uint8_t inClientBuffer[BUFFER_SIZE];
-
-    struct buffer originBuffer;
-    uint8_t inOriginBuffer[BUFFER_SIZE];
-
     struct addrinfo* originResolution;
     int clientFd;
-    // informacion del OS
     int originFd;
-
     TConnection connections;
+
+    struct buffer clientBuffer;
+    struct buffer originBuffer;
+    uint8_t inClientBuffer[BUFFER_SIZE];
+    uint8_t inOriginBuffer[BUFFER_SIZE];
 } TClientData;
 
 enum socks_state {

@@ -1,7 +1,6 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-
 #include "mgmt-client-utils.h"
 
 #define BUFFER_SIZE 256
@@ -57,7 +56,7 @@ int tcpClientSocket(const char* host, const char* service) {
 
 bool validToken(const char* token) {
     int i;
-    for (i = 0; token[i] && i < MAX_TOKEN_LENGTH; i++) {
+    for (i = 0; i < MAX_TOKEN_LENGTH && token[i] ; i++) {
         if (!isprint(token[i])) {
             return false;
         }
@@ -103,7 +102,7 @@ bool authenticate(char* username, char* password, int socket) {
 }
 
 int closeConnection(const char* errorMessage, const int socket) {
-    if (errorMessage != NULL && errno) {
+    if (errno) {
         perror(errorMessage);
     } else {
         printf("%s\n", errorMessage);

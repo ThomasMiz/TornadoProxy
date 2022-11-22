@@ -5,6 +5,7 @@
 #include "logging/logger.h"
 #include "logging/util.h"
 #include "mgmt/mgmt.h"
+#include "logging/metrics.h"
 #include "selector.h"
 #include "socks5.h"
 #include "users.h"
@@ -98,6 +99,7 @@ int main(const int argc, char** argv) {
         // goto finally;
     }
 
+    metricsInit();
     loggerInit(selector, "", stdout);
     loggerSetLevel(LOG_INFO);
     usersInit(NULL);

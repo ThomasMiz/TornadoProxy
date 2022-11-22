@@ -224,7 +224,7 @@ static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p, int fd) 
         toReturn = badRoleMessage;
     else if (!userExists(username))
         toReturn = wrongUsernameMessage;
-    else if (toReturn == NULL) {
+    else {
         TUserStatus status = usersCreate(username, NULL, false, role == 1 ? UPRIV_ADMIN : UPRIV_USER, true);
         switch (status) {
             case EUSER_OK:
@@ -249,13 +249,14 @@ static void handleGetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p, 
     logf(LOG_INFO, "Management client %d requested command GET-DISSECTOR-STATUS", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
-    static const char* on = "+OK dissector status: on";
-    static const char* off = "+OK dissector status: off";
+
     int len;
     if (isPDissectorOn()) {
+        static const char* on = "+OK dissector status: on";
         len = strlen(on);
         strcpy((char*)ptr, on);
     } else {
+        static const char* off = "+OK dissector status: off";
         len = strlen(off);
         strcpy((char*)ptr, off);
     }
@@ -354,14 +355,16 @@ static void handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser
     uint8_t turnOn = p->args[0].byte; // OFF = 0 : ON != 0
 
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
-    static const char* noAuthMethod = "+OK authentication method: no authentication";
-    static const char* passwordMethod = "+OK authentication method: username/password required";
+
+
     int len;
     if (turnOn) {
+        static const char* passwordMethod = "+OK authentication method: username/password required";
         changeAuthMethod(NEG_METHOD_PASS);
         len = strlen(passwordMethod);
         strcpy((char*)ptr, passwordMethod);
     } else {
+        static const char* noAuthMethod = "+OK authentication method: no authentication";
         changeAuthMethod(NEG_METHOD_NO_AUTH);
         len = strlen(noAuthMethod);
         strcpy((char*)ptr, noAuthMethod);

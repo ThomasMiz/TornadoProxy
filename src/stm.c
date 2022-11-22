@@ -58,7 +58,7 @@ unsigned
 stm_handler_read(struct state_machine* stm, TSelectorKey* key) {
     handle_first(stm, key);
     if (stm->current->on_read_ready == 0) {
-        logf(LOG_DEBUG, "State machine read handler: %d STATE: %d", key->fd, stm->current->state);
+        logf(LOG_DEBUG, "State machine read handler: %d STATE: %ud", key->fd, stm->current->state);
         abort();
     }
     const unsigned int ret = stm->current->on_read_ready(key);
