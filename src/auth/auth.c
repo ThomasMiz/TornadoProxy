@@ -1,7 +1,10 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+
 #include "auth.h"
 #include "../logging/logger.h"
 #include "../socks5.h"
-#include "../users.h"
+
 
 void authReadInit(const unsigned state, TSelectorKey* key) {
     logf(LOG_DEBUG, "authReadInit: init at socket fd %d", key->fd);

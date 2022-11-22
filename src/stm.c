@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+
 /**
  * stm.c - pequeño motor de maquina de estados donde los eventos son los
  *         del selector.c
