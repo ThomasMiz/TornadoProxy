@@ -66,7 +66,7 @@ void parse_args(const int argc, char** argv, struct socks5args* args) {
     args->socksAddr = "::";
     args->socksPort = 1080;
 
-    args->mngAddr = "::1";
+    args->mngAddr = "127.0.0.1";
     args->mngPort = 8080;
 
     args->disectorsEnabled = true;

@@ -56,6 +56,5 @@ void initMgmtCmdParser(TMgmtParser* p);
 TMgmtState mgmtCmdParse(TMgmtParser* p, struct buffer* buffer);
 bool hasMgmtCmdReadEnded(TMgmtParser* p);
 bool hasMgmtCmdErrors(TMgmtParser* p);
-uint8_t fillMgmtCmdAnswer(TMgmtParser* p, struct buffer* buffer);
 
 #endif // MANAGEMENT_CMD_PARSER_H

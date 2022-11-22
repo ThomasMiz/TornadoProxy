@@ -101,7 +101,7 @@ int cmdDeleteUser(int sock, int cmdValue, char* username) {
 }
 
 int cmdChangePassword(int sock, int cmdValue, char* username, char* password) {
-    return sendUserInfoCmd(sock, cmdValue, username, NULL, NULL);
+    return sendUserInfoCmd(sock, cmdValue, username, password, NULL);
 }
 
 int cmdChangeRole(int sock, int cmdValue, char* username, char* role) {
