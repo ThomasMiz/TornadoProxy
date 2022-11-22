@@ -111,6 +111,10 @@ int main(const int argc, char** argv) {
         usersCreate(args.users[i].name, args.users[i].pass, 0, UPRIV_USER, 0);
     }
 
+    if(!args.disectorsEnabled){
+        turnOffPDissector();
+    }
+
     // Listening on just IPv6 allow us to handle both IPv6 and IPv4 connections!
     // https://stackoverflow.com/questions/50208540/cant-listen-on-ipv4-and-ipv6-together-address-already-in-use
 
