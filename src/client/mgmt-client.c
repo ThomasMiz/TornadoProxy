@@ -136,9 +136,6 @@ int main(int argc, char* argv[]) {
     int qty;
     bool readCarriageReturn = false;
     while ((qty = read(sock, &c, 1)) > 0 && !(readCarriageReturn && c == '\n')) {
-        if (qty < 0) {
-            return closeConnection("Error reading from server\n", sock);
-        }
         putchar(c);
         readCarriageReturn = c == '\r';
     }
