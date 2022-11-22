@@ -44,20 +44,20 @@ unsigned mgmtRequestRead(TSelectorKey* key) {
 
 static void handleUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     logf(LOG_INFO, "Management client %d requested command USERS", fd);
-    char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT];
 
-    uint8_t len = fillCurrentUsers(toFill);
-    uint8_t* ptr;
+    unsigned int len;
+    const TUserData* users = getUsersInternalArray(&len);
+
     size_t size;
     char* s = "+OK listing users:\n";
     int sLen = strlen(s);
-    ptr = buffer_write_ptr(buffer, &size);
+    uint8_t* ptr = buffer_write_ptr(buffer, &size);
     memcpy(ptr, s, sLen);
     buffer_write_adv(buffer, sLen);
-    for (uint8_t i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         ptr = buffer_write_ptr(buffer, &size);
-        int nameLength = strlen(toFill[i]);
-        memcpy(ptr, toFill[i], nameLength);
+        int nameLength = strlen(users[i].username);
+        memcpy(ptr, users[i].username, nameLength);
         int last = i == len - 1;
         if (!last)
             ptr[nameLength] = '\n';
@@ -355,7 +355,6 @@ static void handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser
     uint8_t turnOn = p->args[0].byte; // OFF = 0 : ON != 0
 
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
-
 
     int len;
     if (turnOn) {

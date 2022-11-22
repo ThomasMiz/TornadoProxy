@@ -50,6 +50,15 @@ typedef enum {
 } TUserPrivilegeLevel;
 
 /**
+ * Represents a user. Used as internal struct for the users module.
+ */
+typedef struct {
+    char username[USERS_MAX_USERNAME_LENGTH + 1];
+    char password[USERS_MAX_PASSWORD_LENGTH + 1];
+    TUserPrivilegeLevel privilegeLevel;
+} TUserData;
+
+/**
  * Defines the possible status codes returned by functions from the users module.
  */
 typedef enum {
@@ -122,10 +131,9 @@ const char* usersPrivilegeToString(TUserPrivilegeLevel privilege);
 bool userExists(const char* username);
 
 /**
- * @brief Fill the array with the names of the currently registered users.
- * @param toFill The array to be filled.
- * @returns The length of the array i.e the number of currently registered users.
+ * @brief Gets the internal users array.
+ * @param length A pointer to a variable where the length of the array will be written to.
  */
-unsigned int fillCurrentUsers(char toFill[USERS_MAX_USERNAME_LENGTH][USERS_MAX_COUNT]);
+const TUserData* getUsersInternalArray(unsigned int* length);
 
 #endif
