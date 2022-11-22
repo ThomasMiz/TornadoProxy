@@ -5,6 +5,7 @@
 #include "logging/logger.h"
 #include "logging/metrics.h"
 #include "socks5.h"
+#include "request/requestParser.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +53,16 @@ static unsigned copyReadHandler(TClientData* clientData, TCopy* copy) {
         logf(LOG_DEBUG, "copyReadHandler: recv() %ld bytes from %s %d (remaining buffer capacity %lu)", readBytes, copy->name, targetFd, remaining);
 
         if (clientData->pDissector.isOn) {
-            parseUserData(&clientData->pDissector, otherBuffer, targetFd);
+            TPDStatus r = parseUserData(&clientData->pDissector, otherBuffer, targetFd);
+            TPDissector p = clientData->pDissector;
+            if(r==PDS_END){
+                if(clientData->isAuth){
+                    logf(LOG_OUTPUT, "%s\tP\tPOP3\t%s\t%s\t%s\t", clientData->username, reqParserToString(&clientData->client.reqParser), p.username, p.password);
+                }else{
+                    logf(LOG_OUTPUT, "(fd %d)\tP\tPOP3\t%s\t%s\t%s\t", targetFd, reqParserToString(&clientData->client.reqParser), p.username, p.password);
+                }
+                
+            }
         }
     }
 

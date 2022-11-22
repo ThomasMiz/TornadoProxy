@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <string.h>
 #include <stdbool.h>
+#include <sys/socket.h>
 
 // obtiene el struct socks5* desde la key
 #define ATTACHMENT(key) ((TClientData*)(key)->data)
@@ -27,6 +28,7 @@ typedef struct TClientData {
         TAuthParser authParser;
     } client;
 
+    struct sockaddr_storage clientAddress;
     bool closed;
 
     TPDissector pDissector;

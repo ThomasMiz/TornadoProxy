@@ -3,6 +3,7 @@
 
 #include "../selector.h"
 #include "requestParser.h"
+#include "../socks5.h"
 
 /**
  * @brief Handler to initialize resources when the REQUEST_READ state is reached
@@ -38,7 +39,7 @@ unsigned requestResolveDone(TSelectorKey* key);
  * @param key Selector key that holds information regarding the ready fd
  * @returns resulting state machine state
  */
-unsigned fillRequestAnswerWitheErrorState(TSelectorKey* key, int status);
+unsigned fillRequestAnswerWitheErrorState(const TClientData* data, TSelectorKey* key, int status);
 
 /**
  * @brief Waits util the connection is established

@@ -4,6 +4,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
+const char* printSocketAddressWith(const struct sockaddr* address, const char separator);
 const char* printSocketAddress(const struct sockaddr* address);
 
 const char* printFamily(int family);
