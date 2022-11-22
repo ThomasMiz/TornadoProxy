@@ -74,5 +74,5 @@ strace_out
 check
 analysis.txt
 gmon.out
-
+users.txt
 .idea/
