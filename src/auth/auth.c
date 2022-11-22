@@ -36,6 +36,8 @@ unsigned authRead(TSelectorKey* key) {
 
         switch (userStatus) {
             case EUSER_OK:
+                memcpy(data->username, authpdata->uname, strlen(authpdata->uname));
+                data->isAuth = true;
                 logf(LOG_INFO, "Client %d successfully authenticated as %s (%s)", key->fd, authpdata->uname, usersPrivilegeToString(upl));
                 break;
             case EUSER_WRONGUSERNAME:

@@ -9,7 +9,9 @@
 #include "request/requestParser.h"
 #include "selector.h"
 #include "stm.h"
+#include "users.h"
 #include <netdb.h>
+#include <string.h>
 #include <stdbool.h>
 
 // obtiene el struct socks5* desde la key
@@ -33,6 +35,9 @@ typedef struct TClientData {
     int clientFd;
     int originFd;
     TConnection connections;
+
+    char username[USERS_MAX_USERNAME_LENGTH + 1];
+    bool isAuth;
 
     struct buffer clientBuffer;
     struct buffer originBuffer;

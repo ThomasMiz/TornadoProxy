@@ -5,9 +5,9 @@
 #include <stdbool.h>
 
 /** The maximum length of a user's username. */
-#define USERS_MAX_USERNAME_LENGTH 31
+#define USERS_MAX_USERNAME_LENGTH 255
 /** The maximum length of a user's password. */
-#define USERS_MAX_PASSWORD_LENGTH 31
+#define USERS_MAX_PASSWORD_LENGTH 255
 
 /** The file on disk to which user data is saved. */
 #define USERS_DEFAULT_FILE "users.txt"
