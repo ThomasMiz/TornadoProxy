@@ -43,3 +43,6 @@ Luego, para ejecutar el cliente, se debe correr el comando:
 ```./bin/client <command> [ARGS]```
 
 Se pueden consultar los posibles comandos y sus argumentos corriendo `./bin/client -h`
+
+### Adicionales
+Dentro de la carpeta `docs`, se encuentra un archivo de extension `.pdf` que contiene la descripción de los protocolos y aplicaciones desarrolladas, los problemas encontrados, las limitaciones de la aplicación y más. 

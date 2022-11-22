@@ -10,6 +10,10 @@
 #include "mgmt.h"
 #include "mgmtCmdParser.h"
 
+static uint8_t fillMgmtCmdAnswer(TMgmtParser* p, struct buffer* buffer, int fd);
+
+
+
 void mgmtRequestReadInit(const unsigned state, TSelectorKey* key) {
     logf(LOG_DEBUG, "mgmtRequestReadInit: init at socket fd %d", key->fd);
     TMgmtClient* data = GET_ATTACHMENT(key);
@@ -33,7 +37,7 @@ unsigned mgmtRequestRead(TSelectorKey* key) {
     buffer_write_adv(&data->readBuffer, readCount);
     mgmtCmdParse(&data->client.cmdParser, &data->readBuffer);
     if (hasMgmtCmdReadEnded(&data->client.cmdParser)) {
-        if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillMgmtCmdAnswer(&data->client.cmdParser, &data->writeBuffer)) {
+        if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS || fillMgmtCmdAnswer(&data->client.cmdParser, &data->writeBuffer, key->fd)) {
             return MGMT_ERROR;
         }
         data->cmd = data->client.cmdParser.cmd;
@@ -42,7 +46,7 @@ unsigned mgmtRequestRead(TSelectorKey* key) {
     return MGMT_REQUEST_READ;
 }
 
-static void handleUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+static int handleUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     logf(LOG_INFO, "Management client %d requested command USERS", fd);
 
     unsigned int len;
@@ -52,17 +56,26 @@ static void handleUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     char* s = "+OK listing users:\n";
     int sLen = strlen(s);
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
+    if (size < sLen) {
+        return 1;
+    }
     memcpy(ptr, s, sLen);
     buffer_write_adv(buffer, sLen);
     for (int i = 0; i < len; i++) {
         ptr = buffer_write_ptr(buffer, &size);
         int nameLength = strlen(users[i].username);
+        if (size < nameLength) {
+            return 1;
+        }
         memcpy(ptr, users[i].username, nameLength);
+
         int last = i == len - 1;
         if (!last)
             ptr[nameLength] = '\n';
         buffer_write_adv(buffer, nameLength + !last);
     }
+
+    return 0;
 }
 
 static int roleMatches(int role) {
@@ -76,7 +89,7 @@ static int roleMatches(int role) {
     }
 }
 
-static void handleAddUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+static int handleAddUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     logf(LOG_INFO, "Management client %d requested command ADD-USER", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
@@ -123,11 +136,18 @@ static void handleAddUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
         }
     }
 
+    int toReturnSize = strlen(toReturn);
+
+    if(toReturnSize > size){
+        return 1;
+    }
+
     strcpy((char*)ptr, toReturn);
-    buffer_write_adv(buffer, strlen(toReturn));
+    buffer_write_adv(buffer, toReturnSize);
+    return 0;
 }
 
-static void handleDeleteUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+static int handleDeleteUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     logf(LOG_INFO, "Management client %d requested command DELETE-USER", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
@@ -156,11 +176,18 @@ static void handleDeleteUserCmdResponse(buffer* buffer, TMgmtParser* p, int fd) 
             toReturn = unkownErrorMessage;
     }
 
+    int toReturnSize = strlen(toReturn);
+
+    if(toReturnSize > size){
+        return 1;
+    }
+
     strcpy((char*)ptr, toReturn);
-    buffer_write_adv(buffer, strlen(toReturn));
+    buffer_write_adv(buffer, toReturnSize);
+    return 0;
 }
 
-static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+static int handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     logf(LOG_INFO, "Management client %d requested command CHANGE-PASSWORD", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
@@ -199,11 +226,18 @@ static void handleChangePasswordCmdResponse(buffer* buffer, TMgmtParser* p, int 
         }
     }
 
+    int toReturnSize = strlen(toReturn);
+
+    if(toReturnSize > size){
+        return 1;
+    }
+
     strcpy((char*)ptr, toReturn);
-    buffer_write_adv(buffer, strlen(toReturn));
+    buffer_write_adv(buffer, toReturnSize);
+    return 0;
 }
 
-static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+static int handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     logf(LOG_INFO, "Management client %d requested command CHANGE-ROLE", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
@@ -241,11 +275,17 @@ static void handleChangeRoleCmdResponse(buffer* buffer, TMgmtParser* p, int fd) 
         }
     }
 
+    int toReturnSize = strlen(toReturn);
+
+    if(toReturnSize > size){
+        return 1;
+    }
     strcpy((char*)ptr, toReturn);
-    buffer_write_adv(buffer, strlen(toReturn));
+    buffer_write_adv(buffer, toReturnSize);
+    return 0;
 }
 
-static void handleGetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+static int handleGetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     logf(LOG_INFO, "Management client %d requested command GET-DISSECTOR-STATUS", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
@@ -254,16 +294,23 @@ static void handleGetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p, 
     if (isPDissectorOn()) {
         static const char* on = "+OK dissector status: on";
         len = strlen(on);
+        if(len > size){
+            return 1;
+        }
         strcpy((char*)ptr, on);
     } else {
         static const char* off = "+OK dissector status: off";
         len = strlen(off);
+        if(len > size){
+            return 1;
+        }
         strcpy((char*)ptr, off);
     }
     buffer_write_adv(buffer, len);
+    return 0;
 }
 
-static void handleSetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+static int handleSetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     logf(LOG_INFO, "Management client %d requested command SET-DISSECTOR-STATUS", fd);
     size_t size;
     uint8_t turnOn = p->args[0].byte; // OFF = 0 : ON != 0
@@ -275,13 +322,20 @@ static void handleSetDissectorStatusCmdResponse(buffer* buffer, TMgmtParser* p, 
     if (!turnOn) {
         turnOffPDissector();
         len = strlen(off);
+        if(len > size){
+            return 1;
+        }
         strcpy((char*)ptr, off);
     } else {
         turnOnPDissector();
         len = strlen(on);
+        if(len > size){
+            return 1;
+        }
         strcpy((char*)ptr, on);
     }
     buffer_write_adv(buffer, len);
+    return 0;
 }
 
 static void copyMetric(buffer* buffer, const char* metricString, size_t metricValue) {
@@ -295,7 +349,7 @@ static void copyMetric(buffer* buffer, const char* metricString, size_t metricVa
     buffer_write_adv(buffer, len);
 }
 
-static void handleStatisticsCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+static int handleStatisticsCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     logf(LOG_INFO, "Management client %d requested command STATISTICS", fd);
     TMetricsSnapshot metrics;
     getMetricsSnapshot(&metrics);
@@ -316,14 +370,19 @@ static void handleStatisticsCmdResponse(buffer* buffer, TMgmtParser* p, int fd) 
 
     // char statistics[64];
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
+    if(sucLength > size){
+        return 1;
+    }
     memcpy(ptr, successMessage, sucLength);
     buffer_write_adv(buffer, sucLength);
 
     for (int i = 0; i < (int)(sizeof(statsString) / sizeof(statsString[0])); i++)
         copyMetric(buffer, statsString[i], stats[i]);
+
+    return 0;
 }
 
-static void handleGetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+static int handleGetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     logf(LOG_INFO, "Management client %d requested command GET-AUTHENTICATION-STATUS", fd);
     size_t size;
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
@@ -345,11 +404,16 @@ static void handleGetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser
             toReturn = unkownErrorMessage;
     }
 
+    int toReturnSize = strlen(toReturn);
+    if(toReturnSize > size){
+        return 1;
+    }
     strcpy((char*)ptr, toReturn);
-    buffer_write_adv(buffer, strlen(toReturn));
+    buffer_write_adv(buffer, toReturnSize);
+    return 0;
 }
 
-static void handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
+static int handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser* p, int fd) {
     logf(LOG_INFO, "Management client %d requested command SET-AUTHENTICATION-STATUS", fd);
     size_t size;
     uint8_t turnOn = p->args[0].byte; // OFF = 0 : ON != 0
@@ -361,29 +425,40 @@ static void handleSetAuthenticationStatusCmdResponse(buffer* buffer, TMgmtParser
         static const char* passwordMethod = "+OK authentication method: username/password required";
         changeAuthMethod(NEG_METHOD_PASS);
         len = strlen(passwordMethod);
+        if(len > size){
+            return 1;
+        }
         strcpy((char*)ptr, passwordMethod);
     } else {
         static const char* noAuthMethod = "+OK authentication method: no authentication";
         changeAuthMethod(NEG_METHOD_NO_AUTH);
         len = strlen(noAuthMethod);
+        if(len > size){
+            return 1;
+        }
         strcpy((char*)ptr, noAuthMethod);
     }
     buffer_write_adv(buffer, len);
+    return 0;
 }
 
-static void handleUnknownCmd(buffer* buffer, TMgmtParser* p) {
+static int handleUnknownCmd(buffer* buffer, TMgmtParser* p) {
     size_t size;
 
     uint8_t* ptr = buffer_write_ptr(buffer, &size);
     static const char* uknCommand = "-ERR unknown command";
 
-    size = strlen(uknCommand);
+    int len = strlen(uknCommand);
+    if(len > size){
+        return 1;
+    }
     strcpy((char*)ptr, uknCommand);
 
-    buffer_write_adv(buffer, size);
+    buffer_write_adv(buffer, len);
+    return 0;
 }
 
-typedef void (*cmdHandler)(buffer* buffer, TMgmtParser* p, int fd);
+typedef int (*cmdHandler)(buffer* buffer, TMgmtParser* p, int fd);
 
 static uint8_t isValidCmd(uint8_t cmd) {
     return cmd <= MGMT_CMD_STATISTICS;
@@ -401,15 +476,18 @@ static cmdHandler handlers[] = {
     /* MGMT_CMD_SET_AUTHENTICATION_STATUS,  */ handleSetAuthenticationStatusCmdResponse,
     /* MGMT_CMD_STATISTICS                  */ handleStatisticsCmdResponse};
 
+static uint8_t fillMgmtCmdAnswer(TMgmtParser* p, struct buffer* buffer, int fd) {
+    if (isValidCmd(p->cmd)) {
+        return handlers[p->cmd](buffer, p, fd);
+    } else {
+        logf(LOG_INFO, "Management client %d requested unknown command", fd);
+        return handleUnknownCmd(buffer, p);
+    }
+}
+
 void mgmtRequestWriteInit(const unsigned int st, TSelectorKey* key) {
     TMgmtClient* data = GET_ATTACHMENT(key);
-    buffer_init(&(data->writeBuffer), MGMT_BUFFER_SIZE, data->writeRawBuffer);
-    if (isValidCmd(data->cmd)) {
-        handlers[data->cmd](&data->writeBuffer, &data->client.cmdParser, key->fd);
-    } else {
-        logf(LOG_INFO, "Management client %d requested unknown command", key->fd);
-        handleUnknownCmd(&data->writeBuffer, &data->client.cmdParser);
-    }
+
 }
 
 unsigned mgmtRequestWrite(TSelectorKey* key) {
@@ -424,11 +502,6 @@ unsigned mgmtRequestWrite(TSelectorKey* key) {
     writeBuffer = buffer_read_ptr(&data->writeBuffer, &writeLimit);
     writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
     logf(LOG_DEBUG, "mgmtRequestWrite: sent %ld bytes", writeCount);
-
-    // ----
-
-    // writeBuffer = buffer_read_ptr(&data->writeBuffer, &writeLimit);
-    // writeCount = send(key->fd, writeBuffer, writeLimit, MSG_NOSIGNAL);
 
     if (writeCount < 0) {
         logf(LOG_ERROR, "mgmtRequestWrite: send() at fd %d", key->fd);

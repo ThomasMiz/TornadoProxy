@@ -104,11 +104,6 @@ bool hasMgmtCmdErrors(TMgmtParser* p) {
     return p->state == MGMTP_ERROR;
 }
 
-uint8_t fillMgmtCmdAnswer(TMgmtParser* p, struct buffer* buffer) {
-    buffer_write(buffer, p->cmd + '0');
-    return 0;
-}
-
 /*Should not happen*/
 static TMgmtState parseEnd(TMgmtParser* p, uint8_t c) {
     logf(LOG_ERROR, "parseEnd: Trying to call negotiation parser in END/ERROR state with char: %c", c);
