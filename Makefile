@@ -1,25 +1,38 @@
 include ./Makefile.inc
 
-SOURCES=$(wildcard src/*.c src/negotiation/*.c src/auth/*.c src/request/*.c src/mgmt/*.c src/logging/*.c)
+SERVER_SOURCES=$(wildcard src/*.c src/negotiation/*.c src/auth/*.c src/request/*.c src/mgmt/*.c src/logging/*.c)
 CLIENT_SOURCES=$(wildcard src/client/*.c)
 
+SERVER_OBJECTS=$(SERVER_SOURCES:src/%.c=obj/%.o)
+CLIENT_OBJECTS=$(CLIENT_SOURCES:src/%.c=obj/%.o)
 
 OUTPUT_FOLDER=./bin
-OUTPUT_FILE=$(OUTPUT_FOLDER)/socks5v
-OUTPUT_CLIENT_FILE=$(OUTPUT_FOLDER)/client
+OBJECTS_FOLDER=./obj
 
-all:
-	mkdir -p $(OUTPUT_FOLDER)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(CLIENT_SOURCES) -o $(OUTPUT_CLIENT_FILE)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SOURCES) -o $(OUTPUT_FILE)
+SERVER_OUTPUT_FILE=$(OUTPUT_FOLDER)/socks5v
+CLIENT_OUTPUT_FILE=$(OUTPUT_FOLDER)/client
 
-mac:
-	mkdir -p $(OUTPUT_FOLDER)
-	$(CC) $(CFLAGSMAC) $(LDFLAGS) $(CLIENT_SOURCES) -o $(OUTPUT_CLIENT_FILE)
-	$(CC) $(CFLAGSMAC) $(LDFLAGS) $(SOURCES) -o $(OUTPUT_FILE)
+all: server client
+
+server: $(SERVER_OUTPUT_FILE)
+client: $(CLIENT_OUTPUT_FILE)
+
+$(SERVER_OUTPUT_FILE): $(SERVER_OBJECTS)
+	mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SERVER_OBJECTS) -o $(SERVER_OUTPUT_FILE)
+
+$(CLIENT_OUTPUT_FILE): $(CLIENT_OBJECTS)
+	mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(CLIENT_OBJECTS) -o $(CLIENT_OUTPUT_FILE)
+
+obj/%.o: src/%.c
+	mkdir -p $(@D)
+	$(CC) $(GCCFLAGS) -c $< -o $@
+
 
 clean:
 	rm -rf $(OUTPUT_FOLDER)
+	rm -rf $(OBJECTS_FOLDER)
 
 check:
 	mkdir -p check
@@ -32,4 +45,4 @@ check:
 	rm PVS-Studio.log
 	mv strace_out check
 
-.PHONY: all clean check
+.PHONY: all server client clean check
