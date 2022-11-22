@@ -49,6 +49,7 @@ usage(const char* progname) {
             "\n"
             "   -h               Prints this help menu and then exits.\n"
             "   -l <SOCKS addr>  Specifies the source address for the socks5 server. This may be an IPv4 or IPv6 address.\n"
+            "   -N               Deshabilita el passwords dissectors.\n"
             "   -L <conf addr>   Specifies the source address for the management server. This may be an IPv4 or IPv6 address.\n"
             "   -p <SOCKS port>  Specifies the source port for the socks5 server.\n"
             "   -P <conf port>   Specifies the source port for the management server.\n"
@@ -65,7 +66,7 @@ void parse_args(const int argc, char** argv, struct socks5args* args) {
     args->socksAddr = "::";
     args->socksPort = 1080;
 
-    args->mngAddr = "::";
+    args->mngAddr = "::1";
     args->mngPort = 8080;
 
     args->disectorsEnabled = true;
